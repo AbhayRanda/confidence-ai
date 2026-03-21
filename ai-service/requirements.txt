@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+opencv-python
+mediapipe
+openai-whisper
+moviepy
+imageio
+imageio-ffmpeg
+passlib
+bcrypt
+sqlalchemy
+python-multipart
+python-dotenv
+pydantic
+pydantic-settings

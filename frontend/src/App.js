@@ -6,6 +6,7 @@ import VerifyOTP from "./pages/VerifyOTP";
 import Dashboard from "./pages/Dashboard";
 import AIDashboard from "./pages/AIDashboard";
 import Resources from "./pages/Resources";
+import VideoAnalytics from "./pages/VideoAnalytics";
 function AppWrapper() {
   const location = useLocation();
 
@@ -23,7 +24,7 @@ function AppWrapper() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/ai" element={<AIDashboard />} />
           <Route path="/resources" element={<Resources />} />
-
+          <Route path="/video/:id" element={<VideoAnalytics />} />
         </Routes>
       </div>
   );

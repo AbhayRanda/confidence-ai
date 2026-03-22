@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Chart as ChartJS,
   LineElement,
@@ -23,6 +24,7 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
 const AUTO_REFRESH_INTERVAL = 5000; // Refresh every 5 seconds
 
 function Dashboard() {
+  const navigate = useNavigate();
   const [dataPoints, setDataPoints] = useState([]);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -358,8 +360,9 @@ function Dashboard() {
 
       {/* SESSION TABLE */}
       <div style={styles.tableCard}>
-        <h3>📋 Full Session History</h3>
-        <table style={styles.table}>
+        <h3 style={{fontSize: "clamp(16px, 3vw, 18px)", fontWeight: "700", marginTop: "0"}}>📋 Full Session History</h3>
+        <div style={{overflowX: "auto", WebkitOverflowScrolling: "touch"}}>
+          <table style={styles.table}>
           <thead>
             <tr>
               <th style={styles.th}>Session</th>
@@ -394,26 +397,36 @@ function Dashboard() {
                 <td style={styles.td}>{new Date(d.created_at).toLocaleDateString()}</td>
                 <td style={styles.td}>
   {d.video_path ? (
-    <video width="120" controls>
+    <video width="100" height="75" controls style={{maxWidth: "100%", borderRadius: "6px"}}>
       {/* Make sure /uploads/ is right here in the middle! */}
       <source src={`${API_BASE_URL}/uploads/${d.video_path}`} />
     </video>
   ) : (
-    <span style={{ opacity: 0.6 }}>No Video</span>
+    <span style={{ opacity: 0.6, fontSize: "clamp(11px, 1.2vw, 12px)" }}>No Video</span>
   )}
 </td>
                 <td style={styles.td}>
-                  <button
-                    style={styles.deleteBtn}
-                    onClick={() => handleDelete(d.id)}
-                  >
-                    Delete
-                  </button>
+                  <div style={{ display: "flex", gap: "8px", flexDirection: "column" }}>
+                    <button
+                      style={styles.analyticsBtn}
+                      onClick={() => navigate(`/video/${d.id}`)}
+                      title="View detailed analytics"
+                    >
+                      📊 Analytics
+                    </button>
+                    <button
+                      style={styles.deleteBtn}
+                      onClick={() => handleDelete(d.id)}
+                    >
+                      🗑️ Delete
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );
@@ -439,13 +452,13 @@ function ProgressSummary({ progress }) {
         </div>
       </div>
       <div style={{...styles.improvementCard, background: parseFloat(progress.improvementPercent) >= 0 ? "rgba(0, 255, 153, 0.1)" : "rgba(255, 107, 157, 0.1)"}}>
-        <div style={{fontSize: "40px", marginBottom: "8px"}}>
+        <div style={{fontSize: "clamp(28px, 6vw, 40px)", marginBottom: "8px"}}>
           {parseFloat(progress.improvementPercent) >= 0 ? "📈" : "📉"}
         </div>
-        <div style={{fontSize: "28px", fontWeight: "700", color: parseFloat(progress.improvementPercent) >= 0 ? "#00ff99" : "#ff6b9d"}}>
+        <div style={{fontSize: "clamp(20px, 5vw, 28px)", fontWeight: "700", color: parseFloat(progress.improvementPercent) >= 0 ? "#00ff99" : "#ff6b9d"}}>
           {parseFloat(progress.improvementPercent) >= 0 ? "+" : ""}{progress.improvement}
         </div>
-        <div style={{fontSize: "12px", color: parseFloat(progress.improvementPercent) >= 0 ? "#00ff99" : "#ff6b9d", fontWeight: "700"}}>
+        <div style={{fontSize: "clamp(10px, 1.5vw, 12px)", color: parseFloat(progress.improvementPercent) >= 0 ? "#00ff99" : "#ff6b9d", fontWeight: "700"}}>
           {Math.abs(progress.improvementPercent)}% IMPROVEMENT
         </div>
       </div>
@@ -461,9 +474,9 @@ function AchievementBadges({ achievements }) {
       <div style={styles.badgesGrid}>
         {achievements.map((ach, idx) => (
           <div key={idx} style={styles.badge}>
-            <div style={{fontSize: "32px", marginBottom: "8px"}}>{ach.icon}</div>
-            <div style={{fontSize: "13px", fontWeight: "700"}}>{ach.title}</div>
-            <div style={{fontSize: "11px", opacity: "0.7", marginTop: "4px"}}>{ach.desc}</div>
+            <div style={{fontSize: "clamp(24px, 5vw, 32px)", marginBottom: "8px"}}>{ach.icon}</div>
+            <div style={{fontSize: "clamp(12px, 1.5vw, 13px)", fontWeight: "700"}}>{ach.title}</div>
+            <div style={{fontSize: "clamp(10px, 1.2vw, 11px)", opacity: "0.7", marginTop: "4px"}}>{ach.desc}</div>
           </div>
         ))}
       </div>
@@ -487,18 +500,18 @@ function ComprehensiveStats({ stats, latest }) {
       <div style={styles.metricsGrid}>
         {metrics.map((metric, idx) => (
           <div key={idx} style={styles.metricBox}>
-            <h4 style={{margin: "0 0 12px 0", fontSize: "14px", fontWeight: "700"}}>{metric.name}</h4>
+            <h4 style={{margin: "0 0 clamp(8px, 1.5vw, 12px) 0", fontSize: "clamp(13px, 1.5vw, 14px)", fontWeight: "700"}}>{metric.name}</h4>
             <div style={styles.statRow}>
-              <span style={{fontSize: "12px", opacity: "0.7"}}>Current</span>
-              <span style={{fontSize: "18px", fontWeight: "700", color: "#00f5ff"}}>{metric.current?.toFixed(0)}%</span>
+              <span style={{fontSize: "clamp(10px, 1.1vw, 12px)", opacity: "0.7"}}>Current</span>
+              <span style={{fontSize: "clamp(14px, 2vw, 18px)", fontWeight: "700", color: "#00f5ff"}}>{metric.current?.toFixed(0)}%</span>
             </div>
             <div style={styles.statRow}>
-              <span style={{fontSize: "12px", opacity: "0.7"}}>Best</span>
-              <span style={{fontSize: "16px", fontWeight: "700", color: "#00ff99"}}>{metric.best?.toFixed(0)}%</span>
+              <span style={{fontSize: "clamp(10px, 1.1vw, 12px)", opacity: "0.7"}}>Best</span>
+              <span style={{fontSize: "clamp(12px, 1.8vw, 16px)", fontWeight: "700", color: "#00ff99"}}>{metric.best?.toFixed(0)}%</span>
             </div>
             <div style={styles.statRow}>
-              <span style={{fontSize: "12px", opacity: "0.7"}}>Average</span>
-              <span style={{fontSize: "14px", fontWeight: "700", opacity: "0.8"}}>{metric.avg}%</span>
+              <span style={{fontSize: "clamp(10px, 1.1vw, 12px)", opacity: "0.7"}}>Average</span>
+              <span style={{fontSize: "clamp(11px, 1.5vw, 14px)", fontWeight: "700", opacity: "0.8"}}>{metric.avg}%</span>
             </div>
             <div style={styles.progressBarSmall}>
               <div style={{...styles.progressFill, width: `${metric.current}%`, background: "#00f5ff"}}></div>
@@ -518,9 +531,9 @@ function SmartRecommendations({ recommendations }) {
       <div style={styles.recsGrid}>
         {recommendations.map((rec, idx) => (
           <div key={idx} style={styles.recCard}>
-            <div style={{fontSize: "32px", marginBottom: "8px"}}>{rec.icon}</div>
-            <h4 style={{margin: "0 0 6px 0", fontSize: "14px", fontWeight: "700"}}>{rec.title}</h4>
-            <p style={{margin: "0", fontSize: "12px", opacity: "0.8", lineHeight: "1.4"}}>{rec.desc}</p>
+            <div style={{fontSize: "clamp(24px, 5vw, 32px)", marginBottom: "8px"}}>{rec.icon}</div>
+            <h4 style={{margin: "0 0 6px 0", fontSize: "clamp(13px, 1.5vw, 14px)", fontWeight: "700"}}>{rec.title}</h4>
+            <p style={{margin: "0", fontSize: "clamp(11px, 1.3vw, 12px)", opacity: "0.8", lineHeight: "1.4"}}>{rec.desc}</p>
           </div>
         ))}
       </div>
@@ -531,22 +544,22 @@ function SmartRecommendations({ recommendations }) {
 function BestSessionCard({ session }) {
   return (
     <div style={styles.bestSessionCard}>
-      <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px"}}>
-        <h2 style={{margin: "0", fontSize: "18px", fontWeight: "700"}}>⭐ Your Best Performance</h2>
-        <div style={{fontSize: "36px"}}>🏆</div>
+      <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", gap: "12px", flexWrap: "wrap"}}>
+        <h2 style={{margin: "0", fontSize: "clamp(16px, 3vw, 18px)", fontWeight: "700"}}>⭐ Your Best Performance</h2>
+        <div style={{fontSize: "clamp(28px, 5vw, 36px)"}}>🏆</div>
       </div>
       <div style={styles.bestSessionStats}>
         <div>
-          <div style={{fontSize: "12px", opacity: "0.7", marginBottom: "4px"}}>Score</div>
-          <div style={{fontSize: "32px", fontWeight: "700", color: "#00ff99"}}>{session.confidence_score?.toFixed(1)}</div>
+          <div style={{fontSize: "clamp(10px, 1.2vw, 12px)", opacity: "0.7", marginBottom: "4px"}}>Score</div>
+          <div style={{fontSize: "clamp(24px, 5vw, 32px)", fontWeight: "700", color: "#00ff99"}}>{session.confidence_score?.toFixed(1)}</div>
         </div>
-        <div style={{borderLeft: "1px solid rgba(255,255,255,0.1)", paddingLeft: "20px"}}>
-          <div style={{fontSize: "12px", opacity: "0.7", marginBottom: "4px"}}>Date</div>
-          <div style={{fontSize: "14px", fontWeight: "600"}}>{new Date(session.created_at).toLocaleDateString()}</div>
+        <div style={{borderLeft: "1px solid rgba(255,255,255,0.1)", paddingLeft: "clamp(12px, 2vw, 20px)"}}>
+          <div style={{fontSize: "clamp(10px, 1.2vw, 12px)", opacity: "0.7", marginBottom: "4px"}}>Date</div>
+          <div style={{fontSize: "clamp(12px, 1.5vw, 14px)", fontWeight: "600"}}>{new Date(session.created_at).toLocaleDateString()}</div>
         </div>
-        <div style={{borderLeft: "1px solid rgba(255,255,255,0.1)", paddingLeft: "20px"}}>
-          <div style={{fontSize: "12px", opacity: "0.7", marginBottom: "4px"}}>Level</div>
-          <div style={{fontSize: "14px", fontWeight: "600", color: "#00f5ff"}}>{session.confidence_level}</div>
+        <div style={{borderLeft: "1px solid rgba(255,255,255,0.1)", paddingLeft: "clamp(12px, 2vw, 20px)"}}>
+          <div style={{fontSize: "clamp(10px, 1.2vw, 12px)", opacity: "0.7", marginBottom: "4px"}}>Level</div>
+          <div style={{fontSize: "clamp(12px, 1.5vw, 14px)", fontWeight: "600", color: "#00f5ff"}}>{session.confidence_level}</div>
         </div>
       </div>
     </div>
@@ -571,7 +584,7 @@ function DetailedSessionHistory({ dataPoints, latest, getTrend }) {
         {recentSessions.map((item, idx) => (
           <div key={idx} style={styles.sessionCard}>
             <div style={styles.sessionHeader}>
-              <h4 style={{margin: "0 0 8px 0", fontSize: "14px", fontWeight: "700"}}>Session #{dataPoints.length - idx}</h4>
+              <h4 style={{margin: "0 0 8px 0", fontSize: "clamp(13px, 1.5vw, 14px)", fontWeight: "700"}}>Session #{dataPoints.length - idx}</h4>
               <span style={{...styles.trendBadge, color: item.trend.direction === "📈" ? "#00ff99" : item.trend.direction === "📉" ? "#ff6b9d" : "#ffd166"}}>
                 {item.trend.direction} {Math.abs(item.trend.change)}
               </span>
@@ -579,11 +592,11 @@ function DetailedSessionHistory({ dataPoints, latest, getTrend }) {
             <div style={{...styles.scoreDisplay, color: parseFloat(item.session.confidence_score) >= 80 ? "#00ff99" : parseFloat(item.session.confidence_score) >= 60 ? "#00f5ff" : "#ff6b9d"}}>
               {item.session.confidence_score?.toFixed(1)}
             </div>
-            <p style={{margin: "8px 0 0 0", fontSize: "12px", opacity: "0.7"}}>
+            <p style={{margin: "8px 0 0 0", fontSize: "clamp(11px, 1.2vw, 12px)", opacity: "0.7"}}>
               {new Date(item.session.created_at).toLocaleDateString()}
             </p>
             {idx > 0 && (
-              <div style={{marginTop: "8px", paddingTop: "8px", borderTop: "1px solid rgba(255,255,255,0.1)", fontSize: "11px", opacity: "0.8"}}>
+              <div style={{marginTop: "8px", paddingTop: "8px", borderTop: "1px solid rgba(255,255,255,0.1)", fontSize: "clamp(10px, 1.1vw, 11px)", opacity: "0.8"}}>
                 {item.comparison > 0 ? "📈" : "📉"} {Math.abs(item.comparison).toFixed(2)} vs previous
               </div>
             )}
@@ -605,7 +618,7 @@ function Stat({ title, value, icon }) {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div style={{fontSize: "24px", marginBottom: "8px"}}>{icon}</div>
+      <div style={{fontSize: "clamp(18px, 4vw, 24px)", marginBottom: "8px"}}>{icon}</div>
       <p style={styles.statTitle}>{title}</p>
       <h2 style={styles.statValue}>{value}</h2>
     </div>
@@ -616,16 +629,16 @@ function Stat({ title, value, icon }) {
 const styles = {
   page: {
     minHeight: "100vh",
-    padding: "20px",
-    paddingTop: "40px",
+    padding: "clamp(16px, 4vw, 24px)",
+    paddingTop: "clamp(24px, 6vw, 40px)",
     background: "linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%)",
     color: "white",
     fontFamily: "'Segoe UI', 'Helvetica Neue', sans-serif",
   },
   title: {
     textAlign: "center",
-    marginBottom: "40px",
-    fontSize: "clamp(24px, 5vw, 42px)",
+    marginBottom: "clamp(24px, 6vw, 40px)",
+    fontSize: "clamp(28px, 7vw, 42px)",
     fontWeight: "700",
     letterSpacing: "-1px",
     background: "linear-gradient(135deg, #00f5ff, #00d4ff)",
@@ -635,21 +648,24 @@ const styles = {
   },
   headerWithRefresh: {
     display: "flex",
-    justifyContent: "space-between",
+    justifyContent: "center",
     alignItems: "center",
-    marginBottom: "40px",
+    marginBottom: "clamp(24px, 6vw, 40px)",
     flexWrap: "wrap",
-    gap: "20px",
+    gap: "clamp(12px, 3vw, 20px)",
+    maxWidth: "1200px",
+    margin: "0 auto clamp(24px, 6vw, 40px) auto",
   },
   refreshContainer: {
     display: "flex",
     alignItems: "center",
-    gap: "15px",
+    gap: "clamp(10px, 2vw, 15px)",
     flexWrap: "wrap",
+    justifyContent: "center",
   },
   refreshButton: {
-    padding: "10px 20px",
-    fontSize: "14px",
+    padding: "clamp(8px, 1.5vw, 10px) clamp(16px, 3vw, 20px)",
+    fontSize: "clamp(12px, 1.5vw, 14px)",
     fontWeight: "600",
     background: "linear-gradient(135deg, #00f5ff, #00d4ff)",
     color: "#0f2027",
@@ -658,23 +674,25 @@ const styles = {
     cursor: "pointer",
     transition: "all 0.3s ease",
     boxShadow: "0 4px 15px rgba(0, 245, 255, 0.3)",
+    whiteSpace: "nowrap",
   },
   lastUpdate: {
-    fontSize: "12px",
+    fontSize: "clamp(10px, 1.2vw, 12px)",
     color: "rgba(255, 255, 255, 0.7)",
-    padding: "5px 10px",
+    padding: "clamp(6px, 1vw, 8px) clamp(8px, 1.5vw, 10px)",
     backgroundColor: "rgba(0, 245, 255, 0.1)",
     borderRadius: "5px",
     border: "1px solid rgba(0, 245, 255, 0.2)",
+    whiteSpace: "nowrap",
   },
   progressSummary: {
     maxWidth: "1200px",
-    margin: "0 auto 40px auto",
+    margin: "0 auto clamp(24px, 6vw, 40px) auto",
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    gap: "40px",
-    padding: "30px",
+    gap: "clamp(20px, 4vw, 40px)",
+    padding: "clamp(20px, 4vw, 30px)",
     background: "linear-gradient(135deg, rgba(0, 245, 255, 0.1) 0%, rgba(0, 212, 255, 0.05) 100%)",
     backdropFilter: "blur(12px)",
     borderRadius: "20px",
@@ -682,8 +700,8 @@ const styles = {
     flexWrap: "wrap",
   },
   progressTitle: {
-    margin: "0 0 20px 0",
-    fontSize: "22px",
+    margin: "0 0 clamp(12px, 2vw, 20px) 0",
+    fontSize: "clamp(18px, 4vw, 22px)",
     fontWeight: "700",
     background: "linear-gradient(135deg, #00f5ff, #00d4ff)",
     WebkitBackgroundClip: "text",
@@ -693,8 +711,9 @@ const styles = {
   progressStats: {
     display: "flex",
     alignItems: "center",
-    gap: "20px",
+    gap: "clamp(12px, 2vw, 20px)",
     flexWrap: "wrap",
+    justifyContent: "center",
   },
   progressStat: {
     display: "flex",
@@ -702,37 +721,38 @@ const styles = {
     textAlign: "center",
   },
   progressLabel: {
-    fontSize: "12px",
+    fontSize: "clamp(10px, 1.2vw, 12px)",
     opacity: "0.7",
     textTransform: "uppercase",
     fontWeight: "700",
     marginBottom: "4px",
   },
   progressValue: {
-    fontSize: "32px",
+    fontSize: "clamp(24px, 5vw, 32px)",
     fontWeight: "700",
     color: "#00f5ff",
   },
   progressArrow: {
-    fontSize: "24px",
+    fontSize: "clamp(18px, 4vw, 24px)",
     color: "#00f5ff",
     opacity: "0.6",
   },
   improvementCard: {
-    padding: "24px",
+    padding: "clamp(16px, 3vw, 24px)",
     borderRadius: "12px",
     border: "1px solid rgba(0, 255, 153, 0.3)",
     textAlign: "center",
-    minWidth: "140px",
+    minWidth: "clamp(120px, 25vw, 180px)",
   },
   achievementSection: {
     maxWidth: "1200px",
-    margin: "0 auto 40px auto",
+    margin: "0 auto clamp(24px, 6vw, 40px) auto",
+    padding: "0 clamp(12px, 2vw, 20px)",
   },
   sectionTitle: {
-    fontSize: "22px",
+    fontSize: "clamp(18px, 4vw, 22px)",
     fontWeight: "700",
-    marginBottom: "20px",
+    marginBottom: "clamp(12px, 2vw, 20px)",
     background: "linear-gradient(135deg, #00f5ff, #00d4ff)",
     WebkitBackgroundClip: "text",
     WebkitTextFillColor: "transparent",
@@ -740,30 +760,31 @@ const styles = {
   },
   badgesGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
-    gap: "16px",
+    gridTemplateColumns: "repeat(auto-fit, minmax(clamp(100px, 20vw, 140px), 1fr))",
+    gap: "clamp(12px, 2vw, 16px)",
   },
   badge: {
     background: "rgba(0, 245, 255, 0.1)",
     backdropFilter: "blur(12px)",
     border: "2px solid rgba(0, 245, 255, 0.3)",
     borderRadius: "12px",
-    padding: "20px",
+    padding: "clamp(12px, 2vw, 20px)",
     textAlign: "center",
     transition: "all 0.3s ease",
   },
   grid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-    gap: "16px",
-    marginBottom: "40px",
+    gridTemplateColumns: "repeat(auto-fit, minmax(clamp(160px, 20vw, 200px), 1fr))",
+    gap: "clamp(12px, 2vw, 16px)",
+    marginBottom: "clamp(24px, 6vw, 40px)",
     maxWidth: "1200px",
-    margin: "0 auto 40px auto",
+    margin: "0 auto clamp(24px, 6vw, 40px) auto",
+    padding: "0 clamp(12px, 2vw, 20px)",
   },
   statCard: {
     background: "rgba(255,255,255,0.08)",
     backdropFilter: "blur(16px)",
-    padding: "24px 20px",
+    padding: "clamp(16px, 3vw, 24px) clamp(12px, 2vw, 20px)",
     borderRadius: "16px",
     textAlign: "center",
     border: "1px solid rgba(0, 245, 255, 0.15)",
@@ -779,16 +800,16 @@ const styles = {
   },
   statTitle: {
     opacity: 0.7,
-    marginBottom: "12px",
-    fontSize: "13px",
+    marginBottom: "clamp(8px, 1vw, 12px)",
+    fontSize: "clamp(11px, 1.2vw, 13px)",
     textTransform: "uppercase",
     letterSpacing: "0.8px",
     fontWeight: "600",
-    margin: "0 0 12px 0",
+    margin: "0 0 clamp(8px, 1vw, 12px) 0",
   },
   statValue: {
     margin: 0,
-    fontSize: "28px",
+    fontSize: "clamp(20px, 4vw, 28px)",
     fontWeight: "700",
     background: "linear-gradient(135deg, #00f5ff, #00d4ff)",
     WebkitBackgroundClip: "text",
@@ -798,26 +819,26 @@ const styles = {
   glassCard: {
     background: "rgba(255,255,255,0.08)",
     backdropFilter: "blur(20px)",
-    padding: "30px",
+    padding: "clamp(20px, 4vw, 30px)",
     borderRadius: "20px",
-    marginBottom: "40px",
+    marginBottom: "clamp(24px, 6vw, 40px)",
     boxShadow: "0 8px 32px rgba(0, 245, 255, 0.1)",
     border: "1px solid rgba(255,255,255,0.12)",
     animation: "slideDown 0.5s ease",
     maxWidth: "1200px",
-    margin: "0 auto 40px auto",
+    margin: "0 auto clamp(24px, 6vw, 40px) auto",
   },
   chartTitle: {
-    fontSize: "20px",
+    fontSize: "clamp(16px, 3vw, 20px)",
     fontWeight: "700",
-    marginBottom: "20px",
+    marginBottom: "clamp(12px, 2vw, 20px)",
     color: "#00f5ff",
-    margin: "0 0 20px 0",
+    margin: "0 0 clamp(12px, 2vw, 20px) 0",
   },
   statsSection: {
     maxWidth: "1200px",
-    margin: "0 auto 40px auto",
-    padding: "30px",
+    margin: "0 auto clamp(24px, 6vw, 40px) auto",
+    padding: "clamp(20px, 4vw, 30px)",
     background: "rgba(255,255,255,0.04)",
     backdropFilter: "blur(12px)",
     borderRadius: "20px",
@@ -825,14 +846,14 @@ const styles = {
   },
   metricsGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-    gap: "16px",
+    gridTemplateColumns: "repeat(auto-fit, minmax(clamp(150px, 20vw, 180px), 1fr))",
+    gap: "clamp(12px, 2vw, 16px)",
   },
   metricBox: {
     background: "rgba(0, 245, 255, 0.08)",
     border: "1px solid rgba(0, 245, 255, 0.2)",
     borderRadius: "12px",
-    padding: "16px",
+    padding: "clamp(12px, 2vw, 16px)",
   },
   statRow: {
     display: "flex",
@@ -853,8 +874,8 @@ const styles = {
   },
   recsSection: {
     maxWidth: "1200px",
-    margin: "0 auto 40px auto",
-    padding: "30px",
+    margin: "0 auto clamp(24px, 6vw, 40px) auto",
+    padding: "clamp(20px, 4vw, 30px)",
     background: "rgba(255, 107, 157, 0.05)",
     backdropFilter: "blur(12px)",
     borderRadius: "20px",
@@ -862,21 +883,21 @@ const styles = {
   },
   recsGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-    gap: "16px",
+    gridTemplateColumns: "repeat(auto-fit, minmax(clamp(160px, 20vw, 200px), 1fr))",
+    gap: "clamp(12px, 2vw, 16px)",
   },
   recCard: {
     background: "rgba(255,255,255,0.06)",
     border: "1px solid rgba(255, 107, 157, 0.3)",
     borderRadius: "12px",
-    padding: "20px",
+    padding: "clamp(16px, 3vw, 20px)",
     textAlign: "center",
     transition: "all 0.3s ease",
   },
   bestSessionCard: {
     maxWidth: "1200px",
-    margin: "0 auto 40px auto",
-    padding: "30px",
+    margin: "0 auto clamp(24px, 6vw, 40px) auto",
+    padding: "clamp(20px, 4vw, 30px)",
     background: "linear-gradient(135deg, rgba(0, 255, 153, 0.1) 0%, rgba(0, 212, 255, 0.1) 100%)",
     backdropFilter: "blur(12px)",
     borderRadius: "20px",
@@ -884,71 +905,74 @@ const styles = {
   },
   bestSessionStats: {
     display: "flex",
-    gap: "20px",
+    gap: "clamp(12px, 2vw, 20px)",
     alignItems: "center",
     flexWrap: "wrap",
   },
   sessionInsightSection: {
     maxWidth: "1200px",
-    margin: "0 auto 40px auto",
+    margin: "0 auto clamp(24px, 6vw, 40px) auto",
+    padding: "0 clamp(12px, 2vw, 20px)",
   },
   sessionCardsGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-    gap: "16px",
+    gridTemplateColumns: "repeat(auto-fit, minmax(clamp(160px, 20vw, 200px), 1fr))",
+    gap: "clamp(12px, 2vw, 16px)",
   },
   sessionCard: {
     background: "rgba(255,255,255,0.06)",
     border: "1px solid rgba(0, 245, 255, 0.2)",
     borderRadius: "12px",
-    padding: "20px",
+    padding: "clamp(16px, 3vw, 20px)",
     transition: "all 0.3s ease",
   },
   sessionHeader: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: "12px",
+    marginBottom: "clamp(8px, 1.5vw, 12px)",
   },
   trendBadge: {
     padding: "4px 8px",
     borderRadius: "6px",
-    fontSize: "12px",
+    fontSize: "clamp(10px, 1.2vw, 12px)",
     fontWeight: "700",
   },
   scoreDisplay: {
-    fontSize: "28px",
+    fontSize: "clamp(20px, 4vw, 28px)",
     fontWeight: "700",
     marginBottom: "8px",
   },
   tableCard: {
     background: "rgba(255,255,255,0.06)",
     backdropFilter: "blur(12px)",
-    padding: "30px",
+    padding: "clamp(16px, 3vw, 30px)",
     borderRadius: "16px",
     border: "1px solid rgba(255,255,255,0.1)",
     boxShadow: "0 8px 32px rgba(0, 0, 0, 0.2)",
     overflowX: "auto",
     maxWidth: "1200px",
     margin: "0 auto",
+    WebkitOverflowScrolling: "touch",
   },
   table: {
     width: "100%",
     borderCollapse: "collapse",
-    marginTop: "20px",
+    marginTop: "clamp(12px, 2vw, 20px)",
+    fontSize: "clamp(12px, 1.5vw, 14px)",
   },
   th: {
     textAlign: "left",
-    padding: "16px",
+    padding: "clamp(10px, 2vw, 16px)",
     borderBottom: "2px solid rgba(0, 245, 255, 0.2)",
     fontWeight: "700",
     textTransform: "uppercase",
-    fontSize: "12px",
+    fontSize: "clamp(10px, 1.2vw, 12px)",
     letterSpacing: "0.8px",
     color: "rgba(0, 245, 255, 0.9)",
   },
   td: {
-    padding: "16px",
+    padding: "clamp(10px, 2vw, 16px)",
     borderBottom: "1px solid rgba(255,255,255,0.08)",
   },
   high: {
@@ -978,14 +1002,28 @@ const styles = {
   deleteBtn: {
     background: "linear-gradient(135deg, #ff4d6d, #ff6b9d)",
     border: "none",
-    padding: "8px 16px",
+    padding: "clamp(6px, 1vw, 8px) clamp(12px, 2vw, 16px)",
     borderRadius: "8px",
     color: "white",
     cursor: "pointer",
     fontWeight: "700",
-    fontSize: "12px",
+    fontSize: "clamp(10px, 1.2vw, 12px)",
     transition: "all 0.3s ease",
     boxShadow: "0 4px 12px rgba(255, 77, 109, 0.3)",
+    textTransform: "uppercase",
+    letterSpacing: "0.5px",
+  },
+  analyticsBtn: {
+    background: "linear-gradient(135deg, #00f5ff, #00d4ff)",
+    border: "none",
+    padding: "clamp(6px, 1vw, 8px) clamp(12px, 2vw, 16px)",
+    borderRadius: "8px",
+    color: "#0f2027",
+    cursor: "pointer",
+    fontWeight: "700",
+    fontSize: "clamp(10px, 1.2vw, 12px)",
+    transition: "all 0.3s ease",
+    boxShadow: "0 4px 12px rgba(0, 245, 255, 0.3)",
     textTransform: "uppercase",
     letterSpacing: "0.5px",
   },
@@ -993,23 +1031,25 @@ const styles = {
     background: "rgba(255, 77, 77, 0.15)",
     border: "1px solid rgba(255, 77, 77, 0.5)",
     color: "#ff9999",
-    padding: "16px 20px",
+    padding: "clamp(12px, 2vw, 16px) clamp(14px, 3vw, 20px)",
     borderRadius: "12px",
-    marginBottom: "20px",
+    marginBottom: "clamp(12px, 2vw, 20px)",
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
     backdropFilter: "blur(10px)",
     animation: "slideDown 0.3s ease",
     maxWidth: "1200px",
-    margin: "0 auto 20px auto",
+    margin: "0 auto clamp(12px, 2vw, 20px) auto",
+    gap: "10px",
+    flexWrap: "wrap",
   },
   closeButton: {
     background: "none",
     border: "none",
     color: "#ff9999",
     cursor: "pointer",
-    fontSize: "18px",
+    fontSize: "clamp(14px, 2vw, 18px)",
     fontWeight: "bold",
     padding: "0 8px",
     transition: "all 0.2s ease",

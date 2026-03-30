@@ -3,7 +3,10 @@ import { Link } from "react-router-dom";
 function Navbar() {
   return (
     <div style={styles.nav}>
-      <h2 style={{ margin: 0 }}>Confidence AI</h2>
+      <div style={styles.brand}>
+        <h2 style={styles.logo}>🎯 Confidence AI</h2>
+        <p style={styles.tagline}>Master Your Presence</p>
+      </div>
 
       <div style={styles.links}>
         <Link to="/dashboard" style={styles.link}>Dashboard</Link>
@@ -22,6 +25,28 @@ const styles = {
     padding: "15px 30px",
     background: "rgba(255,255,255,0.05)",
     backdropFilter: "blur(10px)",
+    borderBottom: "1px solid rgba(0, 245, 255, 0.1)",
+  },
+  brand: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+  },
+  logo: {
+    margin: 0,
+    fontSize: "18px",
+    fontWeight: "700",
+    background: "linear-gradient(135deg, #00f5ff, #00d4ff)",
+    WebkitBackgroundClip: "text",
+    WebkitTextFillColor: "transparent",
+    backgroundClip: "text",
+  },
+  tagline: {
+    margin: 0,
+    fontSize: "11px",
+    opacity: 0.6,
+    letterSpacing: "1px",
+    textTransform: "uppercase",
   },
   links: {
     display: "flex",
@@ -31,6 +56,8 @@ const styles = {
     textDecoration: "none",
     color: "white",
     fontWeight: "500",
+    transition: "all 0.3s ease",
+    fontSize: "14px",
   },
 };
 

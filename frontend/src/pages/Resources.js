@@ -35,7 +35,8 @@ function Resources() {
   return (
     <div style={styles.page}>
       <div style={styles.header}>
-        <h1 style={styles.title}>🎯 Confidence Building Guide</h1>
+        <span style={styles.purposeTag}>📚 Learning Resources</span>
+        <h1 style={styles.title}>Confidence Building Guide</h1>
         <p style={styles.subtitle}>Master the 4 pillars of confident presentation</p>
         <p style={styles.description}>Each section below shows what to do and what to avoid, plus actionable tips to improve. Practice makes perfect!</p>
       </div>
@@ -303,6 +304,20 @@ const styles = {
     background: "linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%)",
     color: "white",
     fontFamily: "'Segoe UI', 'Helvetica Neue', sans-serif",
+  },
+
+  purposeTag: {
+    display: "inline-block",
+    background: "rgba(0, 245, 255, 0.15)",
+    border: "1px solid rgba(0, 245, 255, 0.4)",
+    color: "#00f5ff",
+    padding: "8px 16px",
+    borderRadius: "20px",
+    fontSize: "12px",
+    fontWeight: "700",
+    letterSpacing: "0.8px",
+    marginBottom: "16px",
+    textTransform: "uppercase",
   },
 
   header: {

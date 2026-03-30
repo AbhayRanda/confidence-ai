@@ -105,8 +105,8 @@ function Signup() {
   return (
     <div style={styles.page}>
       <div style={styles.container}>
-        <h1 style={styles.title}>Create Account</h1>
-        <p style={styles.subtitle}>Join AI Confidence Dashboard</p>
+        <h2 style={styles.title}>Join Confidence AI</h2>
+        <p style={styles.subtitle}>Start analyzing and improving your confidence today</p>
 
         {/* Error Message */}
         {error && (
@@ -206,13 +206,10 @@ const styles = {
     animation: "fadeIn 0.5s ease",
   },
   title: {
-    fontSize: "32px",
+    fontSize: "28px",
     fontWeight: "700",
     margin: "0 0 8px 0",
-    background: "linear-gradient(135deg, #00f5ff, #00d4ff)",
-    WebkitBackgroundClip: "text",
-    WebkitTextFillColor: "transparent",
-    backgroundClip: "text",
+    color: "#fff",
     letterSpacing: "-0.5px",
   },
   subtitle: {

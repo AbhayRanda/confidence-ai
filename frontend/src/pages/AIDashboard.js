@@ -25,6 +25,7 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
 const API_ENDPOINTS = {
   dashboard: `${API_BASE_URL}/dashboard`,
   analyze: `${API_BASE_URL}/analyze`,
+  storage: `${API_BASE_URL}/storage`,
 };
 
 function AIDashboard() {
@@ -36,6 +37,8 @@ function AIDashboard() {
   const [recordedBlob, setRecordedBlob] = useState(null);
   const [error, setError] = useState(null);
   const [currentStream, setCurrentStream] = useState(null);
+  const [storageInfo, setStorageInfo] = useState(null);
+  const [storageLoading, setStorageLoading] = useState(false);
 
   const timerRef = useRef(null);
   const mediaRecorderRef = useRef(null);
@@ -97,8 +100,31 @@ const fetchDashboard = useCallback(() => {
   });
 }, []);
 
+const fetchStorage = useCallback(() => {
+  setStorageLoading(true);
+  const userId = localStorage.getItem("user_id");
+  fetch(API_ENDPOINTS.storage, {
+    headers: {
+      "X-User-ID": userId || "",
+    },
+  })
+    .then((res) => {
+      if (!res.ok) throw new Error("Failed to fetch storage info");
+      return res.json();
+    })
+    .then((data) => {
+      setStorageInfo(data);
+      setStorageLoading(false);
+    })
+    .catch((err) => {
+      console.error("Storage fetch error:", err);
+      setStorageLoading(false);
+    });
+}, []);
+
 useEffect(() => {
   fetchDashboard();
+  fetchStorage();
 
   // Cleanup: Stop recording and clear timers on unmount only
   return () => {
@@ -107,7 +133,7 @@ useEffect(() => {
       mediaRecorderRef.current.stop();
     }
   };
-}, [fetchDashboard]);
+}, [fetchDashboard, fetchStorage]);
 
   // 🎥 START RECORDING
   const startRecording = async () => {
@@ -171,7 +197,18 @@ useEffect(() => {
 
       // ⏱ START TIMER
       timerRef.current = setInterval(() => {
-        setRecordingTime((prev) => prev + 1);
+        setRecordingTime((prev) => {
+          const newTime = prev + 1;
+          // Stop recording after 30 seconds
+          if (newTime >= 30) {
+            if (mediaRecorderRef.current?.state === "recording") {
+              mediaRecorderRef.current.stop();
+              setRecording(false);
+              clearInterval(timerRef.current);
+            }
+          }
+          return newTime;
+        });
       }, 1000);
     } catch (err) {
       console.error("Recording error:", err);
@@ -225,15 +262,24 @@ useEffect(() => {
       });
 
       if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        // Check for storage limit error (413 Payload Too Large)
+        if (response.status === 413) {
+          setError(`❌ ${errorData.detail || "Storage limit reached (500 MB). Please delete old videos to upload new ones."}`);
+          fetchStorage(); // Refresh storage info
+          setLoading(false);
+          return;
+        }
+        throw new Error(errorData.detail || `Server error: ${response.status}`);
       }
 
       console.log("Analysis complete, fetching updated dashboard...");
       
-      // Wait for dashboard to update
+      // Wait for dashboard to update and refresh storage
       try {
         const updatedData = await fetchDashboard();
         console.log("Dashboard updated successfully");
+        fetchStorage(); // Refresh storage info after successful upload
       } catch (dashErr) {
         console.error("Error refreshing dashboard:", dashErr);
       }
@@ -308,9 +354,38 @@ useEffect(() => {
     return metrics.sort((a, b) => a.value - b.value).slice(0, 3);
   }, [latest]);
 
+  // 📹 VALIDATE VIDEO DURATION
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const video = document.createElement("video");
+    video.onloadedmetadata = () => {
+      const duration = video.duration;
+      if (duration > 30) {
+        setError(`❌ Video is ${Math.ceil(duration)} seconds. Maximum allowed is 30 seconds.`);
+        e.target.value = ""; // Reset file input
+        setSelectedFile(null);
+      } else {
+        setSelectedFile(file);
+        setError(null);
+      }
+    };
+    video.onerror = () => {
+      setError("❌ Unable to read video file. Please select a valid video.");
+      e.target.value = "";
+      setSelectedFile(null);
+    };
+    video.src = URL.createObjectURL(file);
+  };
+
   return (
     <div style={styles.page}>
-      <h1 style={styles.title}>AI Confidence Dashboard</h1>
+      <div style={styles.headerSection}>
+        <span style={styles.purposeTag}>🎯 Practice & Analyze</span>
+        <h1 style={styles.title}>AI Confidence Trainer</h1>
+        <p style={styles.subtitle}>Record yourself presenting, speaking, or pitching ideas. Get instant AI-powered feedback on your confidence metrics.</p>
+      </div>
 
       {/* Error Message Display */}
       {error && (
@@ -322,6 +397,33 @@ useEffect(() => {
           >
             ✕
           </button>
+        </div>
+      )}
+
+      {/* STORAGE METER */}
+      {storageInfo && (
+        <div style={styles.storageCard}>
+          <div style={styles.storageHeader}>
+            <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "600" }}>💾 Storage Usage</h3>
+            <span style={{ fontSize: "14px", opacity: "0.8" }}>{storageInfo.used_mb} MB / {storageInfo.limit_mb} MB</span>
+          </div>
+          <div style={styles.storageBarContainer}>
+            <div 
+              style={{
+                ...styles.storageBar,
+                width: `${Math.min(storageInfo.percentage, 100)}%`,
+                backgroundColor: storageInfo.percentage >= 90 ? "#ff6b9d" : storageInfo.percentage >= 70 ? "#ffaa00" : "#00ff99"
+              }}
+            />
+          </div>
+          <div style={styles.storageText}>
+            {storageInfo.percentage >= 100 
+              ? "❌ Storage limit reached. Delete old videos to upload new ones." 
+              : storageInfo.percentage >= 90
+              ? `⚠️ ${(100 - storageInfo.percentage).toFixed(1)} MB remaining`
+              : `✅ ${storageInfo.available_mb} MB available`
+            }
+          </div>
         </div>
       )}
 
@@ -362,7 +464,7 @@ useEffect(() => {
         <input
           type="file"
           accept="video/*"
-          onChange={(e) => setSelectedFile(e.target.files[0])}
+          onChange={handleFileSelect}
           style={styles.fileInput}
           disabled={loading}
         />
@@ -389,10 +491,10 @@ useEffect(() => {
       )}
 
       {/* CHART */}
-      <div style={styles.glassCard}>
+      {/* <div style={styles.glassCard}>
         <h2 style={styles.chartTitle}>📈 Progress Over Time</h2>
         <Line data={chartData} />
-      </div>
+      </div> */}
 
       {/* PERFORMANCE SUMMARY */}
       {latest && (
@@ -702,9 +804,35 @@ const styles = {
     color: "white",
     fontFamily: "'Segoe UI', 'Helvetica Neue', sans-serif",
   },
-  title: {
+  headerSection: {
     textAlign: "center",
     marginBottom: "40px",
+  },
+  purposeTag: {
+    display: "inline-block",
+    background: "rgba(0, 245, 255, 0.15)",
+    border: "1px solid rgba(0, 245, 255, 0.4)",
+    color: "#00f5ff",
+    padding: "8px 16px",
+    borderRadius: "20px",
+    fontSize: "12px",
+    fontWeight: "700",
+    letterSpacing: "0.8px",
+    marginBottom: "16px",
+    textTransform: "uppercase",
+  },
+  subtitle: {
+    fontSize: "16px",
+    opacity: 0.8,
+    margin: "16px 0 0 0",
+    lineHeight: "1.6",
+    maxWidth: "600px",
+    marginLeft: "auto",
+    marginRight: "auto",
+  },
+  title: {
+    textAlign: "center",
+    marginBottom: "0",
     fontSize: "clamp(24px, 5vw, 42px)",
     fontWeight: "700",
     letterSpacing: "-1px",
@@ -713,6 +841,7 @@ const styles = {
     WebkitTextFillColor: "transparent",
     backgroundClip: "text",
     textShadow: "0 0 30px rgba(0, 245, 255, 0.3)",
+    margin: "0",
   },
   recordingSection: {
     textAlign: "center",
@@ -1091,6 +1220,38 @@ const styles = {
     fontWeight: "bold",
     padding: "0 8px",
     transition: "all 0.2s ease",
+  },
+  storageCard: {
+    background: "rgba(0, 200, 150, 0.1)",
+    border: "1px solid rgba(0, 200, 150, 0.3)",
+    borderRadius: "12px",
+    padding: "16px 20px",
+    marginBottom: "20px",
+    backdropFilter: "blur(10px)",
+  },
+  storageHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "12px",
+  },
+  storageBarContainer: {
+    width: "100%",
+    height: "8px",
+    background: "rgba(255, 255, 255, 0.1)",
+    borderRadius: "4px",
+    overflow: "hidden",
+    marginBottom: "10px",
+  },
+  storageBar: {
+    height: "100%",
+    borderRadius: "4px",
+    transition: "width 0.3s ease, background-color 0.3s ease",
+  },
+  storageText: {
+    fontSize: "13px",
+    opacity: "0.85",
+    color: "#00ff99",
   },
   videoContainer: {
     textAlign: "center",

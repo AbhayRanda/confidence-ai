@@ -22,6 +22,10 @@ ChartJS.register(
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
 const AUTO_REFRESH_INTERVAL = 5000; // Refresh every 5 seconds
+const API_ENDPOINTS = {
+  dashboard: `${API_BASE_URL}/dashboard`,
+  storage: `${API_BASE_URL}/storage`,
+};
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -29,6 +33,7 @@ function Dashboard() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [lastUpdate, setLastUpdate] = useState(null);
+  const [storageInfo, setStorageInfo] = useState(null);
   const refreshIntervalRef = useRef(null);
 
   const fetchDashboard = useCallback(() => {
@@ -57,6 +62,25 @@ function Dashboard() {
       });
   }, []);
 
+  const fetchStorage = useCallback(() => {
+    const userId = localStorage.getItem("user_id");
+    fetch(API_ENDPOINTS.storage, {
+      headers: {
+        "X-User-ID": userId || "",
+      },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch storage info");
+        return res.json();
+      })
+      .then((data) => {
+        setStorageInfo(data);
+      })
+      .catch((err) => {
+        console.error("Storage fetch error:", err);
+      });
+  }, []);
+
   useEffect(() => {
     const style = document.createElement("style");
     style.textContent = `
@@ -77,10 +101,12 @@ function Dashboard() {
   useEffect(() => {
     // Fetch immediately on mount
     fetchDashboard();
+    fetchStorage();
 
     // Set up auto-refresh interval
     refreshIntervalRef.current = setInterval(() => {
       fetchDashboard();
+      fetchStorage();
     }, AUTO_REFRESH_INTERVAL);
 
     // Cleanup interval on unmount
@@ -89,7 +115,7 @@ function Dashboard() {
         clearInterval(refreshIntervalRef.current);
       }
     };
-  }, [fetchDashboard]);
+  }, [fetchDashboard, fetchStorage]);
 
   // Manual refresh function for button
   const handleManualRefresh = () => {
@@ -285,7 +311,14 @@ function Dashboard() {
   return (
     <div style={styles.page}>
       <div style={styles.headerWithRefresh}>
-        <h1 style={styles.title}>AI Performance Dashboard</h1>
+        <div style={styles.headerContent}>
+          <span style={styles.purposeTag}>📊 Session Analytics</span>
+          <h1 style={styles.title}>Your Confidence Analysis Dashboard</h1>
+          <p style={styles.headerDescription}>
+            Track your progress across all recorded sessions. View real-time confidence metrics including 
+            eye contact, posture, speech patterns, and overall performance scores.
+          </p>
+        </div>
         <div style={styles.refreshContainer}>
           <button
             onClick={handleManualRefresh}
@@ -320,6 +353,33 @@ function Dashboard() {
         </div>
       )}
 
+      {/* STORAGE METER */}
+      {storageInfo && (
+        <div style={styles.storageCard}>
+          <div style={styles.storageHeader}>
+            <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "600" }}>💾 Storage Usage</h3>
+            <span style={{ fontSize: "14px", opacity: "0.8" }}>{storageInfo.used_mb} MB / {storageInfo.limit_mb} MB</span>
+          </div>
+          <div style={styles.storageBarContainer}>
+            <div 
+              style={{
+                ...styles.storageBar,
+                width: `${Math.min(storageInfo.percentage, 100)}%`,
+                backgroundColor: storageInfo.percentage >= 90 ? "#ff6b9d" : storageInfo.percentage >= 70 ? "#ffaa00" : "#00ff99"
+              }}
+            />
+          </div>
+          <div style={styles.storageText}>
+            {storageInfo.percentage >= 100 
+              ? "❌ Storage limit reached. Delete old videos to upload new ones." 
+              : storageInfo.percentage >= 90
+              ? `⚠️ ${(100 - storageInfo.percentage).toFixed(1)} MB remaining`
+              : `✅ ${storageInfo.available_mb} MB available`
+            }
+          </div>
+        </div>
+      )}
+
       {/* PROGRESS SUMMARY WITH TRENDS */}
       {overallProgress && (
         <ProgressSummary progress={overallProgress} />
@@ -339,10 +399,10 @@ function Dashboard() {
       <AchievementBadges achievements={getAchievements()} />
 
       {/* CHART */}
-      <div style={styles.glassCard}>
+      {/* <div style={styles.glassCard}>
         <h2 style={styles.chartTitle}>📈 Confidence Trend Over Time</h2>
         <Line data={chartData} />
-      </div>
+      </div> */}
 
       {/* COMPREHENSIVE STATISTICS */}
       <ComprehensiveStats stats={getComprehensiveStats()} latest={latest} />
@@ -635,6 +695,32 @@ const styles = {
     color: "white",
     fontFamily: "'Segoe UI', 'Helvetica Neue', sans-serif",
   },
+  purposeTag: {
+    display: "inline-block",
+    background: "rgba(0, 245, 255, 0.15)",
+    border: "1px solid rgba(0, 245, 255, 0.4)",
+    color: "#00f5ff",
+    padding: "6px 12px",
+    borderRadius: "20px",
+    fontSize: "11px",
+    fontWeight: "700",
+    letterSpacing: "0.8px",
+    marginBottom: "12px",
+    textTransform: "uppercase",
+  },
+  headerContent: {
+    flex: 1,
+    textAlign: "center",
+  },
+  headerDescription: {
+    fontSize: "clamp(13px, 2vw, 15px)",
+    opacity: 0.8,
+    margin: "12px 0 0 0",
+    lineHeight: "1.6",
+    maxWidth: "600px",
+    marginLeft: "auto",
+    marginRight: "auto",
+  },
   title: {
     textAlign: "center",
     marginBottom: "clamp(24px, 6vw, 40px)",
@@ -645,16 +731,18 @@ const styles = {
     WebkitBackgroundClip: "text",
     WebkitTextFillColor: "transparent",
     backgroundClip: "text",
+    margin: "0",
   },
   headerWithRefresh: {
     display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
     marginBottom: "clamp(24px, 6vw, 40px)",
     flexWrap: "wrap",
     gap: "clamp(12px, 3vw, 20px)",
     maxWidth: "1200px",
     margin: "0 auto clamp(24px, 6vw, 40px) auto",
+    width: "100%",
   },
   refreshContainer: {
     display: "flex",
@@ -1053,6 +1141,40 @@ const styles = {
     fontWeight: "bold",
     padding: "0 8px",
     transition: "all 0.2s ease",
+  },
+  storageCard: {
+    background: "rgba(0, 200, 150, 0.1)",
+    border: "1px solid rgba(0, 200, 150, 0.3)",
+    borderRadius: "12px",
+    padding: "16px 20px",
+    marginBottom: "20px",
+    backdropFilter: "blur(10px)",
+    maxWidth: "1200px",
+    margin: "0 auto 20px auto",
+  },
+  storageHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "12px",
+  },
+  storageBarContainer: {
+    width: "100%",
+    height: "8px",
+    background: "rgba(255, 255, 255, 0.1)",
+    borderRadius: "4px",
+    overflow: "hidden",
+    marginBottom: "10px",
+  },
+  storageBar: {
+    height: "100%",
+    borderRadius: "4px",
+    transition: "width 0.3s ease, background-color 0.3s ease",
+  },
+  storageText: {
+    fontSize: "13px",
+    opacity: "0.85",
+    color: "#00ff99",
   },
 };
 

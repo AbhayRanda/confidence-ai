@@ -57,6 +57,42 @@ pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 # Initialize video analyzer
 video_analyzer = VideoAnalyzer()
 
+# Storage limit configuration
+STORAGE_LIMIT_MB = 500  # 500 MB per user
+STORAGE_LIMIT_BYTES = STORAGE_LIMIT_MB * 1024 * 1024
+
+
+def get_user_storage_usage(user_id: int) -> dict:
+    """
+    Calculate total storage usage for a user
+    Returns: {'used_bytes': int, 'used_mb': float, 'limit_mb': int, 'available_mb': float, 'percentage': float}
+    """
+    db = SessionLocal()
+    try:
+        # Get all videos for user
+        results = db.query(AnalysisResult).filter(AnalysisResult.user_id == user_id).all()
+        
+        total_bytes = 0
+        for result in results:
+            video_path = os.path.join(settings.upload_folder, result.video_path)
+            if os.path.exists(video_path):
+                total_bytes += os.path.getsize(video_path)
+        
+        used_mb = total_bytes / (1024 * 1024)
+        available_bytes = max(0, STORAGE_LIMIT_BYTES - total_bytes)
+        available_mb = available_bytes / (1024 * 1024)
+        percentage = (total_bytes / STORAGE_LIMIT_BYTES * 100) if STORAGE_LIMIT_BYTES > 0 else 0
+        
+        return {
+            "used_bytes": total_bytes,
+            "used_mb": round(used_mb, 2),
+            "limit_mb": STORAGE_LIMIT_MB,
+            "available_mb": round(available_mb, 2),
+            "percentage": round(percentage, 1)
+        }
+    finally:
+        db.close()
+
 
 def hash_password(password: str) -> str:
     """Hash a password using argon2"""
@@ -113,6 +149,14 @@ async def analyze_video(file: UploadFile = File(...), current_user: User = Depen
         # Validate file
         if not file.filename:
             raise HTTPException(status_code=400, detail="Invalid filename")
+        
+        # Check storage limit before uploading
+        storage_info = get_user_storage_usage(current_user.id)
+        if storage_info["available_mb"] <= 0:
+            raise HTTPException(
+                status_code=413,
+                detail=f"Storage limit reached (500 MB). Please delete old videos to upload new ones."
+            )
         
         logger.info(f"Processing video: {file.filename}")
         
@@ -217,6 +261,25 @@ def get_dashboard(current_user: User = Depends(get_current_user)) -> List[dict]:
         
     finally:
         db.close()
+
+
+# ================= STORAGE INFO =================
+
+@app.get("/storage")
+def get_storage_info(current_user: User = Depends(get_current_user)) -> dict:
+    """Get storage usage information for current user"""
+    try:
+        storage_info = get_user_storage_usage(current_user.id)
+        return {
+            "used_mb": storage_info["used_mb"],
+            "limit_mb": storage_info["limit_mb"],
+            "available_mb": storage_info["available_mb"],
+            "percentage": storage_info["percentage"],
+            "message": f"You've used {storage_info['used_mb']} MB / {storage_info['limit_mb']} MB" if storage_info["percentage"] < 100 else "Storage limit reached"
+        }
+    except Exception as e:
+        logger.error(f"Error getting storage info: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Error getting storage info")
 
 
 # ================= VIDEO DELETION =================

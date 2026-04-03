@@ -656,11 +656,7 @@ function Stat({ title, value, icon }) {
 
 const styles = {
   page: {
-    minHeight: "100vh",
     padding: "clamp(16px, 4vw, 24px)",
-    paddingTop: "clamp(24px, 6vw, 40px)",
-    background: "linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%)",
-    color: "white",
     fontFamily: "'Segoe UI', 'Helvetica Neue', sans-serif",
   },
   purposeTag: {

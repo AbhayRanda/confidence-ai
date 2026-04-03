@@ -7,28 +7,43 @@ import Dashboard from "./pages/Dashboard";
 import AIDashboard from "./pages/AIDashboard";
 import Resources from "./pages/Resources";
 import VideoAnalytics from "./pages/VideoAnalytics";
+import DashboardLayout from "./components/layout/DashboardLayout";
+
 function AppWrapper() {
   const location = useLocation();
 
-  const hideNavbarRoutes = ["/", "/login", "/verify", "/signup"];
-  const shouldShowNavbar = !hideNavbarRoutes.includes(location.pathname);
-  return (
-      <div style={styles.page}>
-        {shouldShowNavbar && <Navbar />}
+  const isAuthRoute = ["/", "/login", "/verify", "/signup"].includes(location.pathname);
 
+  if (isAuthRoute) {
+    return (
+      <div className="min-h-screen bg-white">
         <Routes>
           <Route path="/" element={<Login />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/verify" element={<VerifyOTP />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/ai" element={<AIDashboard />} />
-          <Route path="/resources" element={<Resources />} />
-          <Route path="/video/:id" element={<VideoAnalytics />} />
         </Routes>
       </div>
+    );
+  }
+
+  // Dashboard layout for everything else
+  return (
+    <DashboardLayout>
+      <Routes>
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/ai" element={<AIDashboard />} />
+        <Route path="/resources" element={<Resources />} />
+        <Route path="/video/:id" element={<VideoAnalytics />} />
+        
+        {/* We map /reports mapping to Dashboard for now if they click it in the sidebar */}
+        <Route path="/reports" element={<Dashboard />} />
+        <Route path="/settings" element={<Resources />} />
+      </Routes>
+    </DashboardLayout>
   );
 }
+
 function App() {
   return (
     <Router>
@@ -36,11 +51,5 @@ function App() {
     </Router>
   );
 }
-const styles = {
-  page: {
-    minHeight: "100vh",
-    background: "linear-gradient(135deg, #0f2027, #203a43, #2c5364)",
-  },
-};
 
 export default App;

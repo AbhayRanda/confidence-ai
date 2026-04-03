@@ -1,24 +1,34 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { ClipLoader } from "react-spinners";
 import {
-  Chart as ChartJS,
-  LineElement,
-  PointElement,
-  LinearScale,
-  CategoryScale,
-  Tooltip,
-  Legend
-} from "chart.js";
-import { Line } from "react-chartjs-2";
-import GlassStat from "../components/GlassStat";
-
-ChartJS.register(
-  LineElement,
-  PointElement,
-  LinearScale,
-  CategoryScale,
-  Tooltip,
-  Legend
-);
+  Target,
+  AlertCircle,
+  CheckCircle,
+  Video,
+  Upload,
+  Square,
+  Activity,
+  Eye,
+  Smile,
+  Activity as Posture,
+  Hand,
+  Mic,
+  MessageSquare,
+  Zap,
+  User,
+  Star,
+  TrendingUp,
+  Play,
+  X,
+  Info,
+  ChevronDown,
+  ChevronUp,
+  Award,
+  Lightbulb,
+  Check,
+} from "lucide-react";
 
 // API Configuration
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
@@ -92,10 +102,9 @@ const fetchDashboard = useCallback(() => {
         setDataPoints(Array.isArray(data) ? data : []);
         resolve(data);
       })
-      .catch((err) => {
-        console.error("Dashboard fetch error:", err);
-        setError("Failed to load dashboard data. Please refresh.");
-        reject(err);
+      .catch((e) => {
+        toast.error("Failed to load dashboard data");
+        reject(e);
       });
   });
 }, []);
@@ -216,11 +225,11 @@ useEffect(() => {
       if (timerRef.current) clearInterval(timerRef.current);
       
       if (err.name === "NotAllowedError") {
-        setError("❌ Camera/microphone access denied. Please allow permissions in browser settings.");
+        toast.error("Camera/microphone access denied. Please allow permissions in browser settings.");
       } else if (err.name === "NotFoundError") {
-        setError("❌ Camera or microphone not found. Please check your devices.");
+        toast.error("Camera or microphone not found. Please check your devices.");
       } else {
-        setError(`❌ Recording failed: ${err.message}`);
+        toast.error(`Recording failed: ${err.message}`);
       }
     }
   };
@@ -239,7 +248,7 @@ useEffect(() => {
     const fileToUpload = recordedBlob || selectedFile;
 
     if (!fileToUpload) {
-      setError("Please upload or record a video first.");
+      toast.warning("Please upload or record a video first.");
       return;
     }
 
@@ -248,10 +257,8 @@ useEffect(() => {
     formData.append("file", fileToUpload, filename);
 
     setLoading(true);
-    setError(null);
 
     try {
-      console.log("Starting analysis...");
       const userId = localStorage.getItem("user_id");
       const response = await fetch(API_ENDPOINTS.analyze, {
         method: "POST",
@@ -263,43 +270,36 @@ useEffect(() => {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        // Check for storage limit error (413 Payload Too Large)
         if (response.status === 413) {
-          setError(`❌ ${errorData.detail || "Storage limit reached (500 MB). Please delete old videos to upload new ones."}`);
-          fetchStorage(); // Refresh storage info
+          toast.error(errorData.detail || "Storage limit reached (500 MB). Please delete old videos.");
+          fetchStorage();
           setLoading(false);
           return;
         }
         throw new Error(errorData.detail || `Server error: ${response.status}`);
       }
-
-      console.log("Analysis complete, fetching updated dashboard...");
       
-      // Wait for dashboard to update and refresh storage
+      toast.success("Analysis complete! Your results are ready.");
+      
       try {
-        const updatedData = await fetchDashboard();
-        console.log("Dashboard updated successfully");
-        fetchStorage(); // Refresh storage info after successful upload
+        await fetchDashboard();
+        fetchStorage();
       } catch (dashErr) {
-        console.error("Error refreshing dashboard:", dashErr);
+        // Silent fail
       }
 
-      // Clear recorded/selected file
       setRecordedBlob(null);
       setSelectedFile(null);
       setRecording(false);
       setRecordingTime(0);
       
-      // Clear video preview
       if (videoRef.current) {
         videoRef.current.src = "";
         videoRef.current.srcObject = null;
       }
       
-      setError(null);
     } catch (error) {
-      console.error("Upload error:", error);
-      setError(`❌ Analysis failed: ${error.message}`);
+      toast.error(`Analysis failed: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -363,16 +363,16 @@ useEffect(() => {
     video.onloadedmetadata = () => {
       const duration = video.duration;
       if (duration > 30) {
-        setError(`❌ Video is ${Math.ceil(duration)} seconds. Maximum allowed is 30 seconds.`);
-        e.target.value = ""; // Reset file input
+        toast.error(`Video is ${Math.ceil(duration)} seconds. Maximum allowed is 30 seconds.`);
+        e.target.value = "";
         setSelectedFile(null);
       } else {
         setSelectedFile(file);
-        setError(null);
+        toast.success(`Selected: ${file.name}`);
       }
     };
     video.onerror = () => {
-      setError("❌ Unable to read video file. Please select a valid video.");
+      toast.error("Unable to read video file. Please select a valid video.");
       e.target.value = "";
       setSelectedFile(null);
     };
@@ -381,30 +381,32 @@ useEffect(() => {
 
   return (
     <div style={styles.page}>
+      <ToastContainer
+        position="top-right"
+        autoClose={4000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="dark"
+      />
+      
       <div style={styles.headerSection}>
-        <span style={styles.purposeTag}>🎯 Practice & Analyze</span>
+        <span style={styles.purposeTag}><Target size={14} style={{ marginRight: "6px", verticalAlign: "middle" }} /> Practice & Analyze</span>
         <h1 style={styles.title}>AI Confidence Trainer</h1>
         <p style={styles.subtitle}>Record yourself presenting, speaking, or pitching ideas. Get instant AI-powered feedback on your confidence metrics.</p>
       </div>
-
-      {/* Error Message Display */}
-      {error && (
-        <div style={styles.errorMessage}>
-          ⚠️ {error}
-          <button 
-            onClick={() => setError(null)} 
-            style={styles.closeButton}
-          >
-            ✕
-          </button>
-        </div>
-      )}
 
       {/* STORAGE METER */}
       {storageInfo && (
         <div style={styles.storageCard}>
           <div style={styles.storageHeader}>
-            <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "600" }}>💾 Storage Usage</h3>
+            <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "600", display: "flex", alignItems: "center", gap: "8px" }}>
+              <Activity size={18} color="#00c896" /> Storage Usage
+            </h3>
             <span style={{ fontSize: "14px", opacity: "0.8" }}>{storageInfo.used_mb} MB / {storageInfo.limit_mb} MB</span>
           </div>
           <div style={styles.storageBarContainer}>
@@ -418,10 +420,10 @@ useEffect(() => {
           </div>
           <div style={styles.storageText}>
             {storageInfo.percentage >= 100 
-              ? "❌ Storage limit reached. Delete old videos to upload new ones." 
+              ? <span style={{ color: "#ff6b9d" }}>Storage limit reached. Delete old videos to upload new ones.</span>
               : storageInfo.percentage >= 90
-              ? `⚠️ ${(100 - storageInfo.percentage).toFixed(1)} MB remaining`
-              : `✅ ${storageInfo.available_mb} MB available`
+              ? `${(100 - storageInfo.percentage).toFixed(1)} MB remaining`
+              : `${storageInfo.available_mb} MB available`
             }
           </div>
         </div>
@@ -431,7 +433,7 @@ useEffect(() => {
       <div style={styles.recordingSection}>
   {!recording ? (
     <button onClick={startRecording} style={styles.button}>
-      🎥 Start Recording
+      <Video size={18} /> Start Recording
     </button>
   ) : (
     <div style={styles.recordingContainer}>
@@ -441,7 +443,7 @@ useEffect(() => {
       <span style={styles.timerText}>{formatTime(recordingTime)}</span>
     </div>
       <button onClick={stopRecording} style={styles.stopButton}>
-        ⏹ Stop
+        <Square size={16} /> Stop
       </button>
     </div>
   )}
@@ -473,14 +475,15 @@ useEffect(() => {
           style={{...styles.button, opacity: loading ? 0.7 : 1, cursor: loading ? "not-allowed" : "pointer"}}
           disabled={loading}
         >
-          {loading ? "⏳ Analyzing Video... Please wait" : "🎬 Analyze Video"}
+          {loading ? <ClipLoader size={18} color="#000" /> : <Upload size={18} />}
+          {loading ? "Analyzing..." : "Analyze Video"}
         </button>
       </div>
 
       {/* ANALYSIS PROGRESS MESSAGE */}
       {loading && (
         <div style={styles.analysisProgress}>
-          <div style={styles.spinner}></div>
+          <ClipLoader color="#00f5ff" size={50} />
           <p style={{margin: "12px 0 0 0", fontSize: "15px", fontWeight: "600"}}>
             Analyzing your confidence metrics...
           </p>
@@ -503,19 +506,19 @@ useEffect(() => {
           
           {/* DETAILED METRICS WITH EXPLANATIONS */}
           <div style={styles.section}>
-            <h2 style={styles.sectionTitle}>📊 Detailed Breakdown</h2>
+            <h2 style={styles.sectionTitle}><Info size={22} style={{ marginRight: "8px", verticalAlign: "middle" }} /> Detailed Breakdown</h2>
             <MetricsGrid latest={latest} getScoreQuality={getScoreQuality} />
           </div>
 
           {/* PERSONALIZED RECOMMENDATIONS */}
           <div style={styles.section}>
-            <h2 style={styles.sectionTitle}>🎯 Areas to Improve</h2>
+            <h2 style={styles.sectionTitle}><Target size={22} style={{ marginRight: "8px", verticalAlign: "middle" }} /> Areas to Improve</h2>
             <RecommendationsList recommendations={getRecommendations()} />
           </div>
 
           {/* STRENGTHS HIGHLIGHT */}
           <div style={styles.section}>
-            <h2 style={styles.sectionTitle}>⭐ Your Strengths</h2>
+            <h2 style={styles.sectionTitle}><Star size={22} style={{ marginRight: "8px", verticalAlign: "middle" }} /> Your Strengths</h2>
             <StrengthsGrid latest={latest} getScoreQuality={getScoreQuality} />
           </div>
 
@@ -531,10 +534,10 @@ useEffect(() => {
 function PerformanceSummary({ latest, getScoreQuality }) {
   const quality = getScoreQuality(latest.confidence_score);
   const feedbackTexts = {
-    "Excellent": "🌟 Outstanding! You're demonstrating excellent confidence. Keep practicing to maintain this level.",
-    "Good": "👍 Great job! You're showing good confidence. Focus on the areas below to reach excellence.",
-    "Fair": "💪 Good effort! You're on the right track. Work on the suggested areas to improve faster.",
-    "Needs Work": "🚀 Time to level up! Focus on the key areas below and you'll see rapid improvement."
+    "Excellent": "Outstanding! You're demonstrating excellent confidence. Keep practicing to maintain this level.",
+    "Good": "Great job! You're showing good confidence. Focus on the areas below to reach excellence.",
+    "Fair": "Good effort! You're on the right track. Work on the suggested areas to improve faster.",
+    "Needs Work": "Time to level up! Focus on the key areas below and you'll see rapid improvement."
   };
 
   return (
@@ -546,8 +549,8 @@ function PerformanceSummary({ latest, getScoreQuality }) {
           <p style={styles.feedbackText}>{feedbackTexts[quality.label]}</p>
         </div>
         <div style={styles.levelBadge}>
-          <span style={{fontSize: "48px", marginBottom: "8px"}}>
-            {latest.confidence_level === "High" ? "🔥" : latest.confidence_level === "Medium" ? "⚡" : "🌱"}
+          <span style={{color: quality.color, marginBottom: "8px"}}>
+            {latest.confidence_level === "High" ? <TrendingUp size={48} /> : latest.confidence_level === "Medium" ? <Zap size={48} /> : <Activity size={48} />}
           </span>
           <span style={{fontWeight: "700", fontSize: "16px"}}>{latest.confidence_level}</span>
         </div>
@@ -560,56 +563,64 @@ function PerformanceSummary({ latest, getScoreQuality }) {
 function MetricsGrid({ latest, getScoreQuality }) {
   const metrics = [
     {
-      title: "👁️ Eye Contact",
+      title: "Eye Contact",
+      icon: <Eye size={20} />,
       value: latest.eye_contact_percentage,
       desc: "Looking at camera/audience",
       importance: "Builds trust and shows engagement",
       benchmarks: { excellent: 80, good: 60, fair: 40 }
     },
     {
-      title: "😊 Smile",
+      title: "Smile",
+      icon: <Smile size={20} />,
       value: latest.smile_percentage,
       desc: "Natural, warm facial expressions",
       importance: "Creates connection and likability",
       benchmarks: { excellent: 70, good: 50, fair: 30 }
     },
     {
-      title: "🧍 Posture",
+      title: "Posture",
+      icon: <Posture size={20} />,
       value: latest.posture_percentage,
       desc: "Straight, open body position",
       importance: "Projects authority and confidence",
       benchmarks: { excellent: 85, good: 70, fair: 50 }
     },
     {
-      title: "🤚 Hand Movement",
+      title: "Hand Movement",
+      icon: <Hand size={20} />,
       value: latest.hand_movement_percentage,
       desc: "Natural gestures while speaking",
       importance: "Emphasizes points and shows engagement",
       benchmarks: { excellent: 75, good: 55, fair: 35 }
     },
     {
-      title: "📢 Speech Score",
+      title: "Speech Score",
+      icon: <Mic size={20} />,
       value: latest.speech_score,
       desc: "Clarity, pace, and delivery",
       importance: "Clear communication of message",
       benchmarks: { excellent: 80, good: 65, fair: 45 }
     },
     {
-      title: "💬 Filler Words",
+      title: "Filler Words",
+      icon: <MessageSquare size={20} />,
       value: 100 - Math.min((latest.filler_word_count ?? 0) * 10, 100),
       desc: `${latest.filler_word_count ?? 0} filler words detected`,
       importance: "Fewer fillers = more professional",
       benchmarks: { excellent: 90, good: 70, fair: 50 }
     },
     {
-      title: "⚡ Words Per Minute",
+      title: "Words Per Minute",
+      icon: <Zap size={20} />,
       value: Math.min((latest.words_per_minute / 200) * 100, 100),
       desc: `${Number(latest.words_per_minute).toFixed(0)} WPM`,
       importance: "Optimal pace (120-150 WPM ideal)",
       benchmarks: { excellent: 80, good: 60, fair: 40 }
     },
     {
-      title: "👤 Face Visibility",
+      title: "Face Visibility",
+      icon: <User size={20} />,
       value: latest.face_visibility_percentage ?? 0,
       desc: "Face clearly visible in frame",
       importance: "Audience can see your expressions",
@@ -637,7 +648,7 @@ function MetricCard({ metric, quality }) {
     <div style={{...styles.metricCard, borderLeft: `4px solid ${quality.color}`}}>
       <div style={styles.metricHeader} onClick={() => setExpanded(!expanded)}>
         <div style={styles.metricTop}>
-          <h3 style={styles.metricTitle}>{metric.title}</h3>
+          <h3 style={styles.metricTitle}><span style={{ color: quality.color, marginRight: "8px" }}>{metric.icon}</span>{metric.title}</h3>
           <span style={{...styles.qualityBadge, background: quality.bgColor, color: quality.color}}>
             {quality.label}
           </span>
@@ -653,7 +664,7 @@ function MetricCard({ metric, quality }) {
           }}></div>
         </div>
         <p style={styles.metricDesc}>{metric.desc}</p>
-        <span style={styles.expandIcon}>{expanded ? "▼" : "▶"}</span>
+        <span style={styles.expandIcon}>{expanded ? <ChevronDown size={14} /> : <ChevronUp size={14} />}</span>
       </div>
       {expanded && (
         <div style={styles.metricDetails}>
@@ -674,7 +685,7 @@ function RecommendationsList({ recommendations }) {
   return (
     <div style={styles.recommendationsGrid}>
       {recommendations.length === 0 ? (
-        <p style={{...styles.noData, gridColumn: "1 / -1"}}>🎉 Great job! All areas are performing well!</p>
+        <p style={{...styles.noData, gridColumn: "1 / -1"}}><CheckCircle size={24} style={{ marginRight: "8px" }} /> Great job! All areas are performing well!</p>
       ) : (
         recommendations.map((rec, idx) => (
           <RecommendationCard key={idx} index={idx + 1} recommendation={rec} />
@@ -687,24 +698,26 @@ function RecommendationsList({ recommendations }) {
 /* COMPONENT - RecommendationCard */
 function RecommendationCard({ index, recommendation }) {
   const [expanded, setExpanded] = useState(false);
-  const priority = index === 1 ? "🔴 High" : index === 2 ? "🟡 Medium" : "🟢 Low";
+  const priorities = ["High", "Medium", "Low"];
+  const priorityColors = ["#ff6b9d", "#ffaa00", "#00ff99"];
+  const priority = priorities[index - 1] || "Low";
 
   return (
     <div style={{...styles.recommendCard, opacity: 1 - index * 0.1}}>
       <div style={styles.recHeader} onClick={() => setExpanded(!expanded)}>
         <div>
           <h3 style={styles.recTitle}>{index}. {recommendation.name}</h3>
-          <span style={styles.priorityBadge}>{priority}</span>
+          <span style={{...styles.priorityBadge, color: priorityColors[index - 1], background: `${priorityColors[index - 1]}20`}}>{priority} Priority</span>
           <p style={styles.recScore}>Current: {Number(recommendation.value).toFixed(0)}% - Room to improve: {100 - Number(recommendation.value).toFixed(0)}%</p>
         </div>
-        <span style={styles.expandIcon}>{expanded ? "▼" : "▶"}</span>
+        <span style={styles.expandIcon}>{expanded ? <ChevronDown size={14} /> : <ChevronUp size={14} />}</span>
       </div>
       {expanded && (
         <div style={styles.recDetails}>
-          <h4 style={{marginTop: "0"}}>💡 Quick Tips:</h4>
+          <h4 style={{marginTop: "0", display: "flex", alignItems: "center", gap: "8px"}}><Lightbulb size={18} /> Quick Tips:</h4>
           <ul style={styles.tipsList}>
             {recommendation.tips.map((tip, idx) => (
-              <li key={idx} style={styles.tipItem}>✓ {tip}</li>
+              <li key={idx} style={styles.tipItem}><Check size={14} style={{ marginRight: "8px" }} /> {tip}</li>
             ))}
           </ul>
         </div>
@@ -716,12 +729,12 @@ function RecommendationCard({ index, recommendation }) {
 /* COMPONENT - StrengthsGrid */
 function StrengthsGrid({ latest, getScoreQuality }) {
   const strengths = [
-    { name: "Eye Contact", value: latest.eye_contact_percentage },
-    { name: "Posture", value: latest.posture_percentage },
-    { name: "Smile", value: latest.smile_percentage },
-    { name: "Hand Movement", value: latest.hand_movement_percentage },
-    { name: "Speech Score", value: latest.speech_score },
-    { name: "Face Visibility", value: latest.face_visibility_percentage ?? 0 },
+    { name: "Eye Contact", value: latest.eye_contact_percentage, icon: <Eye size={20} /> },
+    { name: "Posture", value: latest.posture_percentage, icon: <Posture size={20} /> },
+    { name: "Smile", value: latest.smile_percentage, icon: <Smile size={20} /> },
+    { name: "Hand Movement", value: latest.hand_movement_percentage, icon: <Hand size={20} /> },
+    { name: "Speech Score", value: latest.speech_score, icon: <Mic size={20} /> },
+    { name: "Face Visibility", value: latest.face_visibility_percentage ?? 0, icon: <User size={20} /> },
   ]
   .filter(s => s.value >= 70)
   .sort((a, b) => b.value - a.value);
@@ -733,8 +746,10 @@ function StrengthsGrid({ latest, getScoreQuality }) {
       ) : (
         strengths.map((strength, idx) => (
           <div key={idx} style={styles.strengthCard}>
-            <div style={{fontSize: "24px", marginBottom: "8px"}}>⭐</div>
-            <h4 style={{margin: "0 0 8px 0", fontSize: "14px", fontWeight: "700"}}>{strength.name}</h4>
+            <div style={{color: "#00ff99", marginBottom: "8px"}}><Award size={24} /></div>
+            <h4 style={{margin: "0 0 8px 0", fontSize: "14px", fontWeight: "700", display: "flex", alignItems: "center", gap: "6px"}}>
+              <span style={{ color: "#00ff99" }}>{strength.icon}</span> {strength.name}
+            </h4>
             <div style={{...styles.progressBar, marginBottom: "8px"}}>
               <div style={{...styles.progressFill, width: `${strength.value}%`, background: "#00ff99"}}></div>
             </div>
@@ -752,31 +767,31 @@ function StrengthsGrid({ latest, getScoreQuality }) {
 function NextStepsSection({ latest }) {
   return (
     <div style={styles.nextStepsSection}>
-      <h2 style={styles.sectionTitle}>🚀 Your Next Steps</h2>
+      <h2 style={styles.sectionTitle}><TrendingUp size={22} style={{ marginRight: "8px", verticalAlign: "middle" }} /> Your Next Steps</h2>
       <div style={styles.stepsGrid}>
         <StepCard 
           number="1" 
           title="Review" 
           desc="Watch your recording and note what felt natural"
-          icon="🎬"
+          icon={<Play size={24} />}
         />
         <StepCard 
           number="2" 
           title="Focus" 
           desc="Pick ONE area from 'Areas to Improve' to work on"
-          icon="🎯"
+          icon={<Target size={24} />}
         />
         <StepCard 
           number="3" 
           title="Practice" 
           desc="Use the tips from Resources page and practice 3-5 times"
-          icon="💪"
+          icon={<Zap size={24} />}
         />
         <StepCard 
           number="4" 
           title="Record Again" 
           desc="Record a new video and track your improvement"
-          icon="📈"
+          icon={<TrendingUp size={24} />}
         />
       </div>
     </div>
@@ -787,7 +802,7 @@ function NextStepsSection({ latest }) {
 function StepCard({ number, title, desc, icon }) {
   return (
     <div style={styles.stepCard}>
-      <div style={{fontSize: "32px", marginBottom: "12px"}}>{icon}</div>
+      <div style={{color: "#00f5ff", marginBottom: "12px"}}>{icon}</div>
       <div style={{...styles.stepNumber}}>Step {number}</div>
       <h4 style={{margin: "8px 0", fontSize: "16px", fontWeight: "700"}}>{title}</h4>
       <p style={{margin: "0", fontSize: "13px", opacity: "0.8", lineHeight: "1.5"}}>{desc}</p>
@@ -908,6 +923,9 @@ const styles = {
     boxShadow: "0 4px 15px rgba(0, 245, 255, 0.3)",
     textTransform: "uppercase",
     letterSpacing: "0.5px",
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
   },
   buttonHover: {
     transform: "translateY(-2px)",
@@ -1197,6 +1215,9 @@ const styles = {
     boxShadow: "0 4px 15px rgba(255, 77, 77, 0.3)",
     textTransform: "uppercase",
     letterSpacing: "0.5px",
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
   },
   errorMessage: {
     background: "rgba(255, 77, 77, 0.15)",

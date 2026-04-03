@@ -21,7 +21,7 @@ ChartJS.register(
 );
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
-const AUTO_REFRESH_INTERVAL = 5000; // Refresh every 5 seconds
+const AUTO_REFRESH_INTERVAL = 5000;
 const API_ENDPOINTS = {
   dashboard: `${API_BASE_URL}/dashboard`,
   storage: `${API_BASE_URL}/storage`,
@@ -97,19 +97,15 @@ function Dashboard() {
     return () => document.head.removeChild(style);
   }, []);
 
-  // Initial fetch and auto-refresh setup
   useEffect(() => {
-    // Fetch immediately on mount
     fetchDashboard();
     fetchStorage();
 
-    // Set up auto-refresh interval
     refreshIntervalRef.current = setInterval(() => {
       fetchDashboard();
       fetchStorage();
     }, AUTO_REFRESH_INTERVAL);
 
-    // Cleanup interval on unmount
     return () => {
       if (refreshIntervalRef.current) {
         clearInterval(refreshIntervalRef.current);
@@ -117,7 +113,6 @@ function Dashboard() {
     };
   }, [fetchDashboard, fetchStorage]);
 
-  // Manual refresh function for button
   const handleManualRefresh = () => {
     fetchDashboard();
   };
@@ -158,7 +153,6 @@ function Dashboard() {
       ? Math.max(...dataPoints.map((d) => d.confidence_score)).toFixed(2)
       : 0;
 
-  // Trend Analysis
   const getTrend = useCallback((currentVal, prevVal) => {
     if (!currentVal || !prevVal) return { direction: "➡️", change: 0, percent: 0 };
     const change = currentVal - prevVal;
@@ -170,7 +164,6 @@ function Dashboard() {
     };
   }, []);
 
-  // Overall Progress
   const overallProgress = first && latest ? {
     startScore: Number(first.confidence_score).toFixed(2),
     currentScore: Number(latest.confidence_score).toFixed(2),
@@ -178,7 +171,6 @@ function Dashboard() {
     improvementPercent: (((latest.confidence_score - first.confidence_score) / first.confidence_score) * 100).toFixed(1)
   } : null;
 
-  // Comprehensive Stats
   const getComprehensiveStats = useCallback(() => {
     if (dataPoints.length === 0) return null;
     
@@ -211,14 +203,12 @@ function Dashboard() {
     };
   }, [dataPoints, latest]);
 
-  // Best Session
   const bestSession = dataPoints.length > 0 
     ? dataPoints.reduce((best, current) => 
         current.confidence_score > best.confidence_score ? current : best
       )
     : null;
 
-  // Most Improved Metric
   const getMostImprovedMetric = useCallback(() => {
     if (!previous || !latest) return null;
     const metrics = [
@@ -233,7 +223,6 @@ function Dashboard() {
     );
   }, [previous, latest]);
 
-  // Achievements
   const getAchievements = useCallback(() => {
     const achievements = [];
     
@@ -260,7 +249,6 @@ function Dashboard() {
     return achievements;
   }, [latest, overallProgress, dataPoints.length, average]);
 
-  // Smart Recommendations
   const getSmartRecommendations = useCallback(() => {
     const recs = [];
     
@@ -340,7 +328,6 @@ function Dashboard() {
         </div>
       </div>
 
-      {/* Error Message */}
       {error && (
         <div style={styles.errorMessage}>
           ⚠️ {error}
@@ -353,7 +340,6 @@ function Dashboard() {
         </div>
       )}
 
-      {/* STORAGE METER */}
       {storageInfo && (
         <div style={styles.storageCard}>
           <div style={styles.storageHeader}>
@@ -380,12 +366,10 @@ function Dashboard() {
         </div>
       )}
 
-      {/* PROGRESS SUMMARY WITH TRENDS */}
       {overallProgress && (
         <ProgressSummary progress={overallProgress} />
       )}
 
-      {/* KPI CARDS */}
       {latest && (
         <div style={styles.grid}>
           <Stat title="Current Score" value={latest.confidence_score?.toFixed(2)} icon="⚡" />
@@ -395,30 +379,18 @@ function Dashboard() {
         </div>
       )}
 
-      {/* ACHIEVEMENT BADGES */}
       <AchievementBadges achievements={getAchievements()} />
 
-      {/* CHART */}
-      {/* <div style={styles.glassCard}>
-        <h2 style={styles.chartTitle}>📈 Confidence Trend Over Time</h2>
-        <Line data={chartData} />
-      </div> */}
-
-      {/* COMPREHENSIVE STATISTICS */}
       <ComprehensiveStats stats={getComprehensiveStats()} latest={latest} />
 
-      {/* SMART RECOMMENDATIONS */}
       <SmartRecommendations recommendations={getSmartRecommendations()} />
 
-      {/* BEST SESSION HIGHLIGHT */}
       {bestSession && (
         <BestSessionCard session={bestSession} />
       )}
 
-      {/* DETAILED SESSION INSIGHTS */}
       <DetailedSessionHistory dataPoints={dataPoints} latest={latest} getTrend={getTrend} />
 
-      {/* SESSION TABLE */}
       <div style={styles.tableCard}>
         <h3 style={{fontSize: "clamp(16px, 3vw, 18px)", fontWeight: "700", marginTop: "0"}}>📋 Full Session History</h3>
         <div style={{overflowX: "auto", WebkitOverflowScrolling: "touch"}}>
@@ -458,7 +430,6 @@ function Dashboard() {
                 <td style={styles.td}>
   {d.video_path ? (
     <video width="100" height="75" controls style={{maxWidth: "100%", borderRadius: "6px"}}>
-      {/* Make sure /uploads/ is right here in the middle! */}
       <source src={`${API_BASE_URL}/uploads/${d.video_path}`} />
     </video>
   ) : (
@@ -491,8 +462,6 @@ function Dashboard() {
     </div>
   );
 }
-
-/* Components */
 
 function ProgressSummary({ progress }) {
   return (
@@ -685,7 +654,6 @@ function Stat({ title, value, icon }) {
   );
 }
 
-/* Styles */
 const styles = {
   page: {
     minHeight: "100vh",

@@ -135,14 +135,9 @@ class VideoAnalyzer:
                     left_ear = results.pose_landmarks.landmark[self.mp_pose.PoseLandmark.LEFT_EAR]
                     right_ear = results.pose_landmarks.landmark[self.mp_pose.PoseLandmark.RIGHT_EAR]
                     
-                    # IMPROVED: Eye contact detection with continuous scoring (not binary)
-                    # Use nose as primary (more stable) + eye position as secondary
+                    # Eye contact detection
                     nose_x = nose.x
                     nose_y = nose.y
-                    
-                    # Also calculate eye center for secondary check
-                    eye_center_x = (left_eye.x + right_eye.x) / 2
-                    eye_center_y = (left_eye.y + right_eye.y) / 2
                     
                     frame_center_x = 0.5
                     frame_center_y = 0.5
@@ -151,27 +146,21 @@ class VideoAnalyzer:
                     nose_h_dist = abs(nose_x - frame_center_x)
                     nose_v_dist = abs(nose_y - frame_center_y)
                     
-                    # Gradual scoring: closer to center = higher score
-                    # Perfect (within 0.08): 100% | Good (0.08-0.15): 70-100% | Fair (0.15-0.25): 40-70% | Poor: 0-40%
                     if nose_h_dist < 0.08 and nose_v_dist < 0.10:
-                        # Excellent eye contact
                         metrics["eye_contact_frames"] += 1
                     elif nose_h_dist < 0.25 and nose_v_dist < 0.22:
-                        # Acceptable eye contact (some deviation but still looking at camera)
                         metrics["eye_contact_frames"] += 0.6
                     else:
-                        # Poor eye contact (looking away significantly)
                         metrics["eye_contact_frames"] += 0.15
                     
-                    # NEW: Face straightness detection (head tilt check)
+                    # Face straightness detection
                     ear_y_diff = abs(left_ear.y - right_ear.y)
                     eye_x_diff = abs(left_eye.x - right_eye.x)
                     
-                    # Face is straight: ears level + eyes properly separated
                     if ear_y_diff < 0.05 and eye_x_diff > 0.08:
                         metrics["straight_face_frames"] += 1
                     
-                    # IMPROVED: Posture check using full shoulder-hip alignment
+                    # Posture check
                     left_shoulder = results.pose_landmarks.landmark[self.mp_pose.PoseLandmark.LEFT_SHOULDER]
                     right_shoulder = results.pose_landmarks.landmark[self.mp_pose.PoseLandmark.RIGHT_SHOULDER]
                     left_hip = results.pose_landmarks.landmark[self.mp_pose.PoseLandmark.LEFT_HIP]
@@ -180,22 +169,19 @@ class VideoAnalyzer:
                     shoulder_diff = abs(left_shoulder.y - right_shoulder.y)
                     hip_diff = abs(left_hip.y - right_hip.y)
                     
-                    # Posture is good if shoulders and hips are level
                     if shoulder_diff < settings.posture_threshold and hip_diff < settings.posture_threshold:
                         metrics["good_posture_frames"] += 1
                     
-                    # IMPROVED: Hand movement detection with body motion compensation
+                    # Hand movement detection
                     left_wrist = results.pose_landmarks.landmark[self.mp_pose.PoseLandmark.LEFT_WRIST]
                     right_wrist = results.pose_landmarks.landmark[self.mp_pose.PoseLandmark.RIGHT_WRIST]
                     left_elbow = results.pose_landmarks.landmark[self.mp_pose.PoseLandmark.LEFT_ELBOW]
-                    right_elbow = results.pose_landmarks.landmark[self.mp_pose.PoseLandmark.RIGHT_ELBOW]
+                    right_elbow = results.pose_landmarks.landmark[self.mp_pose.PoseLandmark.RIGHT_EAR]
                     
-                    # Calculate head center for motion compensation
                     head_center_x = (left_ear.x + right_ear.x) / 2
                     head_center_y = (left_ear.y + right_ear.y) / 2
                     
                     if metrics["prev_left_wrist"] is not None:
-                        # Calculate body motion (head movement)
                         if metrics["prev_head_center"] is not None:
                             body_dx = head_center_x - metrics["prev_head_center"][0]
                             body_dy = head_center_y - metrics["prev_head_center"][1]
@@ -205,7 +191,6 @@ class VideoAnalyzer:
                             body_dy = 0
                             body_motion = 0
                         
-                        # Calculate hand movements relative to body motion
                         left_movement = math.sqrt(
                             (left_wrist.x - metrics["prev_left_wrist"].x - body_dx)**2 +
                             (left_wrist.y - metrics["prev_left_wrist"].y - body_dy)**2
@@ -216,7 +201,6 @@ class VideoAnalyzer:
                             (right_wrist.y - metrics["prev_right_wrist"].y - body_dy)**2
                         )
                         
-                        # Check if wrists are extended (arms away from body)
                         left_wrist_to_shoulder = math.sqrt(
                             (left_wrist.x - left_shoulder.x)**2 +
                             (left_wrist.y - left_shoulder.y)**2
@@ -227,7 +211,6 @@ class VideoAnalyzer:
                             (right_wrist.y - right_shoulder.y)**2
                         )
                         
-                        # Real gesture: significant movement + arms extended
                         if ((left_movement > 0.025 or right_movement > 0.025) and
                             (left_wrist_to_shoulder > 0.25 or right_wrist_to_shoulder > 0.25)):
                             metrics["hand_movement_frames"] += 1
@@ -276,7 +259,6 @@ class VideoAnalyzer:
                     "speech_text": ""
                 }
             
-            # Extract audio from video (moviepy API has changed, use only essential params)
             video_clip.audio.write_audiofile(audio_path)
             result = self.whisper_model.transcribe(audio_path)
             transcript = result.get("text", "").lower()
@@ -297,12 +279,11 @@ class VideoAnalyzer:
             filler_words_list = [w.strip() for w in settings.filler_words.split(',')]
             filler_count = sum(word in filler_words_list for word in words)
             
-            # Calculate WPM - IMPROVED: Use actual audio duration
+            # Calculate WPM
             segments = result.get("segments", [])
             if segments:
                 duration_seconds = segments[-1]["end"]
             else:
-                # Fallback: use video duration
                 duration_seconds = video_clip.duration or 1
             
             words_per_minute = (
@@ -310,32 +291,29 @@ class VideoAnalyzer:
                 if duration_seconds > 0 else 0
             )
             
-            # IMPROVED: Calculate speech score with better weighting
+            # Calculate speech score
             speech_score = 100
             
-            # Filler word penalty: proportional to total words (not fixed per word)
             filler_ratio = filler_count / total_words
-            filler_penalty = filler_ratio * 30  # Max 30 points reduction
+            filler_penalty = filler_ratio * 30
             speech_score -= filler_penalty
             
-            # WPM penalty: applied if outside ideal range
             ideal_min = settings.ideal_words_per_minute_min
             ideal_max = settings.ideal_words_per_minute_max
             
             if words_per_minute < ideal_min:
                 deviation = (ideal_min - words_per_minute) / ideal_min
-                wpm_penalty = min(deviation * 20, 20)  # Max 20 points reduction
+                wpm_penalty = min(deviation * 20, 20)
                 speech_score -= wpm_penalty
             elif words_per_minute > ideal_max:
                 deviation = (words_per_minute - ideal_max) / ideal_max
-                wpm_penalty = min(deviation * 15, 15)  # Max 15 points reduction
+                wpm_penalty = min(deviation * 15, 15)
                 speech_score -= wpm_penalty
             
-            speech_score = max(0, min(100, speech_score))  # Clamp between 0-100
+            speech_score = max(0, min(100, speech_score))
             
             video_clip.close()
             
-            # Clean up audio file
             try:
                 os.remove(audio_path)
             except:
@@ -358,8 +336,7 @@ class VideoAnalyzer:
             }
     
     def _calculate_confidence_score(self, video_metrics: Dict, speech_metrics: Dict) -> float:
-        """Calculate overall confidence score using weighted metrics - STRICT REQUIREMENTS"""
-        # Ensure all metrics are clamped between 0-100
+        """Calculate overall confidence score using weighted metrics"""
         face_visibility = max(0, min(100, video_metrics.get("face_visibility_percentage", 0)))
         face_straightness = max(0, min(100, video_metrics.get("face_straightness_percentage", 0)))
         smile_percentage = max(0, min(100, video_metrics.get("smile_percentage", 0)))
@@ -368,28 +345,24 @@ class VideoAnalyzer:
         eye_contact_percentage = max(0, min(100, video_metrics.get("eye_contact_percentage", 0)))
         hand_movement_percentage = max(0, min(100, video_metrics.get("hand_movement_percentage", 0)))
         
-        # STRICT REQUIREMENTS: Penalties for poor presentation
         penalty = 0
         
-        # Critical factors that significantly reduce confidence
         if face_visibility < 70:
-            penalty += 15  # Must keep face visible
+            penalty += 15
         if face_straightness < 60:
-            penalty += 10  # Face must be relatively straight
+            penalty += 10
         if eye_contact_percentage < 50:
-            penalty += 12  # Must maintain eye contact
+            penalty += 12
         if posture_percentage < 50:
-            penalty += 10  # Must maintain good posture
+            penalty += 10
         if speech_score < 60:
-            penalty += 15  # Must have good speech quality
+            penalty += 15
         
-        # Hand movement: too little or too much
         if hand_movement_percentage < 15:
-            penalty += 8  # Should have some natural gestures
+            penalty += 8
         elif hand_movement_percentage > 65:
-            penalty += 10  # But not excessive
+            penalty += 10
         
-        # Calculate weighted score
         score = (
             0.16 * face_visibility +
             0.12 * face_straightness +
@@ -400,13 +373,12 @@ class VideoAnalyzer:
             0.10 * hand_movement_percentage
         )
         
-        # Apply penalties
         score = max(0, score - penalty)
         
         return round(score, 2)
     
     def _determine_confidence_level(self, score: float) -> str:
-        """Determine confidence level based on score - STRICT THRESHOLD"""
+        """Determine confidence level based on score"""
         if score >= 70:
             return "High Confidence"
         elif score >= 50:
@@ -417,31 +389,24 @@ class VideoAnalyzer:
         """Generate personalized improvement suggestions"""
         suggestions = []
         
-        # STRICT: Face visibility must be >= 70%
         if video_metrics["face_visibility_percentage"] < 70:
             suggestions.append("Keep your face fully visible in the frame throughout the presentation.")
         
-        # NEW: Face straightness
         if video_metrics.get("face_straightness_percentage", 0) < 60:
             suggestions.append("Keep your head straight and face the camera directly. Avoid tilting or turning your head excessively.")
         
-        # STRICT: Eye contact must be >= 50%
         if video_metrics["eye_contact_percentage"] < 50:
             suggestions.append("Maintain consistent eye contact with the camera. Look directly at the lens, not away.")
         
-        # STRICT: Posture must be >= 50%
         if video_metrics["posture_percentage"] < 50:
             suggestions.append("Maintain an upright posture. Sit or stand straight with shoulders level.")
         
-        # STRICT: Smile percentage >= 40%
         if video_metrics["smile_percentage"] < 40:
             suggestions.append("Smile more frequently. A natural smile conveys confidence and positivity.")
         
-        # STRICT: Speech score must be >= 60%
         if speech_metrics["speech_score"] < 60:
             suggestions.append("Reduce filler words (um, uh, like, etc.) and speak more clearly and fluently.")
         
-        # Hand movement: 15-65% is ideal
         if video_metrics["hand_movement_percentage"] < 15:
             suggestions.append("Use natural hand gestures while speaking. This helps convey enthusiasm and confidence.")
         elif video_metrics["hand_movement_percentage"] > 65:
@@ -450,12 +415,7 @@ class VideoAnalyzer:
         return suggestions
     
     def _analyze_frame_quality(self, file_path: str) -> Dict:
-        """
-        Analyze individual frames and detect problematic frames vs good frames
-        
-        Returns:
-            Dictionary with frame-by-frame analysis, wrong frames, and right frames
-        """
+        """Analyze individual frames and detect problematic frames vs good frames"""
         try:
             import math
             import os
@@ -465,9 +425,9 @@ class VideoAnalyzer:
             pose = self.mp_pose.Pose()
             fps = cap.get(cv2.CAP_PROP_FPS)
             
-            wrong_frames = []  # Frames with poor presentation
-            right_frames = []  # Frames with good presentation
-            frame_issues = []  # Detailed frame issues
+            wrong_frames = []
+            right_frames = []
+            frame_issues = []
             
             frame_number = 0
             
@@ -477,21 +437,18 @@ class VideoAnalyzer:
                     break
                 
                 frame_number += 1
-                frame_quality_score = 100  # Start with perfect score
-                issues = []  # Issues found in this frame
+                frame_quality_score = 100
+                issues = []
                 
-                # Analyze frame
                 gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
                 faces = self.face_cascade.detectMultiScale(gray, 1.3, 5)
                 rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 results = pose.process(rgb_frame)
                 
-                # Check 1: Face visibility
                 if len(faces) == 0:
                     frame_quality_score -= 25
                     issues.append("No face detected - poor face visibility")
                 else:
-                    # Check 2: Face straightness
                     if results.pose_landmarks:
                         left_ear = results.pose_landmarks.landmark[self.mp_pose.PoseLandmark.LEFT_EAR]
                         right_ear = results.pose_landmarks.landmark[self.mp_pose.PoseLandmark.RIGHT_EAR]
@@ -504,18 +461,14 @@ class VideoAnalyzer:
                             tilt_direction = "tilted left" if left_ear.y < right_ear.y else "tilted right"
                             issues.append(f"Head is {tilt_direction} - not straight")
                         
-                        # Check 3: Eye contact (use nose as primary - more stable landmark)
                         nose = results.pose_landmarks.landmark[self.mp_pose.PoseLandmark.NOSE]
                         nose_h_dist = abs(nose.x - 0.5)
                         nose_v_dist = abs(nose.y - 0.5)
                         
-                        # Gradual penalty based on how far from center
                         if nose_h_dist > 0.08 or nose_v_dist > 0.10:
-                            # Slight penalty for minor deviation
                             penalty = min((nose_h_dist + nose_v_dist) * 30, 12)
                             frame_quality_score -= penalty
                             
-                            # Only flag as major issue if very far from center
                             if nose_h_dist > 0.25 or nose_v_dist > 0.22:
                                 direction = ""
                                 if nose.x < 0.25:
@@ -529,7 +482,6 @@ class VideoAnalyzer:
                                 if direction:
                                     issues.append(f"Poor eye contact - {direction}")
                         
-                        # Check 4: Posture
                         left_shoulder = results.pose_landmarks.landmark[self.mp_pose.PoseLandmark.LEFT_SHOULDER]
                         right_shoulder = results.pose_landmarks.landmark[self.mp_pose.PoseLandmark.RIGHT_SHOULDER]
                         shoulder_diff = abs(left_shoulder.y - right_shoulder.y)
@@ -539,7 +491,6 @@ class VideoAnalyzer:
                             slant = "left" if left_shoulder.y < right_shoulder.y else "right"
                             issues.append(f"Posture issue - leaning to {slant}")
                         
-                        # Check 5: Face size (too close or too far)
                         if len(faces) > 0:
                             (x, y, w, h) = faces[0]
                             frame_height, frame_width = frame.shape[:2]
@@ -552,12 +503,10 @@ class VideoAnalyzer:
                                 frame_quality_score -= 10
                                 issues.append("Face too large - move away from camera")
                 
-                # Categorize frame
                 time_seconds = frame_number / fps
                 frame_quality_score = max(0, frame_quality_score)
                 
                 if frame_quality_score >= 86:
-                    # Right frame (excellent presentation - no major issues)
                     right_frames.append({
                         "frame_number": frame_number,
                         "time_seconds": round(time_seconds, 2),
@@ -565,7 +514,6 @@ class VideoAnalyzer:
                         "description": "Excellent frame - good eye contact, straight posture, face visible"
                     })
                 elif frame_quality_score < 68:
-                    # Wrong frame (poor presentation - significant issues)
                     wrong_frames.append({
                         "frame_number": frame_number,
                         "time_seconds": round(time_seconds, 2),
@@ -574,7 +522,6 @@ class VideoAnalyzer:
                         "description": f"Poor presentation - {', '.join(issues)}"
                     })
                 
-                # Log frame issues for detailed analysis
                 if issues:
                     frame_issues.append({
                         "frame_number": frame_number,
@@ -586,7 +533,6 @@ class VideoAnalyzer:
             cap.release()
             pose.close()
             
-            # Prepare recommendations
             recommendations = []
             
             if wrong_frames:
@@ -595,20 +541,17 @@ class VideoAnalyzer:
                     for issue in frame.get("issues", []):
                         most_common_issue[issue] = most_common_issue.get(issue, 0) + 1
                 
-                # Get top issues
                 if most_common_issue:
                     sorted_issues = sorted(most_common_issue.items(), key=lambda x: x[1], reverse=True)
                     for issue, count in sorted_issues[:3]:
                         recommendations.append(f"Common issue: {issue} ({count} frames)")
                 
-                # Sample frames to show what's wrong
                 sample_wrong = wrong_frames[::max(1, len(wrong_frames)//3)][:3]
             else:
                 sample_wrong = []
                 recommendations.append("No presentation issues detected!")
             
             if right_frames:
-                # Sample frames showing what's right
                 sample_right = right_frames[::max(1, len(right_frames)//3)][:3]
             else:
                 sample_right = []
@@ -621,7 +564,7 @@ class VideoAnalyzer:
                 "right_frames_percentage": round((len(right_frames) / frame_number * 100) if frame_number > 0 else 0, 2),
                 "wrong_frames_samples": sample_wrong,
                 "right_frames_samples": sample_right,
-                "detailed_issues": frame_issues[:10],  # First 10 problematic frames
+                "detailed_issues": frame_issues[:10],
                 "recommendations": recommendations,
                 "summary": self._generate_frame_summary(wrong_frames, right_frames, len(wrong_frames) + len(right_frames) > 0)
             }
@@ -655,4 +598,3 @@ class VideoAnalyzer:
             return f"Moderate. {ratio:.0f}% of frames are good. Focus on maintaining presentation standards."
         else:
             return f"Needs improvement. Only {ratio:.0f}% of frames show good presentation. Review suggestions above."
-    

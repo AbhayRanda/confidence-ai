@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confidence AI Dashboard</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Icons (Phosphor Icons - clean and premium) -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    
+    <div class="app-container">
+        
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <i class="ph ph-aperture logo-icon"></i>
+                <span class="logo-text">Confidence AI</span>
+                <i class="ph ph-x menu-close" id="menu-close"></i>
+            </div>
+            
+            <ul class="nav-links">
+                <li class="nav-item active" data-target="dashboard-view">
+                    <i class="ph ph-squares-four"></i>
+                    <span>Dashboard</span>
+                </li>
+                <li class="nav-item" data-target="live-analysis-view">
+                    <i class="ph ph-video-camera"></i>
+                    <span>Live Analysis</span>
+                </li>
+                <li class="nav-item" data-target="reports-view">
+                    <i class="ph ph-chart-line-up"></i>
+                    <span>Reports</span>
+                </li>
+                <li class="nav-item" data-target="settings-view">
+                    <i class="ph ph-gear"></i>
+                    <span>Settings</span>
+                </li>
+            </ul>
+
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    <div class="avatar">
+                        <i class="ph ph-user"></i>
+                    </div>
+                    <div class="user-info">
+                        <p class="user-name">Guest User</p>
+                        <p class="user-role">Free Tier</p>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            
+            <header class="top-header">
+                <div class="mobile-toggle" id="mobile-toggle">
+                    <i class="ph ph-list"></i>
+                </div>
+                <div class="header-titles">
+                    <h1 id="page-title">Dashboard Overview</h1>
+                    <p id="page-subtitle">Welcome back. Here is your latest performance data.</p>
+                </div>
+                <div class="header-actions">
+                    <div class="streak-badge">
+                        <i class="ph-fill ph-fire streak-icon"></i>
+                        <span id="streak-counter">3 Day Streak</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="scroll-container">
+                
+                <!-- DASHBOARD VIEW -->
+                <section class="view-section active" id="dashboard-view">
+                    
+                    <!-- KPI Cards Grid -->
+                    <div class="grid-container">
+                        <!-- Eye Contact Card -->
+                        <div class="glass-card kpi-card hover-glow">
+                            <div class="card-header">
+                                <div class="icon-box blue-glow">
+                                    <i class="ph ph-eye"></i>
+                                </div>
+                                <div class="status-badge live">Live</div>
+                            </div>
+                            <h3 class="card-title">Eye Contact</h3>
+                            <div class="progress-wrap">
+                                <div class="progress-info">
+                                    <span class="progress-value" id="dash-eye-val">--%</span>
+                                    <span class="progress-label">Target: 80%</span>
+                                </div>
+                                <div class="progress-bar-bg">
+                                    <div class="progress-bar-fill blue-fill" id="dash-eye-bar" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Posture Card -->
+                        <div class="glass-card kpi-card hover-glow">
+                            <div class="card-header">
+                                <div class="icon-box purple-glow">
+                                    <i class="ph ph-person"></i>
+                                </div>
+                                <div class="status-badge live">Live</div>
+                            </div>
+                            <h3 class="card-title">Body Posture</h3>
+                            <div class="progress-wrap">
+                                <div class="progress-info">
+                                    <span class="progress-value" id="dash-posture-val">--%</span>
+                                    <span class="progress-label">Target: 85%</span>
+                                </div>
+                                <div class="progress-bar-bg">
+                                    <div class="progress-bar-fill purple-fill" id="dash-posture-bar" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Speech Card -->
+                        <div class="glass-card kpi-card hover-glow">
+                            <div class="card-header">
+                                <div class="icon-box neon-glow">
+                                    <i class="ph ph-microphone-stage"></i>
+                                </div>
+                                <div class="status-badge live">Live</div>
+                            </div>
+                            <h3 class="card-title">Speech Confidence</h3>
+                            <div class="progress-wrap">
+                                <div class="progress-info">
+                                    <span class="progress-value" id="dash-speech-val">--%</span>
+                                    <span class="progress-label">Target: 90%</span>
+                                </div>
+                                <div class="progress-bar-bg">
+                                    <div class="progress-bar-fill neon-fill" id="dash-speech-bar" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Main Overall Score Chart -->
+                    <div class="glass-card chart-card margin-top-lg">
+                        <div class="card-header chart-header">
+                            <div>
+                                <h3 class="card-title">Overall Confidence Trend</h3>
+                                <p class="card-subtitle">AI aggregated scores over time</p>
+                            </div>
+                            <button class="icon-btn" id="refresh-dashboard"><i class="ph ph-arrows-clockwise"></i></button>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="mainTrendChart"></canvas>
+                        </div>
+                    </div>
+                </section>
+
+
+                <!-- LIVE ANALYSIS VIEW -->
+                <section class="view-section" id="live-analysis-view">
+                    
+                    <div class="live-grid">
+                        
+                        <!-- Camera Area -->
+                        <div class="glass-card camera-panel">
+                            <div class="camera-header">
+                                <div class="rec-indicator" id="rec-indicator">
+                                    <span class="dot"></span>
+                                    <span class="label">READY</span>
+                                </div>
+                                <div class="camera-actions">
+                                    <button class="primary-btn" id="start-rec-btn">
+                                        <i class="ph-fill ph-play-circle"></i> Start Analysis
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="camera-container" id="camera-container">
+                                <video id="webcam" autoplay playsinline muted></video>
+                                
+                                <!-- AI Overlays (Mock Animation) -->
+                                <div class="ai-overlay hidden" id="ai-overlay">
+                                    <div class="face-box">
+                                        <div class="corner top-left"></div>
+                                        <div class="corner top-right"></div>
+                                        <div class="corner bottom-left"></div>
+                                        <div class="corner bottom-right"></div>
+                                        
+                                        <!-- Eye trackers -->
+                                        <div class="eye-tracker left-eye"></div>
+                                        <div class="eye-tracker right-eye"></div>
+                                    </div>
+                                    
+                                    <!-- Scanning effect -->
+                                    <div class="scan-line"></div>
+                                </div>
+                                
+                                <!-- Loading State -->
+                                <div class="loading-state hidden" id="camera-loading">
+                                    <div class="pulse-ring"></div>
+                                    <p>AI analyzing...</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Feedback Area -->
+                        <div class="feedback-panel">
+                            <div class="glass-card ai-feedback-box">
+                                <h3 class="card-title"><i class="ph-fill ph-lightning"></i> Smart Feedback</h3>
+                                <ul class="feedback-list" id="feedback-list">
+                                    <li class="feedback-item empty-state">
+                                        Start recording to receive real-time AI suggestions.
+                                    </li>
+                                </ul>
+                            </div>
+                            
+                            <div class="glass-card metrics-box margin-top-md">
+                                <h3 class="card-title">Live Metrics</h3>
+                                <div class="circular-metrics">
+                                    <div class="circular-progress">
+                                        <svg viewBox="0 0 36 36">
+                                          <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                                          <path class="circle-path blue-stroke" id="live-eye-ring" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                                        </svg>
+                                        <div class="circle-value">
+                                            <i class="ph ph-eye"></i>
+                                            <span id="live-eye-val">0</span>
+                                        </div>
+                                    </div>
+                                    <div class="circular-progress">
+                                        <svg viewBox="0 0 36 36">
+                                          <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                                          <path class="circle-path purple-stroke" id="live-posture-ring" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                                        </svg>
+                                        <div class="circle-value">
+                                            <i class="ph ph-person"></i>
+                                            <span id="live-posture-val">0</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </section>
+
+
+                <!-- REPORTS VIEW -->
+                <section class="view-section" id="reports-view">
+                    <div class="glass-card full-width">
+                        <div class="card-header chart-header">
+                            <div>
+                                <h3 class="card-title">Score Breakdown</h3>
+                                <p class="card-subtitle">Detailed metric analysis</p>
+                            </div>
+                        </div>
+                        <div class="reports-grid">
+                            <div class="chart-container radial">
+                                <canvas id="breakdownChart"></canvas>
+                            </div>
+                            <div class="metrics-list" id="historical-metrics-list">
+                                <!-- Populated by JS -->
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- SETTINGS VIEW -->
+                <section class="view-section" id="settings-view">
+                    <div class="glass-card max-sm">
+                        <h3 class="card-title mb-lg">Preferences</h3>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <h4>Camera Input</h4>
+                                <p>Select default video source</p>
+                            </div>
+                            <select class="custom-select" id="camera-select">
+                                <option>Loading cameras...</option>
+                            </select>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <h4>Microphone</h4>
+                                <p>Select default audio source</p>
+                            </div>
+                            <select class="custom-select" id="mic-select">
+                                <option>Loading microphones...</option>
+                            </select>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>

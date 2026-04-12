@@ -12,75 +12,51 @@ function Signup() {
   const [otp, setOtp] = useState(null);
   const navigate = useNavigate();
 
-  // Inject keyframe animations
   useEffect(() => {
     const style = document.createElement("style");
     style.textContent = `
-      @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(20px); }
+      @keyframes fadeUp {
+        from { opacity: 0; transform: translateY(18px); }
         to { opacity: 1; transform: translateY(0); }
       }
-      @keyframes slideDown {
-        from { opacity: 0; transform: translateY(-10px); }
-        to { opacity: 1; transform: translateY(0); }
+      .login-input:focus {
+        outline: none;
+        border-color: #6c47ff !important;
+        box-shadow: 0 0 0 3px rgba(108,71,255,0.12);
       }
+      .login-btn:hover { opacity: 0.88; }
+      .login-btn:active { transform: scale(0.98); }
     `;
     document.head.appendChild(style);
     return () => document.head.removeChild(style);
   }, []);
 
   const validateForm = () => {
-    if (!email || !password || !confirmPassword) {
-      setError("Please fill in all fields");
-      return false;
-    }
-
-    if (!email.includes("@")) {
-      setError("Please enter a valid email");
-      return false;
-    }
-
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters");
-      return false;
-    }
-
-    if (password !== confirmPassword) {
-      setError("Passwords do not match");
-      return false;
-    }
-
+    if (!email || !password || !confirmPassword) { setError("Please fill in all fields"); return false; }
+    if (!email.includes("@")) { setError("Please enter a valid email"); return false; }
+    if (password.length < 6) { setError("Password must be at least 6 characters"); return false; }
+    if (password !== confirmPassword) { setError("Passwords do not match"); return false; }
     return true;
   };
 
   const handleSignup = async (e) => {
     e.preventDefault();
-
-    if (!validateForm()) {
-      return;
-    }
-
+    if (!validateForm()) return;
     setLoading(true);
     setError("");
-
     try {
       const response = await fetch(
         `${API_BASE_URL}/signup?email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`,
         { method: "POST" }
       );
-
       const data = await response.json();
-
       if (response.ok) {
         setOtp(data.dev_otp);
-        setTimeout(() => {
-          navigate("/verify", { state: { email } });
-        }, 2000);
+        setTimeout(() => navigate("/verify", { state: { email } }), 2000);
       } else {
         setError(data.detail || "Signup failed. Please try again.");
       }
     } catch (err) {
-      console.error(err);
       setError("Network error. Please try again.");
     } finally {
       setLoading(false);
@@ -90,12 +66,14 @@ function Signup() {
   if (otp) {
     return (
       <div style={styles.page}>
-        <div style={styles.container}>
-          <h1 style={styles.title}>Account Created! ✓</h1>
-          <div style={styles.otpBox}>
-            <p style={styles.otpLabel}>Your verification code:</p>
-            <p style={styles.otpCode}>{otp}</p>
-            <p style={styles.otpInfo}>Redirecting to verification page...</p>
+        <div style={styles.otpScreen}>
+          <div style={styles.formBox}>
+            <h2 style={styles.formTitle}>Account created! ✓</h2>
+            <div style={styles.otpBox}>
+              <p style={styles.otpLabel}>Your verification code:</p>
+              <p style={styles.otpCode}>{otp}</p>
+              <p style={styles.otpInfo}>Redirecting to verification…</p>
+            </div>
           </div>
         </div>
       </div>
@@ -104,75 +82,78 @@ function Signup() {
 
   return (
     <div style={styles.page}>
-      <div style={styles.container}>
-        <h2 style={styles.title}>Join Confidence AI</h2>
-        <p style={styles.subtitle}>Start analyzing and improving your confidence today</p>
+      {/* Left hero */}
+      <div style={styles.hero}>
+        <div style={styles.heroInner}>
+          <div style={styles.heroBadge}>Join ConfidenceAI</div>
+          <h1 style={styles.heroTitle}>Start your confidence journey today</h1>
+          <p style={styles.heroSub}>
+            Get instant AI analysis of your eye contact, posture, facial expressions, and speech patterns.
+          </p>
+          <div style={styles.stepList}>
+            {[
+              { n: "01", t: "Create account", d: "Sign up in under 30 seconds" },
+              { n: "02", t: "Record a session", d: "Up to 30 seconds of video" },
+              { n: "03", t: "Get AI feedback", d: "Detailed confidence breakdown" },
+              { n: "04", t: "Track progress", d: "Watch yourself improve" },
+            ].map((s) => (
+              <div key={s.n} style={styles.step}>
+                <div style={styles.stepNum}>{s.n}</div>
+                <div>
+                  <div style={styles.stepTitle}>{s.t}</div>
+                  <div style={styles.stepDesc}>{s.d}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
 
-        {/* Error Message */}
-        {error && (
-          <div style={styles.errorMessage}>
-            ⚠️ {error}
-            <button
-              onClick={() => setError("")}
-              style={styles.closeButton}
-            >
-              ✕
+      {/* Right form */}
+      <div style={styles.formSide}>
+        <div style={styles.formBox}>
+          <div style={styles.formLogo}>
+            <div style={styles.formLogoIcon}>CA</div>
+            <span style={styles.formLogoText}>ConfidenceAI</span>
+          </div>
+          <h2 style={styles.formTitle}>Create your account</h2>
+          <p style={styles.formSub}>Free to get started, no credit card needed</p>
+
+          {error && (
+            <div style={styles.errorBox}>
+              <span>⚠️ {error}</span>
+              <button onClick={() => setError("")} style={styles.errorClose}>✕</button>
+            </div>
+          )}
+
+          <form onSubmit={handleSignup} style={styles.form}>
+            <div style={styles.fieldGroup}>
+              <label style={styles.label}>Email address</label>
+              <input type="email" className="login-input" placeholder="you@example.com"
+                value={email} onChange={(e) => setEmail(e.target.value)}
+                style={styles.input} disabled={loading} />
+            </div>
+            <div style={styles.fieldGroup}>
+              <label style={styles.label}>Password <span style={styles.hint}>(min. 6 characters)</span></label>
+              <input type="password" className="login-input" placeholder="••••••••"
+                value={password} onChange={(e) => setPassword(e.target.value)}
+                style={styles.input} disabled={loading} />
+            </div>
+            <div style={styles.fieldGroup}>
+              <label style={styles.label}>Confirm password</label>
+              <input type="password" className="login-input" placeholder="••••••••"
+                value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
+                style={styles.input} disabled={loading} />
+            </div>
+            <button type="submit" className="login-btn"
+              style={{ ...styles.submitBtn, opacity: loading ? 0.7 : 1 }} disabled={loading}>
+              {loading ? "Creating account…" : "Create Account"}
             </button>
-          </div>
-        )}
+          </form>
 
-        {/* Form */}
-        <form onSubmit={handleSignup} style={styles.form}>
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Email</label>
-            <input
-              type="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              style={styles.input}
-              disabled={loading}
-            />
-          </div>
-
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Password</label>
-            <input
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              style={styles.input}
-              disabled={loading}
-            />
-            <p style={styles.hint}>At least 6 characters</p>
-          </div>
-
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Confirm Password</label>
-            <input
-              type="password"
-              placeholder="••••••••"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              style={styles.input}
-              disabled={loading}
-            />
-          </div>
-
-          <button
-            type="submit"
-            style={styles.button}
-            disabled={loading}
-          >
-            {loading ? "Creating Account..." : "Create Account"}
-          </button>
-        </form>
-
-        {/* Sign In Link */}
-        <div style={styles.footer}>
-          <p style={styles.footerText}>
-            Already have an account? <Link to="/login" style={styles.link}>Sign in</Link>
+          <p style={styles.switchText}>
+            Already have an account?{" "}
+            <Link to="/login" style={styles.switchLink}>Sign in</Link>
           </p>
         </div>
       </div>
@@ -182,154 +163,235 @@ function Signup() {
 
 const styles = {
   page: {
+    display: "flex",
     minHeight: "100vh",
-    padding: "20px",
-    background: "linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%)",
+    fontFamily: "'Segoe UI', sans-serif",
+  },
+  hero: {
+    flex: 1,
+    background: "linear-gradient(150deg, #5c2fff 0%, #7e57ff 40%, #4f8ef7 100%)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    fontFamily: "'Segoe UI', 'Helvetica Neue', sans-serif",
+    padding: "60px 48px",
   },
-  container: {
+  heroInner: {
+    maxWidth: "440px",
+    animation: "fadeUp 0.6s ease both",
+  },
+  heroBadge: {
+    display: "inline-block",
+    background: "rgba(255,255,255,0.18)",
+    border: "1px solid rgba(255,255,255,0.3)",
+    color: "#fff",
+    padding: "4px 14px",
+    borderRadius: "20px",
+    fontSize: "11.5px",
+    fontWeight: "600",
+    letterSpacing: "0.5px",
+    marginBottom: "20px",
+    textTransform: "uppercase",
+  },
+  heroTitle: {
+    fontSize: "clamp(24px, 3.5vw, 34px)",
+    fontWeight: "800",
+    color: "#fff",
+    lineHeight: "1.25",
+    margin: "0 0 14px 0",
+    letterSpacing: "-0.4px",
+  },
+  heroSub: {
+    fontSize: "14px",
+    color: "rgba(255,255,255,0.8)",
+    lineHeight: "1.7",
+    margin: "0 0 32px 0",
+  },
+  stepList: {
     display: "flex",
     flexDirection: "column",
-    gap: "20px",
-    width: "100%",
-    maxWidth: "420px",
-    background: "rgba(255,255,255,0.08)",
-    backdropFilter: "blur(20px)",
-    padding: "40px",
-    borderRadius: "20px",
-    border: "1px solid rgba(255,255,255,0.12)",
-    boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)",
-    color: "white",
-    animation: "fadeIn 0.5s ease",
+    gap: "14px",
   },
-  title: {
-    fontSize: "28px",
+  step: {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: "14px",
+  },
+  stepNum: {
+    fontSize: "11px",
+    fontWeight: "800",
+    color: "rgba(255,255,255,0.5)",
+    letterSpacing: "0.5px",
+    minWidth: "28px",
+    paddingTop: "1px",
+  },
+  stepTitle: {
+    fontSize: "13.5px",
     fontWeight: "700",
-    margin: "0 0 8px 0",
     color: "#fff",
-    letterSpacing: "-0.5px",
+    marginBottom: "1px",
   },
-  subtitle: {
+  stepDesc: {
+    fontSize: "12px",
+    color: "rgba(255,255,255,0.65)",
+  },
+  otpScreen: {
+    flex: 1,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "#f7f8fc",
+  },
+  formSide: {
+    width: "420px",
+    minWidth: "380px",
+    background: "#f7f8fc",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "40px 32px",
+  },
+  formBox: {
+    width: "100%",
+    maxWidth: "340px",
+    animation: "fadeUp 0.7s ease 0.1s both",
+  },
+  formLogo: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    marginBottom: "28px",
+  },
+  formLogoIcon: {
+    width: "32px",
+    height: "32px",
+    borderRadius: "8px",
+    background: "linear-gradient(135deg, #6c47ff, #4f8ef7)",
+    color: "#fff",
+    fontSize: "11px",
+    fontWeight: "700",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  formLogoText: {
+    fontSize: "15px",
+    fontWeight: "700",
+    color: "#1a1a2e",
+  },
+  formTitle: {
+    fontSize: "22px",
+    fontWeight: "800",
+    color: "#1a1a2e",
+    margin: "0 0 6px 0",
+    letterSpacing: "-0.3px",
+  },
+  formSub: {
+    fontSize: "13px",
+    color: "#888",
+    margin: "0 0 22px 0",
+  },
+  errorBox: {
+    background: "#fff1f0",
+    border: "1px solid #ffd8d4",
+    color: "#c0392b",
+    padding: "10px 14px",
+    borderRadius: "8px",
+    fontSize: "13px",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "16px",
+  },
+  errorClose: {
+    background: "none",
+    border: "none",
+    color: "#c0392b",
+    cursor: "pointer",
     fontSize: "14px",
-    opacity: 0.7,
-    margin: "0 0 20px 0",
-    fontWeight: "500",
+    padding: "0 4px",
   },
   form: {
     display: "flex",
     flexDirection: "column",
-    gap: "16px",
+    gap: "14px",
   },
-  inputGroup: {
+  fieldGroup: {
     display: "flex",
     flexDirection: "column",
-    gap: "8px",
+    gap: "6px",
   },
   label: {
-    fontSize: "13px",
-    fontWeight: "600",
-    textTransform: "uppercase",
-    letterSpacing: "0.8px",
-    opacity: 0.9,
-  },
-  hint: {
     fontSize: "12px",
-    opacity: 0.6,
-    margin: "0",
-    marginTop: "-4px",
-  },
-  input: {
-    padding: "14px 16px",
-    borderRadius: "10px",
-    border: "2px solid rgba(0, 245, 255, 0.2)",
-    background: "rgba(255,255,255,0.08)",
-    color: "white",
-    fontSize: "15px",
-    fontFamily: "inherit",
-    transition: "all 0.3s ease",
-  },
-  button: {
-    padding: "14px 24px",
-    borderRadius: "10px",
-    border: "none",
-    background: "linear-gradient(135deg, #00f5ff, #00d4ff)",
-    color: "#000",
     fontWeight: "700",
-    fontSize: "15px",
-    cursor: "pointer",
-    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-    boxShadow: "0 4px 15px rgba(0, 245, 255, 0.3)",
+    color: "#555",
     textTransform: "uppercase",
     letterSpacing: "0.5px",
-    marginTop: "8px",
   },
-  errorMessage: {
-    background: "rgba(255, 77, 77, 0.15)",
-    border: "1px solid rgba(255, 77, 77, 0.5)",
-    color: "#ff9999",
-    padding: "14px 16px",
-    borderRadius: "10px",
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backdropFilter: "blur(10px)",
-    animation: "slideDown 0.3s ease",
+  hint: {
+    fontWeight: "400",
+    textTransform: "none",
+    letterSpacing: "0",
+    color: "#aaa",
+    fontSize: "11px",
+  },
+  input: {
+    padding: "11px 14px",
+    border: "1.5px solid #e0e0e0",
+    borderRadius: "9px",
     fontSize: "14px",
+    color: "#1a1a2e",
+    background: "#fff",
+    transition: "all 0.2s ease",
+    fontFamily: "'Segoe UI', sans-serif",
   },
-  closeButton: {
-    background: "none",
+  submitBtn: {
+    padding: "12px",
+    background: "linear-gradient(135deg, #6c47ff, #4f8ef7)",
+    color: "#fff",
     border: "none",
-    color: "#ff9999",
+    borderRadius: "9px",
+    fontSize: "14.5px",
+    fontWeight: "700",
     cursor: "pointer",
-    fontSize: "18px",
-    fontWeight: "bold",
-    padding: "0 8px",
+    marginTop: "4px",
     transition: "all 0.2s ease",
   },
+  switchText: {
+    textAlign: "center",
+    fontSize: "13px",
+    color: "#888",
+    marginTop: "20px",
+  },
+  switchLink: {
+    color: "#6c47ff",
+    fontWeight: "700",
+    textDecoration: "none",
+  },
   otpBox: {
-    background: "rgba(0, 245, 255, 0.15)",
-    border: "2px solid rgba(0, 245, 255, 0.4)",
+    background: "rgba(108,71,255,0.08)",
+    border: "1px solid rgba(108,71,255,0.2)",
     padding: "24px",
     borderRadius: "12px",
     textAlign: "center",
-    animation: "slideDown 0.5s ease",
+    marginTop: "16px",
   },
   otpLabel: {
-    fontSize: "14px",
-    opacity: 0.8,
-    margin: "0 0 12px 0",
+    fontSize: "13px",
+    color: "#666",
+    margin: "0 0 10px 0",
   },
   otpCode: {
-    fontSize: "28px",
-    fontWeight: "700",
+    fontSize: "32px",
+    fontWeight: "800",
     fontFamily: "'Courier New', monospace",
-    color: "#00f5ff",
-    margin: "12px 0",
-    letterSpacing: "4px",
+    color: "#6c47ff",
+    margin: "0 0 10px 0",
+    letterSpacing: "6px",
   },
   otpInfo: {
     fontSize: "12px",
-    opacity: 0.7,
-    margin: "12px 0 0 0",
-  },
-  footer: {
-    textAlign: "center",
-    marginTop: "12px",
-  },
-  footerText: {
-    fontSize: "14px",
-    margin: 0,
-    opacity: 0.9,
-  },
-  link: {
-    color: "#00f5ff",
-    textDecoration: "none",
-    fontWeight: "700",
-    transition: "all 0.3s ease",
-    cursor: "pointer",
+    color: "#999",
+    margin: "0",
   },
 };
 

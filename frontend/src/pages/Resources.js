@@ -1,647 +1,450 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
+const TIPS = [
+  {
+    id: "eye",
+    icon: "👁️",
+    title: "Eye Contact",
+    desc: "Learn perfect eye contact techniques",
+    color: "#6c47ff",
+    bg: "#f0eeff",
+    importance: "Builds trust and shows engagement. People believe speakers who maintain eye contact significantly more.",
+    tips: [
+      "Maintain eye contact 50–70% of the time",
+      "Do not stare continuously",
+      "Look at the triangle: left eye → right eye → mouth",
+      "Blink naturally",
+    ],
+    exercises: [
+      "30-second drill: hold eye contact while speaking",
+      "Record yourself and compare with vs. without eye contact",
+      "Mirror practice for 1–2 minutes daily",
+    ],
+  },
+  {
+    id: "posture",
+    icon: "🧍",
+    title: "Posture",
+    desc: "Correct sitting & standing posture",
+    color: "#2980b9",
+    bg: "#ebf5fb",
+    importance: "Your body speaks louder than words. Good posture projects confidence and improves your own mental state.",
+    tips: [
+      "Keep spine straight",
+      "Relax shoulders",
+      "Chest slightly forward",
+      "Head aligned with neck",
+    ],
+    exercises: [
+      "Wall test: stand against wall, maintain posture for 2 min",
+      "Mirror feedback: speak while watching your posture",
+      "Movement drill: walk while speaking to feel natural movement",
+    ],
+  },
+  {
+    id: "facial",
+    icon: "😊",
+    title: "Facial Expression",
+    desc: "Improve face confidence & smile",
+    color: "#27ae60",
+    bg: "#eafaf1",
+    importance: "A genuine smile is contagious! It makes you likeable and helps your audience connect emotionally.",
+    tips: [
+      "Smile softly even when not speaking",
+      "Relax eyelids",
+      "Avoid frowning",
+      "Match your expression to your message",
+    ],
+    exercises: [
+      "Smile mirror check: hold for 10 seconds",
+      "Voice test: record with smile vs without — notice the difference",
+      "Expression variety: practice 5 expressions in 1 minute",
+    ],
+  },
+  {
+    id: "speech",
+    icon: "🎤",
+    title: "Speech & Voice",
+    desc: "Speak with clarity and confidence",
+    color: "#e67e22",
+    bg: "#fef5e4",
+    importance: "Clear, well-paced speech ensures your message lands. Filler words undermine authority — remove them.",
+    tips: [
+      "Aim for 120–150 words per minute",
+      "Pause instead of saying 'um' or 'uh'",
+      "Vary your tone for emphasis",
+      "Breathe deeply before speaking",
+    ],
+    exercises: [
+      "Record yourself and count filler words",
+      "Read a passage aloud at different speeds",
+      "Tongue twisters daily for diction",
+    ],
+  },
+];
+
+function Modal({ tip, onClose }) {
+  useEffect(() => {
+    const handler = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  return (
+    <div style={styles.overlay} onClick={onClose}>
+      <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+        <div style={styles.modalHeader}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <span style={{ fontSize: "22px" }}>{tip.icon}</span>
+            <h2 style={styles.modalTitle}>{tip.title} Tips</h2>
+          </div>
+          <button onClick={onClose} style={styles.closeBtn}>✕</button>
+        </div>
+
+        <p style={styles.modalImportance}>{tip.importance}</p>
+
+        <div style={styles.modalSection}>
+          <div style={styles.modalSectionTitle}>Key Tips</div>
+          {tip.tips.map((t) => (
+            <div key={t} style={styles.modalListItem}>
+              <span style={{ ...styles.modalBullet, background: tip.color }}>•</span>
+              {t}
+            </div>
+          ))}
+        </div>
+
+        <div style={styles.modalSection}>
+          <div style={styles.modalSectionTitle}>Practice Exercises</div>
+          {tip.exercises.map((ex, i) => (
+            <div key={ex} style={styles.modalListItem}>
+              <span style={{ ...styles.modalNum, background: tip.bg, color: tip.color }}>{i + 1}</span>
+              {ex}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Resources() {
   const navigate = useNavigate();
-  
+  const [activeTip, setActiveTip] = useState(null);
+  const [activeTab, setActiveTab] = useState("all");
+
   useEffect(() => {
     const style = document.createElement("style");
     style.textContent = `
-      @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-      @keyframes slideDown {
-        from { 
-          opacity: 0; 
-          transform: translateY(-10px); 
-          max-height: 0;
-        }
-        to { 
-          opacity: 1; 
-          transform: translateY(0); 
-          max-height: 1000px;
-        }
-      }
+      @keyframes fadeUp { from{opacity:0;transform:translateY(12px);} to{opacity:1;transform:translateY(0);} }
+      @keyframes modalIn { from{opacity:0;transform:scale(0.95) translateY(8px);} to{opacity:1;transform:scale(1) translateY(0);} }
+      .tip-card:hover { box-shadow: 0 4px 24px rgba(0,0,0,0.08); transform: translateY(-2px); }
     `;
     document.head.appendChild(style);
     return () => document.head.removeChild(style);
   }, []);
 
-  const handlePractice = () => {
-    navigate("/dashboard");
-  };
-
   return (
     <div style={styles.page}>
-      <div style={styles.header}>
-        <span style={styles.purposeTag}>📚 Learning Resources</span>
-        <h1 style={styles.title}>Confidence Building Guide</h1>
-        <p style={styles.subtitle}>Master the 4 pillars of confident presentation</p>
-        <p style={styles.description}>Each section below shows what to do and what to avoid, plus actionable tips to improve. Practice makes perfect!</p>
-      </div>
+      {activeTip && <Modal tip={activeTip} onClose={() => setActiveTip(null)} />}
 
-      <VisualSection
-        title="👁️ Eye Contact"
-        icon="👁️"
-        goodImg="https://images.unsplash.com/photo-1520813792240-56fc4a3765a7"
-        badImg="https://images.unsplash.com/photo-1517841905240-472988babdf9"
-        goodText="Looking directly at camera"
-        badText="Looking down / away"
-        importance="Builds trust and shows engagement. People believe speakers who make eye contact 50% more."
-        tips={[
-          "Focus on the camera lens as if talking to a friend",
-          "Blink naturally - no staring contest",
-          "Hold eye contact for 5-10 seconds at a time",
-          "If using camera, place it at eye level"
-        ]}
-        exercises={[
-          "30-second stare: Look at camera for 30 seconds while speaking",
-          "Record yourself: Compare 1 min with eye contact vs without",
-          "Mirror practice: Maintain focus for 1-2 minutes"
-        ]}
-        difficulty="Beginner"
-        onPractice={handlePractice}
-      />
-
-      <VisualSection
-        title="🧍 Posture & Body Language"
-        icon="🧍"
-        goodImg="https://images.unsplash.com/photo-1551836022-d5d88e9218df"
-        badImg="https://images.unsplash.com/photo-1492724441997-5dc865305da7"
-        goodText="Straight, open posture"
-        badText="Slouching or closed off"
-        importance="Your body speaks louder than words. Good posture projects confidence and improves your own mental state."
-        tips={[
-          "Keep shoulders back and relaxed",
-          "Stand with weight balanced on both feet",
-          "Avoid crossing arms - look open and approachable",
-          "Use natural hand gestures to emphasize points"
-        ]}
-        exercises={[
-          "Wall test: Stand against wall, maintain neutral posture for 2 min",
-          "Mirror feedback: Practice speaking while watching posture",
-          "Movement drill: Walk while speaking to feel natural movement"
-        ]}
-        difficulty="Beginner"
-        onPractice={handlePractice}
-      />
-
-      <VisualSection
-        title="😀 Facial Expression & Smile"
-        icon="😊"
-        goodImg="https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e"
-        badImg="https://images.unsplash.com/photo-1500648767791-00dcc994a43e"
-        goodText="Natural, warm smile"
-        badText="Stiff or blank expression"
-        importance="A genuine smile is contagious! It makes you likeable and helps audience connect with you emotionally."
-        tips={[
-          "Smile should reach your eyes (Duchenne smile)",
-          "Relax your face between expressions",
-          "Practice smiling while speaking - it changes your tone",
-          "Authentic > forced. Think of something that makes you happy"
-        ]}
-        exercises={[
-          "Smile mirror check: Hold smile for 10 seconds, check corners of mouth",
-          "Voice test: Record with smile vs without - notice the difference",
-          "Expression variety: Practice 5 different natural expressions in 1 min"
-        ]}
-        difficulty="Beginner"
-        onPractice={handlePractice}
-      />
-
-      <VisualSection
-        title="💡 Environment Setup"
-        icon="💡"
-        goodImg="https://images.unsplash.com/photo-1522071820081-009f0129c71c"
-        badImg="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee"
-        goodText="Good lighting & professional background"
-        badText="Poor lighting & cluttered space"
-        importance="Your environment affects how others perceive you. Good setup removes distractions and keeps focus on your message."
-        tips={[
-          "Position light source in front of you, not behind",
-          "Keep background clean and professional (blurred or plain wall)",
-          "Use headphones for better audio quality",
-          "Test camera angle - should be at or slightly above eye level"
-        ]}
-        exercises={[
-          "Lighting test: Record in 3 different setups, compare quality",
-          "Background audit: Identify and remove 5 distracting items",
-          "Camera angle: Adjust until you look naturally at viewer eye level"
-        ]}
-        difficulty="Beginner"
-        onPractice={handlePractice}
-      />
-
-      <div style={styles.progressSection}>
-        <h2 style={styles.progressTitle}>🚀 Your Learning Path</h2>
-        <div style={styles.progressGrid}>
-          <ProgressCard icon="📚" title="Learn" desc="Read tips and understand why each element matters" />
-          <ProgressCard icon="🎬" title="Record" desc="Practice with video recorder on Dashboard" />
-          <ProgressCard icon="📊" title="Analyze" desc="Get AI confidence scores to track progress" />
-          <ProgressCard icon="🏆" title="Master" desc="Build consistent habits and gain real confidence" />
+      {/* Hero */}
+      <div style={styles.hero}>
+        <div style={styles.heroContent}>
+          <div style={styles.heroBadge}>Learning Resources</div>
+          <h1 style={styles.heroTitle}>Personality Development Tips</h1>
+          <p style={styles.heroSub}>
+            Master the 4 pillars of confident communication — click any card to learn techniques and exercises.
+          </p>
+          <button onClick={() => navigate("/ai")} style={styles.heroBtn}>
+            🎬 Start Practicing Now
+          </button>
         </div>
       </div>
 
-      <div style={styles.callToAction}>
-        <h2>Ready to Practice?</h2>
-        <button 
-          onClick={handlePractice}
-          style={styles.ctaButton}
-          onMouseEnter={(e) => e.target.style.background = styles.ctaButtonHover.background}
-          onMouseLeave={(e) => e.target.style.background = styles.ctaButton.background}
-        >
-          🎥 Go to Video Recorder
-        </button>
-        <p style={styles.ctaText}>Start recording yourself and get instant confidence feedback!</p>
-      </div>
-    </div>
-  );
-}
-
-/* ---------- COMPONENT ---------- */
-
-function ProgressCard({ icon, title, desc }) {
-  return (
-    <div style={styles.progressCard}>
-      <div style={styles.progressIcon}>{icon}</div>
-      <h3 style={styles.progressTitle2}>{title}</h3>
-      <p style={styles.progressDesc}>{desc}</p>
-    </div>
-  );
-}
-
-function VisualSection({ title, icon, goodImg, badImg, goodText, badText, importance, tips = [], exercises = [], difficulty, onPractice }) {
-  const [hoveredCard, setHoveredCard] = useState(null);
-  const [expandedTips, setExpandedTips] = useState(false);
-  const [expandedExercises, setExpandedExercises] = useState(false);
-
-  const difficultyColors = {
-    "Beginner": "#00ff99",
-    "Intermediate": "#ffaa00",
-    "Advanced": "#ff6b9d"
-  };
-
-  return (
-    <div style={styles.section}>
-      <div style={styles.sectionHeader}>
-        <div>
-          <h2 style={styles.sectionTitle}>{title}</h2>
-          <p style={styles.importance}>📌 {importance}</p>
-          <span style={{...styles.difficultyBadge, color: difficultyColors[difficulty]}}>
-            {difficulty} Level
-          </span>
+      {/* Tips grid */}
+      <div style={styles.content}>
+        <div style={styles.sectionHeader}>
+          <h2 style={styles.sectionTitle}>Core Skills</h2>
+          <span style={styles.sectionSub}>Click any card to expand tips & exercises</span>
         </div>
-      </div>
 
-      <div style={styles.grid}>
-        <VisualCard
-          img={goodImg}
-          label={goodText}
-          type="good"
-          onHover={(hovered) => setHoveredCard(hovered ? `${title}-good` : null)}
-          isHovered={hoveredCard === `${title}-good`}
-        />
-        <VisualCard
-          img={badImg}
-          label={badText}
-          type="bad"
-          onHover={(hovered) => setHoveredCard(hovered ? `${title}-bad` : null)}
-          isHovered={hoveredCard === `${title}-bad`}
-        />
-      </div>
-
-      <div style={styles.expandableContainer}>
-        <div 
-          style={{...styles.expandableHeader, background: expandedTips ? "rgba(0, 245, 255, 0.1)" : ""}}
-          onClick={() => setExpandedTips(!expandedTips)}
-        >
-          <span style={styles.expandIcon}>{expandedTips ? "▼" : "▶"}</span>
-          <h3 style={styles.expandTitle}>💡 Tips & Best Practices</h3>
+        <div style={styles.tipsGrid}>
+          {TIPS.map((tip) => (
+            <div
+              key={tip.id}
+              className="tip-card"
+              style={styles.tipCard}
+              onClick={() => setActiveTip(tip)}
+            >
+              <div style={{ ...styles.tipIconWrap, background: tip.bg }}>
+                <span style={styles.tipIcon}>{tip.icon}</span>
+              </div>
+              <h3 style={styles.tipTitle}>{tip.title}</h3>
+              <p style={styles.tipDesc}>{tip.desc}</p>
+              <div style={styles.tipFooter}>
+                <span style={{ ...styles.tipLink, color: tip.color }}>View tips →</span>
+              </div>
+            </div>
+          ))}
         </div>
-        {expandedTips && (
-          <div style={styles.expandedContent}>
-            <ul style={styles.tipsList}>
-              {tips.map((tip, idx) => (
-                <li key={idx} style={styles.tipItem}>
-                  <span style={styles.checkmark}>✓</span> {tip}
-                </li>
-              ))}
-            </ul>
+
+        {/* Learning path */}
+        <div style={styles.pathCard}>
+          <h2 style={styles.pathTitle}>🚀 Your Learning Path</h2>
+          <div style={styles.pathGrid}>
+            {[
+              { step: "01", title: "Learn", desc: "Read tips and understand why each element matters", icon: "📚" },
+              { step: "02", title: "Record", desc: "Practice with the AI video recorder", icon: "🎬" },
+              { step: "03", title: "Analyze", desc: "Get AI confidence scores to track progress", icon: "📊" },
+              { step: "04", title: "Master", desc: "Build consistent habits and real confidence", icon: "🏆" },
+            ].map((p) => (
+              <div key={p.step} style={styles.pathStep}>
+                <div style={styles.pathNum}>{p.step}</div>
+                <div style={styles.pathIcon}>{p.icon}</div>
+                <div style={styles.pathStepTitle}>{p.title}</div>
+                <div style={styles.pathStepDesc}>{p.desc}</div>
+              </div>
+            ))}
           </div>
-        )}
-      </div>
-
-      <div style={styles.expandableContainer}>
-        <div 
-          style={{...styles.expandableHeader, background: expandedExercises ? "rgba(0, 245, 255, 0.1)" : ""}}
-          onClick={() => setExpandedExercises(!expandedExercises)}
-        >
-          <span style={styles.expandIcon}>{expandedExercises ? "▼" : "▶"}</span>
-          <h3 style={styles.expandTitle}>💪 Practice Exercises</h3>
         </div>
-        {expandedExercises && (
-          <div style={styles.expandedContent}>
-            <ul style={styles.tipsList}>
-              {exercises.map((exercise, idx) => (
-                <li key={idx} style={styles.tipItem}>
-                  <span style={styles.exerciseIcon}>🎯</span> {exercise}
-                </li>
-              ))}
-            </ul>
+
+        {/* CTA */}
+        <div style={styles.ctaBanner}>
+          <div>
+            <h3 style={styles.ctaTitle}>Ready to put it into practice?</h3>
+            <p style={styles.ctaSub}>Record a session and get instant AI feedback on your confidence.</p>
           </div>
-        )}
-      </div>
-
-      <button 
-        onClick={onPractice}
-        style={styles.practiceButton}
-        onMouseEnter={(e) => e.target.style.background = styles.practiceButtonHover.background}
-        onMouseLeave={(e) => e.target.style.background = styles.practiceButton.background}
-      >
-        🎬 Practice This Now
-      </button>
-    </div>
-  );
-}
-
-function VisualCard({ img, label, type, onHover, isHovered }) {
-  return (
-    <div
-      style={{
-        ...styles.card,
-        ...(isHovered ? styles.cardHover : {}),
-      }}
-      onMouseEnter={() => onHover(true)}
-      onMouseLeave={() => onHover(false)}
-    >
-      <div style={styles.imageContainer}>
-        <img src={img} alt={label} style={styles.image} />
-        <div style={styles.overlay}>
-          {type === "good" ? "✓ DO THIS" : "✗ AVOID THIS"}
+          <button onClick={() => navigate("/ai")} style={styles.ctaBtn}>
+            Go to AI Practice Room →
+          </button>
         </div>
       </div>
-      <div
-        style={{
-          ...styles.label,
-          color: type === "good" ? "#00ff99" : "#ff6b9d",
-          background: type === "good" ? "rgba(0, 255, 153, 0.1)" : "rgba(255, 77, 109, 0.1)",
-        }}
-      >
-        {type === "good" ? "✓" : "✗"} {label}
-      </div>
     </div>
   );
 }
-
-/* ---------- STYLES ---------- */
 
 const styles = {
   page: {
+    flex: 1,
+    background: "#f7f8fc",
     minHeight: "100vh",
-    padding: "20px",
-    paddingTop: "40px",
-    background: "linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%)",
-    color: "white",
-    fontFamily: "'Segoe UI', 'Helvetica Neue', sans-serif",
+    fontFamily: "'Segoe UI', sans-serif",
+    overflowY: "auto",
   },
-
-  purposeTag: {
+  hero: {
+    background: "linear-gradient(135deg, #5c2fff 0%, #7e57ff 50%, #4f8ef7 100%)",
+    padding: "48px 48px 40px",
+  },
+  heroContent: { maxWidth: "560px", animation: "fadeUp 0.5s ease both" },
+  heroBadge: {
     display: "inline-block",
-    background: "rgba(0, 245, 255, 0.15)",
-    border: "1px solid rgba(0, 245, 255, 0.4)",
-    color: "#00f5ff",
-    padding: "8px 16px",
+    background: "rgba(255,255,255,0.18)",
+    border: "1px solid rgba(255,255,255,0.3)",
+    color: "#fff",
+    padding: "4px 14px",
     borderRadius: "20px",
-    fontSize: "12px",
-    fontWeight: "700",
-    letterSpacing: "0.8px",
-    marginBottom: "16px",
-    textTransform: "uppercase",
-  },
-
-  header: {
-    textAlign: "center",
-    marginBottom: "60px",
-    animation: "fadeIn 0.5s ease",
-  },
-
-  title: {
-    fontSize: "clamp(28px, 5vw, 48px)",
-    fontWeight: "700",
-    margin: "0 0 12px 0",
-    background: "linear-gradient(135deg, #00f5ff, #00d4ff)",
-    WebkitBackgroundClip: "text",
-    WebkitTextFillColor: "transparent",
-    backgroundClip: "text",
-    letterSpacing: "-1px",
-  },
-
-  subtitle: {
-    fontSize: "18px",
-    opacity: 0.9,
-    margin: "0 0 12px 0",
+    fontSize: "11.5px",
     fontWeight: "600",
-    color: "#00f5ff",
-  },
-
-  description: {
-    fontSize: "15px",
-    opacity: 0.8,
-    margin: "12px 0 0 0",
-    maxWidth: "600px",
-    marginLeft: "auto",
-    marginRight: "auto",
-    lineHeight: "1.6",
-  },
-
-  section: {
-    marginBottom: "60px",
-    maxWidth: "1200px",
-    margin: "0 auto 60px auto",
-    padding: "30px",
-    background: "rgba(255,255,255,0.04)",
-    backdropFilter: "blur(12px)",
-    borderRadius: "20px",
-    border: "1px solid rgba(0, 245, 255, 0.1)",
-    animation: "fadeIn 0.6s ease",
-  },
-
-  sectionHeader: {
-    marginBottom: "30px",
-  },
-
-  sectionTitle: {
-    fontSize: "28px",
-    fontWeight: "700",
-    marginBottom: "10px",
-    background: "linear-gradient(135deg, #00f5ff, #00d4ff)",
-    WebkitBackgroundClip: "text",
-    WebkitTextFillColor: "transparent",
-    backgroundClip: "text",
-  },
-
-  importance: {
-    fontSize: "16px",
-    opacity: 0.85,
-    margin: "8px 0",
-    lineHeight: "1.5",
-    color: "#a8e6ff",
-  },
-
-  difficultyBadge: {
-    display: "inline-block",
-    padding: "6px 12px",
-    borderRadius: "12px",
-    fontSize: "12px",
-    fontWeight: "700",
+    letterSpacing: "0.5px",
+    marginBottom: "14px",
     textTransform: "uppercase",
-    border: "1px solid currentColor",
-    marginTop: "8px",
   },
-
-  grid: {
+  heroTitle: {
+    fontSize: "clamp(22px, 4vw, 32px)",
+    fontWeight: "800",
+    color: "#fff",
+    margin: "0 0 12px 0",
+    letterSpacing: "-0.4px",
+    lineHeight: "1.2",
+  },
+  heroSub: {
+    fontSize: "14px",
+    color: "rgba(255,255,255,0.8)",
+    lineHeight: "1.7",
+    margin: "0 0 24px 0",
+  },
+  heroBtn: {
+    padding: "11px 24px",
+    background: "#fff",
+    color: "#6c47ff",
+    border: "none",
+    borderRadius: "9px",
+    fontSize: "13.5px",
+    fontWeight: "700",
+    cursor: "pointer",
+    transition: "all 0.2s ease",
+  },
+  content: { padding: "32px 36px" },
+  sectionHeader: {
+    display: "flex",
+    alignItems: "baseline",
+    gap: "12px",
+    marginBottom: "20px",
+  },
+  sectionTitle: { fontSize: "17px", fontWeight: "800", color: "#1a1a2e", margin: 0, letterSpacing: "-0.2px" },
+  sectionSub: { fontSize: "13px", color: "#bbb" },
+  tipsGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-    gap: "24px",
-    marginBottom: "30px",
+    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+    gap: "16px",
+    marginBottom: "28px",
   },
-
-  card: {
-    background: "rgba(255,255,255,0.06)",
-    backdropFilter: "blur(12px)",
-    borderRadius: "16px",
-    overflow: "hidden",
-    border: "1px solid rgba(255,255,255,0.1)",
-    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-    boxShadow: "0 4px 20px rgba(0, 0, 0, 0.2)",
-    animation: "fadeIn 0.5s ease",
+  tipCard: {
+    background: "#fff",
+    border: "1px solid #ebebeb",
+    borderRadius: "14px",
+    padding: "22px",
+    cursor: "pointer",
+    transition: "all 0.2s ease",
+    animation: "fadeUp 0.4s ease both",
   },
-
-  cardHover: {
-    transform: "translateY(-8px)",
-    boxShadow: "0 12px 40px rgba(0, 245, 255, 0.2)",
-    background: "rgba(255,255,255,0.1)",
-    border: "1px solid rgba(0, 245, 255, 0.3)",
-  },
-
-  imageContainer: {
-    position: "relative",
-    overflow: "hidden",
-    height: "320px",
-  },
-
-  image: {
-    width: "100%",
-    height: "100%",
-    objectFit: "cover",
-    transition: "transform 0.3s ease",
-  },
-
-  overlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    background: "rgba(0, 0, 0, 0.4)",
+  tipIconWrap: {
+    width: "48px",
+    height: "48px",
+    borderRadius: "12px",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    fontSize: "18px",
-    fontWeight: "700",
-    color: "#00f5ff",
-    opacity: 0,
-    transition: "opacity 0.3s ease",
+    marginBottom: "14px",
   },
-
-  label: {
-    padding: "18px 16px",
-    fontWeight: "700",
-    textAlign: "center",
-    fontSize: "15px",
-    letterSpacing: "0.5px",
-    textTransform: "uppercase",
-  },
-
-  expandableContainer: {
-    marginTop: "20px",
+  tipIcon: { fontSize: "22px" },
+  tipTitle: { fontSize: "15px", fontWeight: "700", color: "#1a1a2e", margin: "0 0 6px 0" },
+  tipDesc: { fontSize: "13px", color: "#888", lineHeight: "1.5", margin: "0 0 16px 0" },
+  tipFooter: { borderTop: "1px solid #f5f5f5", paddingTop: "12px" },
+  tipLink: { fontSize: "12.5px", fontWeight: "700" },
+  pathCard: {
+    background: "#fff",
+    border: "1px solid #ebebeb",
+    borderRadius: "14px",
+    padding: "28px",
     marginBottom: "20px",
-    border: "1px solid rgba(0, 245, 255, 0.2)",
-    borderRadius: "12px",
-    overflow: "hidden",
   },
-
-  expandableHeader: {
-    padding: "20px",
+  pathTitle: { fontSize: "17px", fontWeight: "800", color: "#1a1a2e", margin: "0 0 24px 0", letterSpacing: "-0.2px" },
+  pathGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "20px" },
+  pathStep: { textAlign: "center" },
+  pathNum: { fontSize: "11px", fontWeight: "800", color: "#ddd", letterSpacing: "1px", marginBottom: "8px" },
+  pathIcon: { fontSize: "28px", marginBottom: "8px" },
+  pathStepTitle: { fontSize: "14px", fontWeight: "700", color: "#1a1a2e", marginBottom: "4px" },
+  pathStepDesc: { fontSize: "12px", color: "#999", lineHeight: "1.5" },
+  ctaBanner: {
+    background: "linear-gradient(135deg, #5c2fff, #4f8ef7)",
+    borderRadius: "14px",
+    padding: "24px 28px",
     display: "flex",
     alignItems: "center",
-    gap: "12px",
-    cursor: "pointer",
-    background: "rgba(0, 245, 255, 0.05)",
-    transition: "all 0.3s ease",
-    userSelect: "none",
-  },
-
-  expandIcon: {
-    fontSize: "14px",
-    color: "#00f5ff",
-    fontWeight: "700",
-    transition: "transform 0.3s ease",
-    display: "inline-block",
-  },
-
-  expandTitle: {
-    margin: "0",
-    fontSize: "16px",
-    fontWeight: "600",
-    color: "#00f5ff",
-  },
-
-  expandedContent: {
-    padding: "20px",
-    background: "rgba(0, 0, 0, 0.3)",
-    animation: "slideDown 0.3s ease",
-  },
-
-  tipsList: {
-    listStyle: "none",
-    padding: "0",
-    margin: "0",
-  },
-
-  tipItem: {
-    padding: "12px 0",
-    fontSize: "15px",
-    lineHeight: "1.6",
-    display: "flex",
-    gap: "12px",
-    alignItems: "flex-start",
-    borderBottom: "1px solid rgba(255,255,255,0.05)",
-  },
-
-  checkmark: {
-    color: "#00ff99",
-    fontWeight: "700",
-    minWidth: "20px",
-    marginTop: "2px",
-  },
-
-  exerciseIcon: {
-    minWidth: "20px",
-    marginTop: "2px",
-  },
-
-  practiceButton: {
-    marginTop: "20px",
-    padding: "14px 28px",
-    fontSize: "16px",
-    fontWeight: "700",
-    border: "2px solid #00f5ff",
-    background: "rgba(0, 245, 255, 0.1)",
-    color: "#00f5ff",
-    borderRadius: "10px",
-    cursor: "pointer",
-    transition: "all 0.3s ease",
-    width: "100%",
-  },
-
-  practiceButtonHover: {
-    background: "#00f5ff",
-    color: "#0f2027",
-  },
-
-  progressSection: {
-    maxWidth: "1200px",
-    margin: "80px auto",
-    padding: "40px 30px",
-    background: "rgba(0, 245, 255, 0.05)",
-    backdropFilter: "blur(12px)",
-    borderRadius: "20px",
-    border: "1px solid rgba(0, 245, 255, 0.2)",
-    animation: "fadeIn 0.7s ease",
-  },
-
-  progressTitle: {
-    fontSize: "28px",
-    fontWeight: "700",
-    marginBottom: "30px",
-    background: "linear-gradient(135deg, #00f5ff, #00d4ff)",
-    WebkitBackgroundClip: "text",
-    WebkitTextFillColor: "transparent",
-    backgroundClip: "text",
-    textAlign: "center",
-  },
-
-  progressGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+    justifyContent: "space-between",
     gap: "20px",
+    flexWrap: "wrap",
   },
-
-  progressCard: {
-    padding: "25px",
-    background: "rgba(255,255,255,0.06)",
-    borderRadius: "12px",
-    border: "1px solid rgba(0, 245, 255, 0.2)",
-    textAlign: "center",
-    transition: "all 0.3s ease",
-  },
-
-  progressIcon: {
-    fontSize: "40px",
-    marginBottom: "12px",
-  },
-
-  progressTitle2: {
-    margin: "0 0 10px 0",
-    fontSize: "18px",
-    fontWeight: "700",
-    color: "#00f5ff",
-  },
-
-  progressDesc: {
-    margin: "0",
-    fontSize: "14px",
-    opacity: 0.8,
-    lineHeight: "1.5",
-  },
-
-  callToAction: {
-    maxWidth: "1200px",
-    margin: "0 auto",
-    padding: "60px 30px",
-    textAlign: "center",
-    background: "linear-gradient(135deg, rgba(0, 245, 255, 0.1) 0%, rgba(0, 212, 255, 0.08) 100%)",
-    borderRadius: "20px",
-    border: "2px solid rgba(0, 245, 255, 0.3)",
-    animation: "fadeIn 0.8s ease",
-  },
-
-  ctaButton: {
-    marginTop: "20px",
-    padding: "16px 40px",
-    fontSize: "18px",
-    fontWeight: "700",
+  ctaTitle: { fontSize: "16px", fontWeight: "800", color: "#fff", margin: "0 0 4px 0" },
+  ctaSub: { fontSize: "13px", color: "rgba(255,255,255,0.75)", margin: 0 },
+  ctaBtn: {
+    padding: "11px 22px",
+    background: "#fff",
+    color: "#6c47ff",
     border: "none",
-    background: "linear-gradient(135deg, #00f5ff, #00d4ff)",
-    color: "#0f2027",
-    borderRadius: "12px",
+    borderRadius: "9px",
+    fontSize: "13.5px",
+    fontWeight: "700",
     cursor: "pointer",
-    transition: "all 0.3s ease",
-    boxShadow: "0 8px 24px rgba(0, 245, 255, 0.3)",
+    whiteSpace: "nowrap",
+    transition: "all 0.2s ease",
   },
-
-  ctaButtonHover: {
-    background: "linear-gradient(135deg, #00d4ff, #00a8cc)",
-    boxShadow: "0 12px 32px rgba(0, 245, 255, 0.4)",
-    transform: "translateY(-2px)",
+  // Modal
+  overlay: {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(15,15,30,0.55)",
+    zIndex: 1000,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "20px",
+    backdropFilter: "blur(4px)",
   },
-
-  ctaText: {
-    marginTop: "16px",
-    fontSize: "15px",
-    opacity: 0.85,
+  modal: {
+    background: "#fff",
+    borderRadius: "16px",
+    padding: "28px",
+    width: "100%",
+    maxWidth: "500px",
+    maxHeight: "85vh",
+    overflowY: "auto",
+    animation: "modalIn 0.25s ease both",
+    boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
+  },
+  modalHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "14px",
+  },
+  modalTitle: { fontSize: "18px", fontWeight: "800", color: "#1a1a2e", margin: 0 },
+  closeBtn: {
+    width: "30px",
+    height: "30px",
+    borderRadius: "50%",
+    background: "#f5f5f5",
+    border: "none",
+    cursor: "pointer",
+    fontSize: "14px",
+    color: "#666",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalImportance: {
+    fontSize: "13.5px",
+    color: "#666",
+    lineHeight: "1.6",
+    margin: "0 0 20px 0",
+    padding: "12px 16px",
+    background: "#f9f9f9",
+    borderRadius: "8px",
+    borderLeft: "3px solid #6c47ff",
+  },
+  modalSection: { marginBottom: "20px" },
+  modalSectionTitle: {
+    fontSize: "12px",
+    fontWeight: "700",
+    color: "#999",
+    textTransform: "uppercase",
+    letterSpacing: "0.6px",
+    marginBottom: "10px",
+  },
+  modalListItem: {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: "10px",
+    fontSize: "13.5px",
+    color: "#444",
+    lineHeight: "1.5",
+    marginBottom: "8px",
+  },
+  modalBullet: {
+    color: "#fff",
+    width: "18px",
+    height: "18px",
+    borderRadius: "50%",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "10px",
+    flexShrink: 0,
+    marginTop: "1px",
+  },
+  modalNum: {
+    width: "20px",
+    height: "20px",
+    borderRadius: "50%",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "11px",
+    fontWeight: "700",
+    flexShrink: 0,
+    marginTop: "1px",
   },
 };
 

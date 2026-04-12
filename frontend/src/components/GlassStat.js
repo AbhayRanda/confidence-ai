@@ -1,59 +1,70 @@
-import React from "react";
+import React, { useState } from "react";
 
-function GlassStat({ title, value }) {
-  const styles = {
-    glassStat: {
-      background: "rgba(255,255,255,0.08)",
-      backdropFilter: "blur(16px)",
-      padding: "24px 20px",
-      borderRadius: "16px",
-      textAlign: "center",
-      boxShadow: "0 4px 20px rgba(0, 245, 255, 0.08)",
-      border: "1px solid rgba(0, 245, 255, 0.15)",
-      transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-      cursor: "pointer",
-    },
-    glassStatHover: {
-      background: "rgba(255,255,255,0.12)",
-      boxShadow: "0 8px 32px rgba(0, 245, 255, 0.15)",
-      transform: "translateY(-4px)",
-      border: "1px solid rgba(0, 245, 255, 0.25)",
-    },
-    statTitle: {
-      fontSize: "13px",
-      opacity: 0.7,
-      marginBottom: "12px",
-      textTransform: "uppercase",
-      letterSpacing: "0.8px",
-      fontWeight: "600",
-      color: "rgba(255, 255, 255, 0.8)",
-    },
-    statValue: {
-      fontSize: "28px",
-      fontWeight: "700",
-      margin: 0,
-      background: "linear-gradient(135deg, #00f5ff, #00d4ff)",
-      WebkitBackgroundClip: "text",
-      WebkitTextFillColor: "transparent",
-      backgroundClip: "text",
-    },
-  };
-
-  const [isHovered, setIsHovered] = React.useState(false);
+function GlassStat({ title, value, sub, color = "#6c47ff" }) {
+  const [hovered, setHovered] = useState(false);
 
   return (
     <div
       style={{
-        ...styles.glassStat,
-        ...(isHovered ? styles.glassStatHover : {}),
+        ...styles.card,
+        ...(hovered ? styles.cardHover : {}),
       }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
-      <p style={styles.statTitle}>{title}</p>
-      <h2 style={styles.statValue}>{value}</h2>
+      <div style={{ ...styles.dot, background: color }} />
+      <p style={styles.label}>{title}</p>
+      <h2 style={{ ...styles.value, color }}>{value}</h2>
+      {sub && <p style={styles.sub}>{sub}</p>}
     </div>
   );
 }
+
+const styles = {
+  card: {
+    background: "#fff",
+    border: "1px solid #ebebeb",
+    borderRadius: "12px",
+    padding: "18px 20px",
+    cursor: "default",
+    transition: "all 0.2s ease",
+    position: "relative",
+    overflow: "hidden",
+  },
+  cardHover: {
+    boxShadow: "0 4px 20px rgba(108,71,255,0.08)",
+    borderColor: "#d4c8ff",
+    transform: "translateY(-1px)",
+  },
+  dot: {
+    width: "6px",
+    height: "6px",
+    borderRadius: "50%",
+    marginBottom: "10px",
+  },
+  label: {
+    fontSize: "11.5px",
+    color: "#999",
+    textTransform: "uppercase",
+    letterSpacing: "0.7px",
+    fontWeight: "600",
+    margin: "0 0 6px 0",
+    fontFamily: "'Segoe UI', sans-serif",
+  },
+  value: {
+    fontSize: "26px",
+    fontWeight: "700",
+    margin: "0",
+    fontFamily: "'Segoe UI', sans-serif",
+    letterSpacing: "-0.5px",
+  },
+  sub: {
+    fontSize: "11px",
+    color: "#27ae60",
+    margin: "4px 0 0 0",
+    fontFamily: "'Segoe UI', sans-serif",
+    fontWeight: "600",
+  },
+};
 
 export default GlassStat;

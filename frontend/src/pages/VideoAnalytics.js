@@ -1,26 +1,12 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  Chart as ChartJS,
-  LineElement,
-  PointElement,
-  LinearScale,
-  CategoryScale,
-  Tooltip,
-  Legend,
-  BarElement,
+  Chart as ChartJS, LineElement, PointElement, LinearScale,
+  CategoryScale, Tooltip, Legend, BarElement,
 } from "chart.js";
-import { Line, Bar } from "react-chartjs-2";
+import { Bar } from "react-chartjs-2";
 
-ChartJS.register(
-  LineElement,
-  PointElement,
-  LinearScale,
-  CategoryScale,
-  Tooltip,
-  Legend,
-  BarElement
-);
+ChartJS.register(LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend, BarElement);
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
 
@@ -28,24 +14,16 @@ function VideoAnalytics() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [videoData, setVideoData] = useState(null);
+  const [allVideos, setAllVideos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [allVideos, setAllVideos] = useState([]);
 
   const fetchVideoData = useCallback(() => {
     setLoading(true);
     setError(null);
     const userId = localStorage.getItem("user_id");
-
-    fetch(`${API_BASE_URL}/dashboard`, {
-      headers: {
-        "X-User-ID": userId || "",
-      },
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch videos");
-        return res.json();
-      })
+    fetch(`${API_BASE_URL}/dashboard`, { headers: { "X-User-ID": userId || "" } })
+      .then((r) => { if (!r.ok) throw new Error("Failed to fetch"); return r.json(); })
       .then((data) => {
         const videos = Array.isArray(data) ? data : [];
         setAllVideos(videos);
@@ -54,690 +32,346 @@ function VideoAnalytics() {
         setVideoData(video);
         setLoading(false);
       })
-      .catch((err) => {
-        console.error(err);
-        setError(err.message || "Failed to load video analytics");
-        setLoading(false);
-      });
+      .catch((err) => { setError(err.message); setLoading(false); });
   }, [id]);
 
-  useEffect(() => {
-    const style = document.createElement("style");
-    style.textContent = `
-      @keyframes slideDown {
-        from { opacity: 0; transform: translateY(-10px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-      @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
-      }
-    `;
-    document.head.appendChild(style);
-    return () => document.head.removeChild(style);
-  }, []);
-
-  useEffect(() => {
-    fetchVideoData();
-  }, [fetchVideoData]);
-
-  const getMetricColor = (value, threshold1 = 60, threshold2 = 80) => {
-    if (value >= threshold2) return "#00ff99";
-    if (value >= threshold1) return "#00f5ff";
-    return "#ff6b9d";
-  };
-
-  const getScoreLevel = (score) => {
-    if (score >= 85) return { level: "Excellent", color: "#00ff99", icon: "🌟" };
-    if (score >= 70) return { level: "Good", color: "#00f5ff", icon: "👍" };
-    if (score >= 50) return { level: "Average", color: "#ffd166", icon: "📊" };
-    return { level: "Needs Work", color: "#ff6b9d", icon: "💪" };
-  };
+  useEffect(() => { fetchVideoData(); }, [fetchVideoData]);
 
   if (loading) {
     return (
       <div style={styles.page}>
-        <div style={styles.loadingContainer}>
+        <div style={styles.loadingState}>
           <div style={styles.spinner}>⏳</div>
-          <p>Loading video analytics...</p>
+          <p style={styles.loadingText}>Loading analytics…</p>
         </div>
       </div>
     );
   }
 
-  if (error) {
+  if (error || !videoData) {
     return (
       <div style={styles.page}>
-        <div style={styles.errorContainer}>
-          <h2>⚠️ Error</h2>
-          <p>{error}</p>
-          <button onClick={() => navigate("/dashboard")} style={styles.backButton}>
-            ← Back to Dashboard
-          </button>
+        <div style={styles.errorState}>
+          <div style={{ fontSize: "36px", marginBottom: "12px" }}>⚠️</div>
+          <h3 style={styles.errorTitle}>{error || "Video not found"}</h3>
+          <button onClick={() => navigate("/dashboard")} style={styles.backBtn}>← Back to Dashboard</button>
         </div>
       </div>
     );
   }
 
-  if (!videoData) {
-    return (
-      <div style={styles.page}>
-        <div style={styles.errorContainer}>
-          <h2>Video not found</h2>
-          <button onClick={() => navigate("/dashboard")} style={styles.backButton}>
-            ← Back to Dashboard
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  const scoreLevel = getScoreLevel(videoData.confidence_score);
-  const videosWithoutCurrent = allVideos.filter((v) => v.id !== videoData.id);
   const videoIndex = allVideos.findIndex((v) => v.id === videoData.id);
-  const currentVideoNum = allVideos.length - videoIndex;
+  const currentNum = allVideos.length - videoIndex;
 
-  // Metrics comparison data
-  const metricsComparisonData = {
-    labels: ["Eye Contact", "Posture", "Smile", "Hand Mov.", "Speech"],
+  const getQuality = (score) => {
+    if (score >= 80) return { label: "Excellent", color: "#27ae60", bg: "#eafaf1" };
+    if (score >= 60) return { label: "Good", color: "#2980b9", bg: "#ebf5fb" };
+    if (score >= 40) return { label: "Fair", color: "#f39c12", bg: "#fef9e7" };
+    return { label: "Needs Work", color: "#e74c3c", bg: "#fdf2f2" };
+  };
+
+  const q = getQuality(videoData.confidence_score);
+  const avgOf = (key) => allVideos.length > 0
+    ? allVideos.reduce((s, v) => s + (v[key] || 0), 0) / allVideos.length
+    : 0;
+
+  const metrics = [
+    { label: "Eye Contact", icon: "👁️", val: videoData.eye_contact_percentage || 0, avg: avgOf("eye_contact_percentage") },
+    { label: "Posture", icon: "🧍", val: videoData.posture_percentage || 0, avg: avgOf("posture_percentage") },
+    { label: "Smile", icon: "😊", val: videoData.smile_percentage || 0, avg: avgOf("smile_percentage") },
+    { label: "Hand Movement", icon: "🤚", val: videoData.hand_movement_percentage || 0, avg: avgOf("hand_movement_percentage") },
+    { label: "Speech", icon: "🎤", val: (videoData.speech_score || 0) * 10, avg: avgOf("speech_score") * 10 },
+  ];
+
+  const chartData = {
+    labels: metrics.map((m) => m.label),
     datasets: [
       {
-        label: "Current Video",
-        data: [
-          videoData.eye_contact_percentage || 0,
-          videoData.posture_percentage || 0,
-          videoData.smile_percentage || 0,
-          videoData.hand_movement_percentage || 0,
-          (videoData.speech_score || 0) / 10, // Scale to percentage
-        ],
-        backgroundColor: "rgba(0, 245, 255, 0.7)",
-        borderColor: "#00f5ff",
-        borderWidth: 2,
+        label: "This session",
+        data: metrics.map((m) => Number(m.val.toFixed(1))),
+        backgroundColor: "rgba(108,71,255,0.75)",
+        borderRadius: 6,
       },
       {
-        label: "Average All Videos",
-        data: [
-          (
-            allVideos.reduce((sum, v) => sum + (v.eye_contact_percentage || 0), 0) /
-            allVideos.length
-          ).toFixed(1),
-          (
-            allVideos.reduce((sum, v) => sum + (v.posture_percentage || 0), 0) /
-            allVideos.length
-          ).toFixed(1),
-          (
-            allVideos.reduce((sum, v) => sum + (v.smile_percentage || 0), 0) /
-            allVideos.length
-          ).toFixed(1),
-          (
-            allVideos.reduce((sum, v) => sum + (v.hand_movement_percentage || 0), 0) /
-            allVideos.length
-          ).toFixed(1),
-          (
-            allVideos.reduce((sum, v) => sum + (v.speech_score || 0), 0) /
-            allVideos.length /
-            10
-          ).toFixed(1),
-        ],
-        backgroundColor: "rgba(0, 255, 153, 0.5)",
-        borderColor: "#00ff99",
-        borderWidth: 2,
+        label: "Your average",
+        data: metrics.map((m) => Number(m.avg.toFixed(1))),
+        backgroundColor: "rgba(79,142,247,0.45)",
+        borderRadius: 6,
       },
     ],
   };
 
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: "top", labels: { font: { size: 11 }, color: "#666", boxWidth: 12 } },
+      tooltip: { backgroundColor: "#1a1a2e", padding: 10, cornerRadius: 8 },
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: { color: "#aaa", font: { size: 11 } } },
+      y: { grid: { color: "rgba(0,0,0,0.04)" }, ticks: { color: "#aaa", font: { size: 11 } }, min: 0, max: 100 },
+    },
+  };
+
+  const strongest = metrics.reduce((a, b) => a.val > b.val ? a : b);
+  const weakest = metrics.reduce((a, b) => a.val < b.val ? a : b);
+
   return (
     <div style={styles.page}>
-      {/* Header */}
-      <div style={styles.header}>
-        <button
-          onClick={() => navigate("/dashboard")}
-          style={styles.backButtonHeader}
-          title="Back to Dashboard"
-        >
-          ← Back
-        </button>
-        <h1 style={styles.title}>📊 Video Analytics</h1>
-        <div style={styles.videoNumber}>
-          Video #{currentVideoNum} of {allVideos.length}
+      {/* Top nav */}
+      <div style={styles.topNav}>
+        <button onClick={() => navigate("/dashboard")} style={styles.backLink}>← Back to Dashboard</button>
+        <div style={styles.sessionPill}>Session #{currentNum} of {allVideos.length}</div>
+      </div>
+
+      <h1 style={styles.pageTitle}>Session Analytics</h1>
+      <p style={styles.pageDate}>{new Date(videoData.created_at).toLocaleString()}</p>
+
+      {/* Score banner */}
+      <div style={{ ...styles.scoreBanner, background: `linear-gradient(135deg, ${q.color}dd, ${q.color}99)` }}>
+        <div style={styles.scoreBannerLeft}>
+          <div style={styles.scoreBig}>{Number(videoData.confidence_score).toFixed(1)}</div>
+          <div style={styles.scoreBigUnit}>/100</div>
+          <div style={styles.scoreBannerLabel}>Confidence Score</div>
+        </div>
+        <div style={styles.scoreBannerRight}>
+          <div style={styles.levelTag}>{q.label}</div>
+          <div style={styles.levelSub}>{videoData.confidence_level} Confidence</div>
         </div>
       </div>
 
-      {/* Main Score Card */}
-      <div style={styles.mainScoreCard}>
-        <div style={styles.scoreCircle}>
-          <div style={{ fontSize: "48px", marginBottom: "8px" }}>
-            {scoreLevel.icon}
-          </div>
-          <div style={styles.scoreValue}>{videoData.confidence_score?.toFixed(2)}</div>
-          <div style={{ ...styles.scoreLevel, color: scoreLevel.color }}>
-            {scoreLevel.level}
-          </div>
-        </div>
-        <div style={styles.sessionInfo}>
-          <div style={styles.infoItem}>
-            <span style={styles.infoLabel}>Date</span>
-            <span style={styles.infoValue}>
-              {new Date(videoData.created_at).toLocaleDateString()}
-            </span>
-          </div>
-          <div style={styles.infoItem}>
-            <span style={styles.infoLabel}>Time</span>
-            <span style={styles.infoValue}>
-              {new Date(videoData.created_at).toLocaleTimeString()}
-            </span>
-          </div>
-          <div style={styles.infoItem}>
-            <span style={styles.infoLabel}>Confidence Level</span>
-            <span
-              style={{
-                ...styles.infoValue,
-                color: getMetricColor(videoData.confidence_score),
-              }}
-            >
-              {videoData.confidence_level}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Video Player */}
-      {videoData.video_path && (
-        <div style={styles.videoPlayerCard}>
-          <h2 style={styles.cardTitle}>📹 Video Recording</h2>
-          <div style={styles.videoContainer}>
-            <video
-              width="100%"
-              height="auto"
-              controls
-              style={{ borderRadius: "12px", maxHeight: "500px" }}
-            >
+      <div style={styles.twoCol}>
+        {/* Video player */}
+        {videoData.video_path && (
+          <div style={styles.card}>
+            <h2 style={styles.cardTitle}>📹 Recording</h2>
+            <video controls style={styles.videoPlayer}>
               <source src={`${API_BASE_URL}/uploads/${videoData.video_path}`} />
-              Your browser does not support the video tag.
             </video>
           </div>
+        )}
+
+        {/* Insights */}
+        <div style={styles.card}>
+          <h2 style={styles.cardTitle}>💡 Insights</h2>
+          <div style={styles.insightGrid}>
+            {[
+              { icon: "🏆", label: "Strongest metric", val: strongest.label, color: "#27ae60" },
+              { icon: "⚠️", label: "Needs improvement", val: weakest.label, color: "#e74c3c" },
+              { icon: "📊", label: "Overall rating", val: q.label, color: q.color },
+              { icon: "💬", label: "Filler words", val: `${videoData.filler_word_count ?? 0} detected`, color: (videoData.filler_word_count ?? 0) < 3 ? "#27ae60" : "#e74c3c" },
+            ].map((ins) => (
+              <div key={ins.label} style={styles.insightCard}>
+                <div style={styles.insightIcon}>{ins.icon}</div>
+                <div style={styles.insightLabel}>{ins.label}</div>
+                <div style={{ ...styles.insightVal, color: ins.color }}>{ins.val}</div>
+              </div>
+            ))}
+          </div>
+
+          <div style={styles.speechRow}>
+            <div style={styles.speechItem}>
+              <div style={styles.speechLabel}>Words per minute</div>
+              <div style={styles.speechVal}>{Number(videoData.words_per_minute || 0).toFixed(0)}</div>
+              <div style={styles.speechSub}>Ideal: 120–150 WPM</div>
+            </div>
+            <div style={styles.speechItem}>
+              <div style={styles.speechLabel}>Speech score</div>
+              <div style={styles.speechVal}>{Number(videoData.speech_score || 0).toFixed(1)}<span style={{ fontSize: "14px", color: "#bbb" }}>/10</span></div>
+            </div>
+            <div style={styles.speechItem}>
+              <div style={styles.speechLabel}>Face visible</div>
+              <div style={styles.speechVal}>{Number(videoData.face_visibility_percentage || 0).toFixed(0)}%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Metrics breakdown */}
+      <div style={styles.card}>
+        <h2 style={styles.cardTitle}>📈 Detailed Metrics</h2>
+        <div style={styles.metricsGrid}>
+          {metrics.map((m) => {
+            const mq = getQuality(m.val);
+            return (
+              <div key={m.label} style={styles.metricCard}>
+                <div style={styles.metricCardIcon}>{m.icon}</div>
+                <div style={styles.metricCardLabel}>{m.label}</div>
+                <div style={{ ...styles.metricCardVal, color: mq.color }}>{Number(m.val).toFixed(0)}%</div>
+                <div style={styles.metricBarBg}>
+                  <div style={{ ...styles.metricBarFill, width: `${m.val}%`, background: mq.color }} />
+                </div>
+                <div style={{ ...styles.metricBadge, background: mq.bg, color: mq.color }}>{mq.label}</div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Comparison chart */}
+      {allVideos.length > 1 && (
+        <div style={styles.card}>
+          <h2 style={styles.cardTitle}>📊 vs. Your Average</h2>
+          <div style={styles.chartWrap}>
+            <Bar data={chartData} options={chartOptions} />
+          </div>
         </div>
       )}
-
-      {/* Detailed Metrics Grid */}
-      <div style={styles.metricsSection}>
-        <h2 style={styles.sectionTitle}>📈 Detailed Metrics</h2>
-        <div style={styles.metricsGrid}>
-          <MetricCard
-            title="👁️ Eye Contact"
-            value={videoData.eye_contact_percentage}
-            unit="%"
-            color={getMetricColor(videoData.eye_contact_percentage)}
-          />
-          <MetricCard
-            title="🧍 Posture"
-            value={videoData.posture_percentage}
-            unit="%"
-            color={getMetricColor(videoData.posture_percentage)}
-          />
-          <MetricCard
-            title="😊 Smile"
-            value={videoData.smile_percentage}
-            unit="%"
-            color={getMetricColor(videoData.smile_percentage)}
-          />
-          <MetricCard
-            title="🤚 Hand Movement"
-            value={videoData.hand_movement_percentage}
-            unit="%"
-            color={getMetricColor(videoData.hand_movement_percentage)}
-          />
-          <MetricCard
-            title="📢 Speech Score"
-            value={videoData.speech_score}
-            unit="/10"
-            color={getMetricColor((videoData.speech_score || 0) * 10)}
-          />
-          <MetricCard
-            title="💬 Filler Words"
-            value={videoData.filler_word_count || 0}
-            unit=" words"
-            color={
-              (videoData.filler_word_count || 0) < 3
-                ? "#00ff99"
-                : (videoData.filler_word_count || 0) < 6
-                ? "#ffd166"
-                : "#ff6b9d"
-            }
-            inverted={true}
-          />
-        </div>
-      </div>
-
-      {/* Metrics Comparison Chart */}
-      <div style={styles.chartCard}>
-        <h2 style={styles.cardTitle}>📊 Comparison with Average</h2>
-        <div style={styles.chartContainer}>
-          <Bar data={metricsComparisonData} options={{ responsive: true }} />
-        </div>
-      </div>
-
-      {/* Performance Insights */}
-      <div style={styles.insightsSection}>
-        <h2 style={styles.sectionTitle}>💡 Performance Insights</h2>
-        <div style={styles.insightsGrid}>
-          <InsightCard
-            icon="🏆"
-            title="Strongest Metric"
-            value={getStrongestMetric(videoData)}
-            color="#00ff99"
-          />
-          <InsightCard
-            icon="⚠️"
-            title="Needs Improvement"
-            value={getWeakestMetric(videoData)}
-            color="#ff6b9d"
-          />
-          <InsightCard
-            icon="📊"
-            title="Overall Rating"
-            value={scoreLevel.level}
-            color={scoreLevel.color}
-          />
-          <InsightCard
-            icon="🎯"
-            title="Confidence Level"
-            value={videoData.confidence_level}
-            color={getMetricColor(videoData.confidence_score)}
-          />
-        </div>
-      </div>
 
       {/* Navigation */}
-      <div style={styles.navigationSection}>
+      <div style={styles.navRow}>
         <button
-          onClick={() => {
-            const prevVideo = allVideos[videoIndex + 1];
-            if (prevVideo) navigate(`/video/${prevVideo.id}`);
-          }}
+          onClick={() => { const prev = allVideos[videoIndex + 1]; if (prev) navigate(`/video/${prev.id}`); }}
           disabled={videoIndex === allVideos.length - 1}
-          style={{
-            ...styles.navButton,
-            ...(videoIndex === allVideos.length - 1 ? styles.navButtonDisabled : {}),
-          }}
+          style={{ ...styles.navBtn, opacity: videoIndex === allVideos.length - 1 ? 0.4 : 1 }}
         >
-          ← Previous Session
+          ← Previous
         </button>
-        <button onClick={() => navigate("/dashboard")} style={styles.navButtonCenter}>
-          📊 Back to Dashboard
+        <button onClick={() => navigate("/dashboard")} style={styles.centerNavBtn}>
+          Dashboard
         </button>
         <button
-          onClick={() => {
-            const nextVideo = allVideos[videoIndex - 1];
-            if (nextVideo) navigate(`/video/${nextVideo.id}`);
-          }}
+          onClick={() => { const next = allVideos[videoIndex - 1]; if (next) navigate(`/video/${next.id}`); }}
           disabled={videoIndex === 0}
-          style={{
-            ...styles.navButton,
-            ...(videoIndex === 0 ? styles.navButtonDisabled : {}),
-          }}
+          style={{ ...styles.navBtn, opacity: videoIndex === 0 ? 0.4 : 1 }}
         >
-          Next Session →
+          Next →
         </button>
       </div>
     </div>
-  );
-}
-
-function MetricCard({ title, value, unit, color, inverted }) {
-  return (
-    <div style={styles.metricCard}>
-      <h4 style={styles.metricTitle}>{title}</h4>
-      <div style={{ ...styles.metricValue, color }}>{(value || 0).toFixed(1)}</div>
-      <div style={styles.metricUnit}>{unit}</div>
-      {!inverted ? (
-        <div style={{ ...styles.progressBar, background: `linear-gradient(to right, ${color}, ${color})` }}>
-          <div style={{ width: `${Math.min((value || 0), 100)}%`, height: "100%", background: color }}></div>
-        </div>
-      ) : (
-        <div style={styles.inverseIndicator}>
-          Lower is better ✓
-        </div>
-      )}
-    </div>
-  );
-}
-
-function InsightCard({ icon, title, value, color }) {
-  return (
-    <div style={styles.insightCard}>
-      <div style={{ fontSize: "32px", marginBottom: "8px" }}>{icon}</div>
-      <h4 style={styles.insightTitle}>{title}</h4>
-      <p style={{ ...styles.insightValue, color }}>{value}</p>
-    </div>
-  );
-}
-
-function getStrongestMetric(videoData) {
-  const metrics = {
-    "Eye Contact": videoData.eye_contact_percentage || 0,
-    Posture: videoData.posture_percentage || 0,
-    Smile: videoData.smile_percentage || 0,
-    "Hand Movement": videoData.hand_movement_percentage || 0,
-    Speech: (videoData.speech_score || 0) * 10,
-  };
-  return Object.keys(metrics).reduce((a, b) =>
-    metrics[a] > metrics[b] ? a : b
-  );
-}
-
-function getWeakestMetric(videoData) {
-  const metrics = {
-    "Eye Contact": videoData.eye_contact_percentage || 0,
-    Posture: videoData.posture_percentage || 0,
-    Smile: videoData.smile_percentage || 0,
-    "Hand Movement": videoData.hand_movement_percentage || 0,
-    Speech: (videoData.speech_score || 0) * 10,
-  };
-  return Object.keys(metrics).reduce((a, b) =>
-    metrics[a] < metrics[b] ? a : b
   );
 }
 
 const styles = {
   page: {
-    minHeight: "100vh",
-    padding: "clamp(16px, 4vw, 24px)",
-    paddingTop: "clamp(24px, 6vw, 40px)",
-    background: "linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%)",
-    color: "white",
-    fontFamily: "'Segoe UI', 'Helvetica Neue', sans-serif",
-  },
-  header: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: "clamp(16px, 3vw, 24px)",
-    marginBottom: "clamp(24px, 6vw, 40px)",
-    position: "relative",
-    flexWrap: "wrap",
-  },
-  backButtonHeader: {
-    padding: "clamp(8px, 1.5vw, 10px) clamp(16px, 3vw, 20px)",
-    fontSize: "clamp(12px, 1.5vw, 14px)",
-    fontWeight: "600",
-    background: "rgba(0, 245, 255, 0.2)",
-    color: "#00f5ff",
-    border: "1px solid #00f5ff",
-    borderRadius: "8px",
-    cursor: "pointer",
-    transition: "all 0.3s ease",
-    position: "absolute",
-    left: "0",
-    whiteSpace: "nowrap",
-  },
-  title: {
-    textAlign: "center",
-    fontSize: "clamp(28px, 7vw, 42px)",
-    fontWeight: "700",
-    letterSpacing: "-1px",
-    background: "linear-gradient(135deg, #00f5ff, #00d4ff)",
-    WebkitBackgroundClip: "text",
-    WebkitTextFillColor: "transparent",
-    backgroundClip: "text",
-    margin: "0",
-  },
-  videoNumber: {
-    position: "absolute",
-    right: "0",
-    fontSize: "clamp(12px, 1.5vw, 14px)",
-    color: "rgba(255, 255, 255, 0.6)",
-    backgroundColor: "rgba(0, 245, 255, 0.1)",
-    padding: "6px 12px",
-    borderRadius: "8px",
-    whiteSpace: "nowrap",
-  },
-  mainScoreCard: {
-    maxWidth: "1200px",
-    margin: "0 auto clamp(24px, 6vw, 40px) auto",
-    display: "flex",
-    gap: "clamp(20px, 4vw, 40px)",
-    alignItems: "center",
-    padding: "clamp(20px, 4vw, 30px)",
-    background: "linear-gradient(135deg, rgba(0, 245, 255, 0.1) 0%, rgba(0, 212, 255, 0.05) 100%)",
-    backdropFilter: "blur(12px)",
-    borderRadius: "20px",
-    border: "2px solid rgba(0, 245, 255, 0.2)",
-    flexWrap: "wrap",
-    justifyContent: "center",
-  },
-  scoreCircle: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    width: "clamp(140px, 25vw, 180px)",
-    height: "clamp(140px, 25vw, 180px)",
-    borderRadius: "50%",
-    background: "rgba(0, 255, 153, 0.15)",
-    border: "3px solid rgba(0, 255, 153, 0.3)",
-    boxShadow: "0 0 30px rgba(0, 255, 153, 0.2)",
-  },
-  scoreValue: {
-    fontSize: "clamp(32px, 6vw, 48px)",
-    fontWeight: "700",
-    color: "#00ff99",
-    margin: "0",
-  },
-  scoreLevel: {
-    fontSize: "clamp(12px, 1.5vw, 14px)",
-    fontWeight: "700",
-    marginTop: "4px",
-  },
-  sessionInfo: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "clamp(12px, 2vw, 16px)",
     flex: 1,
-    minWidth: "200px",
+    padding: "32px 36px",
+    background: "#f7f8fc",
+    minHeight: "100vh",
+    fontFamily: "'Segoe UI', sans-serif",
+    overflowY: "auto",
   },
-  infoItem: {
+  loadingState: { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "400px", gap: "16px" },
+  spinner: { fontSize: "48px" },
+  loadingText: { fontSize: "14px", color: "#999" },
+  errorState: { textAlign: "center", padding: "80px 20px" },
+  errorTitle: { fontSize: "18px", color: "#e74c3c", marginBottom: "20px" },
+  backBtn: {
+    padding: "10px 20px",
+    background: "linear-gradient(135deg, #6c47ff, #4f8ef7)",
+    color: "#fff",
+    border: "none",
+    borderRadius: "9px",
+    fontSize: "13.5px",
+    fontWeight: "700",
+    cursor: "pointer",
+  },
+  topNav: {
     display: "flex",
+    alignItems: "center",
     justifyContent: "space-between",
-    alignItems: "center",
-    padding: "clamp(10px, 2vw, 12px)",
-    background: "rgba(255, 255, 255, 0.08)",
-    borderRadius: "10px",
-    border: "1px solid rgba(0, 245, 255, 0.1)",
+    marginBottom: "20px",
   },
-  infoLabel: {
-    fontSize: "clamp(11px, 1.2vw, 12px)",
-    opacity: "0.7",
+  backLink: {
+    background: "none",
+    border: "none",
+    color: "#6c47ff",
+    fontSize: "13.5px",
+    fontWeight: "600",
+    cursor: "pointer",
+    padding: 0,
+  },
+  sessionPill: {
+    padding: "4px 12px",
+    background: "rgba(108,71,255,0.08)",
+    color: "#6c47ff",
+    border: "1px solid rgba(108,71,255,0.15)",
+    borderRadius: "20px",
+    fontSize: "12px",
     fontWeight: "600",
   },
-  infoValue: {
-    fontSize: "clamp(13px, 1.5vw, 14px)",
-    fontWeight: "700",
-    color: "#00f5ff",
-  },
-  videoPlayerCard: {
-    maxWidth: "1200px",
-    margin: "0 auto clamp(24px, 6vw, 40px) auto",
-    padding: "clamp(20px, 4vw, 30px)",
-    background: "rgba(255,255,255,0.08)",
-    backdropFilter: "blur(20px)",
-    borderRadius: "20px",
-    border: "1px solid rgba(255,255,255,0.12)",
-  },
-  videoContainer: {
-    marginTop: "clamp(12px, 2vw, 20px)",
-  },
-  cardTitle: {
-    fontSize: "clamp(16px, 3vw, 20px)",
-    fontWeight: "700",
-    margin: "0 0 clamp(12px, 2vw, 20px) 0",
-    color: "#00f5ff",
-  },
-  metricsSection: {
-    maxWidth: "1200px",
-    margin: "0 auto clamp(24px, 6vw, 40px) auto",
-    padding: "0 clamp(12px, 2vw, 20px)",
-  },
-  sectionTitle: {
-    fontSize: "clamp(18px, 4vw, 22px)",
-    fontWeight: "700",
-    marginBottom: "clamp(16px, 3vw, 20px)",
-    background: "linear-gradient(135deg, #00f5ff, #00d4ff)",
-    WebkitBackgroundClip: "text",
-    WebkitTextFillColor: "transparent",
-    backgroundClip: "text",
-  },
-  metricsGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(clamp(140px, 20vw, 180px), 1fr))",
-    gap: "clamp(12px, 2vw, 16px)",
-  },
-  metricCard: {
-    background: "rgba(0, 245, 255, 0.1)",
-    border: "2px solid rgba(0, 245, 255, 0.2)",
-    borderRadius: "16px",
-    padding: "clamp(16px, 3vw, 20px)",
-    textAlign: "center",
-    transition: "all 0.3s ease",
-  },
-  metricTitle: {
-    margin: "0 0 clamp(8px, 1.5vw, 12px) 0",
-    fontSize: "clamp(13px, 1.5vw, 14px)",
-    fontWeight: "700",
-  },
-  metricValue: {
-    fontSize: "clamp(24px, 5vw, 32px)",
-    fontWeight: "700",
-    margin: "clamp(8px, 1vw, 12px) 0",
-  },
-  metricUnit: {
-    fontSize: "clamp(11px, 1.2vw, 12px)",
-    opacity: "0.7",
-    marginBottom: "clamp(8px, 1.5vw, 12px)",
-  },
-  progressBar: {
-    height: "8px",
-    borderRadius: "4px",
-    overflow: "hidden",
-    background: "rgba(0, 0, 0, 0.3)",
-  },
-  inverseIndicator: {
-    fontSize: "clamp(10px, 1vw, 11px)",
-    opacity: "0.8",
-    marginTop: "8px",
-    fontStyle: "italic",
-  },
-  chartCard: {
-    maxWidth: "1200px",
-    margin: "0 auto clamp(24px, 6vw, 40px) auto",
-    padding: "clamp(20px, 4vw, 30px)",
-    background: "rgba(255,255,255,0.08)",
-    backdropFilter: "blur(20px)",
-    borderRadius: "20px",
-    border: "1px solid rgba(255,255,255,0.12)",
-  },
-  chartContainer: {
-    marginTop: "clamp(16px, 3vw, 20px)",
-  },
-  insightsSection: {
-    maxWidth: "1200px",
-    margin: "0 auto clamp(24px, 6vw, 40px) auto",
-    padding: "0 clamp(12px, 2vw, 20px)",
-  },
-  insightsGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(clamp(140px, 22vw, 180px), 1fr))",
-    gap: "clamp(12px, 2vw, 16px)",
-  },
-  insightCard: {
-    background: "rgba(255, 107, 157, 0.1)",
-    border: "2px solid rgba(255, 107, 157, 0.2)",
-    borderRadius: "16px",
-    padding: "clamp(16px, 3vw, 20px)",
-    textAlign: "center",
-    transition: "all 0.3s ease",
-  },
-  insightTitle: {
-    margin: "0 0 clamp(8px, 1.5vw, 12px) 0",
-    fontSize: "clamp(13px, 1.5vw, 14px)",
-    fontWeight: "700",
-  },
-  insightValue: {
-    fontSize: "clamp(14px, 2vw, 16px)",
-    fontWeight: "700",
-    margin: "0",
-  },
-  navigationSection: {
-    maxWidth: "1200px",
-    margin: "0 auto clamp(24px, 6vw, 40px) auto",
+  pageTitle: { fontSize: "22px", fontWeight: "800", color: "#1a1a2e", margin: "0 0 4px 0", letterSpacing: "-0.3px" },
+  pageDate: { fontSize: "13px", color: "#bbb", margin: "0 0 24px 0" },
+  scoreBanner: {
+    borderRadius: "14px",
+    padding: "24px 28px",
     display: "flex",
-    gap: "clamp(12px, 2vw, 16px)",
-    justifyContent: "center",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: "20px",
     flexWrap: "wrap",
-    padding: "0 clamp(12px, 2vw, 20px)",
+    gap: "16px",
   },
-  navButton: {
-    padding: "clamp(10px, 1.5vw, 12px) clamp(16px, 3vw, 20px)",
-    fontSize: "clamp(12px, 1.5vw, 14px)",
-    fontWeight: "600",
-    background: "linear-gradient(135deg, #00f5ff, #00d4ff)",
-    color: "#0f2027",
-    border: "none",
+  scoreBannerLeft: { display: "flex", alignItems: "baseline", gap: "6px", flexWrap: "wrap" },
+  scoreBig: { fontSize: "52px", fontWeight: "800", color: "#fff", lineHeight: 1, letterSpacing: "-2px" },
+  scoreBigUnit: { fontSize: "20px", color: "rgba(255,255,255,0.6)", fontWeight: "400" },
+  scoreBannerLabel: { fontSize: "13px", color: "rgba(255,255,255,0.75)", alignSelf: "flex-end", paddingBottom: "6px", marginLeft: "6px" },
+  scoreBannerRight: { textAlign: "right" },
+  levelTag: { fontSize: "20px", fontWeight: "800", color: "#fff", marginBottom: "4px" },
+  levelSub: { fontSize: "13px", color: "rgba(255,255,255,0.7)" },
+  twoCol: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" },
+  card: {
+    background: "#fff",
+    border: "1px solid #ebebeb",
+    borderRadius: "14px",
+    padding: "22px",
+    marginBottom: "16px",
+  },
+  cardTitle: { fontSize: "15px", fontWeight: "700", color: "#1a1a2e", margin: "0 0 16px 0" },
+  videoPlayer: { width: "100%", borderRadius: "10px", display: "block" },
+  insightGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "16px" },
+  insightCard: {
+    background: "#f9f9f9",
+    border: "1px solid #f0f0f0",
     borderRadius: "10px",
-    cursor: "pointer",
-    transition: "all 0.3s ease",
-    boxShadow: "0 4px 15px rgba(0, 245, 255, 0.3)",
-    whiteSpace: "nowrap",
-  },
-  navButtonDisabled: {
-    opacity: "0.4",
-    cursor: "not-allowed",
-    boxShadow: "none",
-  },
-  navButtonCenter: {
-    padding: "clamp(10px, 1.5vw, 12px) clamp(16px, 3vw, 20px)",
-    fontSize: "clamp(12px, 1.5vw, 14px)",
-    fontWeight: "600",
-    background: "rgba(0, 255, 153, 0.2)",
-    color: "#00ff99",
-    border: "2px solid #00ff99",
-    borderRadius: "10px",
-    cursor: "pointer",
-    transition: "all 0.3s ease",
-    whiteSpace: "nowrap",
-  },
-  backButton: {
-    padding: "12px 24px",
-    fontSize: "16px",
-    fontWeight: "600",
-    background: "linear-gradient(135deg, #00f5ff, #00d4ff)",
-    color: "#0f2027",
-    border: "none",
-    borderRadius: "10px",
-    cursor: "pointer",
-    transition: "all 0.3s ease",
-    boxShadow: "0 4px 15px rgba(0, 245, 255, 0.3)",
-  },
-  loadingContainer: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: "400px",
-    gap: "24px",
-  },
-  spinner: {
-    fontSize: "64px",
-    animation: "spin 1s linear infinite",
-  },
-  errorContainer: {
-    maxWidth: "600px",
-    margin: "100px auto",
-    padding: "40px",
+    padding: "14px",
     textAlign: "center",
-    background: "rgba(255, 77, 77, 0.1)",
-    border: "2px solid rgba(255, 77, 77, 0.3)",
-    borderRadius: "16px",
+  },
+  insightIcon: { fontSize: "22px", marginBottom: "6px" },
+  insightLabel: { fontSize: "11px", color: "#999", textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: "600", marginBottom: "4px" },
+  insightVal: { fontSize: "14px", fontWeight: "700" },
+  speechRow: { display: "flex", gap: "12px", borderTop: "1px solid #f5f5f5", paddingTop: "14px" },
+  speechItem: { flex: 1, textAlign: "center" },
+  speechLabel: { fontSize: "11px", color: "#bbb", textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: "600", marginBottom: "4px" },
+  speechVal: { fontSize: "22px", fontWeight: "800", color: "#1a1a2e", letterSpacing: "-0.5px" },
+  speechSub: { fontSize: "11px", color: "#ccc", marginTop: "2px" },
+  metricsGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "12px" },
+  metricCard: {
+    background: "#f9f9f9",
+    border: "1px solid #f0f0f0",
+    borderRadius: "12px",
+    padding: "16px",
+    textAlign: "center",
+  },
+  metricCardIcon: { fontSize: "20px", marginBottom: "6px" },
+  metricCardLabel: { fontSize: "11.5px", color: "#888", fontWeight: "600", marginBottom: "6px" },
+  metricCardVal: { fontSize: "26px", fontWeight: "800", letterSpacing: "-0.5px", marginBottom: "8px" },
+  metricBarBg: { height: "5px", background: "#ebebeb", borderRadius: "3px", overflow: "hidden", marginBottom: "8px" },
+  metricBarFill: { height: "100%", borderRadius: "3px", transition: "width 0.5s ease" },
+  metricBadge: { display: "inline-block", padding: "2px 10px", borderRadius: "20px", fontSize: "10.5px", fontWeight: "700" },
+  chartWrap: { height: "220px" },
+  navRow: { display: "flex", justifyContent: "center", gap: "12px", marginTop: "8px", marginBottom: "32px" },
+  navBtn: {
+    padding: "10px 22px",
+    background: "#fff",
+    border: "1px solid #e0e0e0",
+    borderRadius: "9px",
+    fontSize: "13.5px",
+    fontWeight: "600",
+    color: "#555",
+    cursor: "pointer",
+    transition: "all 0.15s ease",
+  },
+  centerNavBtn: {
+    padding: "10px 22px",
+    background: "linear-gradient(135deg, #6c47ff, #4f8ef7)",
+    color: "#fff",
+    border: "none",
+    borderRadius: "9px",
+    fontSize: "13.5px",
+    fontWeight: "700",
+    cursor: "pointer",
   },
 };
 

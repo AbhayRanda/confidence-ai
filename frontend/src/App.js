@@ -1,5 +1,6 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import "./App.css";
 import Navbar from "./components/Navbar";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -30,9 +31,9 @@ function AppShell() {
   if (!isLoggedIn) return <Navigate to="/login" replace />;
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#f7f8fc" }}>
+    <div className="app-shell">
       <Navbar />
-      <div style={{ flex: 1, overflow: "auto" }}>
+      <div className="app-content">
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<Dashboard />} />

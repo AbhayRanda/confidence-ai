@@ -1,15 +1,44 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import "./Navbar.css";
 
 const NAV_ITEMS = [
-  { to: "/dashboard", label: "Dashboard", icon: "⊞" },
-  { to: "/ai", label: "Practice", icon: "◉" },
-  { to: "/resources", label: "Resources", icon: "☰" },
+  {
+    to: "/dashboard",
+    label: "Dashboard",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+        <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+      </svg>
+    ),
+  },
+  {
+    to: "/ai",
+    label: "Practice",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/>
+      </svg>
+    ),
+  },
+  {
+    to: "/resources",
+    label: "Resources",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+      </svg>
+    ),
+  },
 ];
 
 function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
   const user = localStorage.getItem("user");
+  const userInitial = user ? user.charAt(0).toUpperCase() : "U";
 
   const handleLogout = () => {
     localStorage.removeItem("user");
@@ -18,177 +47,70 @@ function Navbar() {
   };
 
   return (
-    <aside style={styles.sidebar}>
-      <div style={styles.brand}>
-        <div style={styles.brandIcon}>
-          <span style={styles.brandIconText}>CA</span>
+    <aside className="navbar">
+      {/* Brand */}
+      <div className="navbar-brand">
+        <div className="navbar-logo">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2L22 8.5v7L12 22 2 15.5v-7L12 2Z" fill="url(#logoGrad)" />
+            <defs>
+              <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#7c5cfc"/>
+                <stop offset="100%" stopColor="#5b8def"/>
+              </linearGradient>
+            </defs>
+          </svg>
         </div>
-        <span style={styles.brandName}>ConfidenceAI</span>
+        <span className="navbar-brand-name">ConfidenceAI</span>
       </div>
 
-      <nav style={styles.nav}>
+      {/* Nav label */}
+      <div className="navbar-section-label">NAVIGATION</div>
+
+      {/* Nav links */}
+      <nav className="navbar-nav">
         {NAV_ITEMS.map((item) => {
           const active = location.pathname === item.to;
           return (
             <Link
               key={item.to}
               to={item.to}
-              style={{ ...styles.navItem, ...(active ? styles.navItemActive : {}) }}
+              className={`navbar-item${active ? " navbar-item--active" : ""}`}
             >
-              <span style={styles.navIcon}>{item.icon}</span>
-              <span style={styles.navLabel}>{item.label}</span>
-              {active && <div style={styles.activeBar} />}
+              <span className="navbar-item-icon">{item.icon}</span>
+              <span className="navbar-item-label">{item.label}</span>
+              {active && <span className="navbar-item-indicator" />}
             </Link>
           );
         })}
       </nav>
 
-      <div style={styles.bottom}>
+      {/* Spacer */}
+      <div className="navbar-spacer" />
+
+      {/* User section */}
+      <div className="navbar-footer">
         {user && (
-          <div style={styles.userRow}>
-            <div style={styles.avatar}>
-              {user.charAt(0).toUpperCase()}
+          <div className="navbar-user">
+            <div className="navbar-avatar">{userInitial}</div>
+            <div className="navbar-user-info">
+              <span className="navbar-user-name" title={user}>
+                {user.length > 16 ? user.slice(0, 14) + "…" : user}
+              </span>
+              <span className="navbar-user-role">Member</span>
             </div>
-            <span style={styles.userEmail} title={user}>
-              {user.length > 16 ? user.slice(0, 14) + "…" : user}
-            </span>
           </div>
         )}
-        <button onClick={handleLogout} style={styles.logoutBtn}>
-          Logout
+        <button onClick={handleLogout} className="navbar-logout">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+          Sign out
         </button>
       </div>
     </aside>
   );
 }
-
-const styles = {
-  sidebar: {
-    width: "200px",
-    minWidth: "200px",
-    height: "100vh",
-    background: "#fff",
-    borderRight: "1px solid #ebebeb",
-    display: "flex",
-    flexDirection: "column",
-    position: "sticky",
-    top: 0,
-    fontFamily: "'Segoe UI', sans-serif",
-    zIndex: 100,
-  },
-  brand: {
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-    padding: "22px 20px 18px",
-    borderBottom: "1px solid #f0f0f0",
-  },
-  brandIcon: {
-    width: "32px",
-    height: "32px",
-    borderRadius: "8px",
-    background: "linear-gradient(135deg, #6c47ff, #4f8ef7)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-  },
-  brandIconText: {
-    color: "#fff",
-    fontSize: "11px",
-    fontWeight: "700",
-    letterSpacing: "0.5px",
-  },
-  brandName: {
-    fontSize: "14px",
-    fontWeight: "700",
-    color: "#1a1a2e",
-    letterSpacing: "-0.2px",
-  },
-  nav: {
-    flex: 1,
-    padding: "16px 12px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "4px",
-  },
-  navItem: {
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-    padding: "9px 10px",
-    borderRadius: "8px",
-    textDecoration: "none",
-    color: "#666",
-    fontSize: "13.5px",
-    fontWeight: "500",
-    transition: "all 0.15s ease",
-    position: "relative",
-    cursor: "pointer",
-  },
-  navItemActive: {
-    background: "rgba(108, 71, 255, 0.09)",
-    color: "#6c47ff",
-  },
-  navIcon: {
-    fontSize: "15px",
-    width: "18px",
-    textAlign: "center",
-  },
-  navLabel: {
-    flex: 1,
-  },
-  activeBar: {
-    width: "3px",
-    height: "100%",
-    background: "#6c47ff",
-    borderRadius: "2px",
-    position: "absolute",
-    right: 0,
-    top: 0,
-  },
-  bottom: {
-    padding: "14px 14px 20px",
-    borderTop: "1px solid #f0f0f0",
-    display: "flex",
-    flexDirection: "column",
-    gap: "10px",
-  },
-  userRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-  },
-  avatar: {
-    width: "28px",
-    height: "28px",
-    borderRadius: "50%",
-    background: "linear-gradient(135deg, #6c47ff, #4f8ef7)",
-    color: "#fff",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "12px",
-    fontWeight: "700",
-    flexShrink: 0,
-  },
-  userEmail: {
-    fontSize: "11.5px",
-    color: "#888",
-    overflow: "hidden",
-  },
-  logoutBtn: {
-    width: "100%",
-    padding: "8px",
-    background: "#fff1f0",
-    color: "#d4290d",
-    border: "1px solid #ffd8d4",
-    borderRadius: "8px",
-    fontSize: "12.5px",
-    fontWeight: "600",
-    cursor: "pointer",
-    transition: "all 0.15s ease",
-  },
-};
 
 export default Navbar;

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-function GlassStat({ title, value, sub, color = "#6c47ff" }) {
+function GlassStat({ title, value, sub, color = "#7c5cfc" }) {
   const [hovered, setHovered] = useState(false);
 
   return (
@@ -22,8 +22,8 @@ function GlassStat({ title, value, sub, color = "#6c47ff" }) {
 
 const styles = {
   card: {
-    background: "#fff",
-    border: "1px solid #ebebeb",
+    background: "#1a1f35",
+    border: "1px solid rgba(255, 255, 255, 0.07)",
     borderRadius: "12px",
     padding: "18px 20px",
     cursor: "default",
@@ -32,8 +32,8 @@ const styles = {
     overflow: "hidden",
   },
   cardHover: {
-    boxShadow: "0 4px 20px rgba(108,71,255,0.08)",
-    borderColor: "#d4c8ff",
+    boxShadow: "0 4px 20px rgba(124, 92, 252, 0.25)",
+    borderColor: "rgba(124, 92, 252, 0.3)",
     transform: "translateY(-1px)",
   },
   dot: {
@@ -44,25 +44,25 @@ const styles = {
   },
   label: {
     fontSize: "11.5px",
-    color: "#999",
+    color: "#50587a",
     textTransform: "uppercase",
     letterSpacing: "0.7px",
     fontWeight: "600",
     margin: "0 0 6px 0",
-    fontFamily: "'Segoe UI', sans-serif",
+    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
   },
   value: {
     fontSize: "26px",
     fontWeight: "700",
     margin: "0",
-    fontFamily: "'Segoe UI', sans-serif",
+    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
     letterSpacing: "-0.5px",
   },
   sub: {
     fontSize: "11px",
-    color: "#27ae60",
+    color: "#22c55e",
     margin: "4px 0 0 0",
-    fontFamily: "'Segoe UI', sans-serif",
+    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
     fontWeight: "600",
   },
 };

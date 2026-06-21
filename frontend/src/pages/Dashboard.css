@@ -64,7 +64,7 @@
 .dash-refresh-btn:hover {
   background: var(--bg-hover);
   color: var(--text-primary);
-  border-color: rgba(124,92,252,0.3);
+  border-color: var(--accent-030);
 }
 
 .dash-refresh-btn--loading {
@@ -78,8 +78,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  background: rgba(239,68,68,0.1);
-  border: 1px solid rgba(239,68,68,0.2);
+  background: var(--danger-010);
+  border: 1px solid var(--danger-025);
   color: #f87171;
   padding: 11px 16px;
   border-radius: var(--radius-sm);
@@ -120,7 +120,7 @@
 .dash-storage-track {
   flex: 1;
   height: 5px;
-  background: rgba(255,255,255,0.06);
+  background: var(--text-overlay-08);
   border-radius: 99px;
   overflow: hidden;
 }
@@ -145,19 +145,19 @@
   flex-wrap: wrap;
   gap: 20px;
   background: linear-gradient(135deg, #120834 0%, #0e1a45 60%, #091428 100%);
-  border: 1px solid rgba(124,92,252,0.2);
+  border: 1px solid var(--accent-020);
   border-radius: var(--radius-lg);
   padding: 28px 32px;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 0 60px rgba(124,92,252,0.08);
+  box-shadow: 0 0 60px var(--accent-glow);
 }
 
 .dash-hero-banner::before {
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse 60% 80% at 0% 50%, rgba(124,92,252,0.12) 0%, transparent 70%);
+  background: radial-gradient(ellipse 60% 80% at 0% 50%, var(--accent-012) 0%, transparent 70%);
   pointer-events: none;
 }
 
@@ -186,20 +186,20 @@
 .dash-hero-score {
   font-size: 22px;
   font-weight: 900;
-  color: #fff;
+  color: var(--text-primary);
   line-height: 1;
   letter-spacing: -1px;
 }
 
 .dash-hero-score-sub {
   font-size: 10px;
-  color: rgba(255,255,255,0.45);
+  color: var(--text-overlay);
   font-weight: 500;
 }
 
 .dash-hero-score-label {
   font-size: 13px;
-  color: rgba(255,255,255,0.65);
+  color: var(--text-secondary);
   font-weight: 500;
   margin-bottom: 8px;
 }
@@ -222,8 +222,8 @@
 }
 
 .dash-hero-metric {
-  background: rgba(255,255,255,0.07);
-  border: 1px solid rgba(255,255,255,0.1);
+  background: var(--text-overlay);
+  border: 1px solid var(--border-light);
   border-radius: var(--radius-md);
   padding: 12px 20px;
   text-align: center;
@@ -233,21 +233,21 @@
 }
 
 .dash-hero-metric:hover {
-  background: rgba(124,92,252,0.15);
-  border-color: rgba(124,92,252,0.3);
+  background: var(--accent-015);
+  border-color: var(--accent-030);
 }
 
 .dash-hero-metric-val {
   font-size: 22px;
   font-weight: 800;
-  color: #fff;
+  color: var(--text-primary);
   line-height: 1;
   letter-spacing: -0.5px;
 }
 
 .dash-hero-metric-label {
   font-size: 10.5px;
-  color: rgba(255,255,255,0.5);
+  color: var(--text-overlay-50);
   margin-top: 4px;
   font-weight: 500;
 }
@@ -269,7 +269,7 @@
 }
 
 .dash-stat-card:hover {
-  border-color: rgba(124,92,252,0.25);
+  border-color: var(--accent-025);
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
 }
@@ -326,9 +326,9 @@
 .dash-section-badge {
   font-size: 11px;
   font-weight: 600;
-  background: rgba(124,92,252,0.12);
-  color: #a78bfa;
-  border: 1px solid rgba(124,92,252,0.22);
+  background: var(--accent-012);
+  color: var(--accent-light);
+  border: 1px solid var(--accent-022);
   padding: 3px 10px;
   border-radius: 999px;
 }
@@ -352,7 +352,7 @@
 }
 
 .dash-action-card:hover {
-  border-color: rgba(124,92,252,0.3);
+  border-color: var(--accent-030);
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
   background: var(--bg-hover);
@@ -361,11 +361,11 @@
 .dash-action-card--primary {
   background: var(--accent-gradient);
   border: none;
-  box-shadow: 0 4px 20px rgba(124,92,252,0.3);
+  box-shadow: 0 4px 20px var(--accent-030);
 }
 
 .dash-action-card--primary:hover {
-  box-shadow: 0 8px 32px rgba(124,92,252,0.5);
+  box-shadow: 0 8px 32px var(--accent-050);
   border: none;
   transform: translateY(-2px);
 }

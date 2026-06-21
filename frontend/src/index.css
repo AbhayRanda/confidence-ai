@@ -7,39 +7,82 @@
 }
 
 :root {
+  /* Backgrounds */
   --bg-base: #080b14;
   --bg-surface: #0e1220;
   --bg-elevated: #141827;
   --bg-card: #1a1f35;
   --bg-hover: #1f2540;
 
+  /* Borders */
   --border: rgba(255, 255, 255, 0.07);
   --border-light: rgba(255, 255, 255, 0.04);
 
+  /* Accent Colors */
   --accent: #7c5cfc;
   --accent-2: #5b8def;
+  --accent-light: #a78bfa;
   --accent-gradient: linear-gradient(135deg, #7c5cfc 0%, #5b8def 100%);
+  
+  /* Accent with Opacity */
   --accent-glow: rgba(124, 92, 252, 0.25);
+  --accent-008: rgba(124, 92, 252, 0.08);
+  --accent-010: rgba(124, 92, 252, 0.1);
+  --accent-012: rgba(124, 92, 252, 0.12);
+  --accent-015: rgba(124, 92, 252, 0.15);
+  --accent-018: rgba(124, 92, 252, 0.18);
+  --accent-020: rgba(124, 92, 252, 0.2);
+  --accent-022: rgba(124, 92, 252, 0.22);
+  --accent-025: rgba(124, 92, 252, 0.25);
+  --accent-030: rgba(124, 92, 252, 0.3);
+  --accent-035: rgba(124, 92, 252, 0.35);
+  --accent-050: rgba(124, 92, 252, 0.5);
+  --accent-090: rgba(124, 92, 252, 0.9);
 
+  /* Accent 2 with Opacity */
+  --accent-2-012: rgba(91, 141, 239, 0.12);
+  --accent-2-015: rgba(91, 141, 239, 0.15);
+
+  /* Text Colors */
   --text-primary: #f0f2ff;
   --text-secondary: #8b92b5;
   --text-muted: #50587a;
+  
+  /* Text with Opacity */
+  --text-overlay: rgba(255, 255, 255, 0.05);
+  --text-overlay-08: rgba(255, 255, 255, 0.08);
+  --text-overlay-50: rgba(255, 255, 255, 0.5);
+  --text-overlay-55: rgba(255, 255, 255, 0.55);
+  --text-overlay-60: rgba(255, 255, 255, 0.6);
 
+  /* Status Colors */
   --success: #22c55e;
   --warning: #f59e0b;
   --danger: #ef4444;
+  --danger-010: rgba(239, 68, 68, 0.1);
+  --danger-025: rgba(239, 68, 68, 0.25);
   --info: #3b82f6;
 
+  /* Gradients */
+  --gradient-hero: linear-gradient(150deg, #0e0629 0%, #120834 40%, #0a1535 100%);
+  --gradient-hero-alt: linear-gradient(150deg, #0e0629 0%, #120834 50%, #0a1535 100%);
+  --gradient-text-accent: linear-gradient(90deg, #a78bfa, #60a5fa);
+  --gradient-accent-radial: radial-gradient(ellipse 70% 60% at 30% 40%, rgba(124,92,252,0.22) 0%, transparent 70%);
+  --gradient-accent-2-radial: radial-gradient(ellipse 50% 50% at 80% 70%, rgba(91,141,239,0.15) 0%, transparent 70%);
+
+  /* Spacing */
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
   --radius-xl: 24px;
 
+  /* Shadows */
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
   --shadow-md: 0 4px 16px rgba(0,0,0,0.5);
   --shadow-lg: 0 8px 32px rgba(0,0,0,0.6);
   --shadow-glow: 0 0 40px var(--accent-glow);
 
+  /* Transitions */
   --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -63,11 +106,11 @@ button, input, select, textarea {
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(124, 92, 252, 0.3);
+  background: var(--accent-030);
   border-radius: 10px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(124, 92, 252, 0.6);
+  background: var(--accent-050);
 }
 
 /* Global Keyframes */

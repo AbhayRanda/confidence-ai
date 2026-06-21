@@ -249,7 +249,7 @@ function Dashboard() {
           <div className="dash-hero-metrics">
             {[
               { label: "Posture", val: latest.posture_percentage },
-              { label: "Voice", val: latest.speech_score * 10 },
+              { label: "Voice", val: latest.speech_score },
               { label: "Eye Contact", val: latest.eye_contact_percentage },
               { label: "Confidence", val: latest.confidence_score },
             ].map((m) => (

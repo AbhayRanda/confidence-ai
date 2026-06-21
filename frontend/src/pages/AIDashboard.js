@@ -389,8 +389,8 @@ function AIDashboard() {
                 <MetricBar icon="😊" label="Smile" val={latest.smile_percentage} />
                 <MetricBar icon="🤚" label="Hand Movement" val={latest.hand_movement_percentage} />
                 <MetricBar icon="🎤" label="Speech Score"
-                  val={latest.speech_score * 10}
-                  raw={`${Number(latest.speech_score).toFixed(1)}/10`}
+                  val={latest.speech_score }
+                  raw={`${Number(latest.speech_score).toFixed(1)}%`}
                 />
                 <MetricBar icon="💬" label="Filler Words"
                   val={Math.max(0, 100 - (latest.filler_word_count ?? 0) * 10)}

@@ -25,14 +25,15 @@ function Login() {
     setLoading(true);
     setError("");
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/login?email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`,
-        { method: "POST" }
-      );
+      const response = await fetch(`${API_BASE_URL}/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
       const data = await response.json();
       if (response.ok) {
+        localStorage.setItem("token", data.access_token);
         localStorage.setItem("user", data.email);
-        localStorage.setItem("user_id", data.user_id);
         navigate("/dashboard");
       } else {
         setError(data.detail || "Login failed. Please try again.");

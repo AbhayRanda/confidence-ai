@@ -1,6 +1,8 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import "./Navbar.css";
 
+const API_BASE_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
+
 const NAV_ITEMS = [
   {
     to: "/dashboard",
@@ -40,10 +42,22 @@ function Navbar() {
   const user = localStorage.getItem("user");
   const userInitial = user ? user.charAt(0).toUpperCase() : "U";
 
-  const handleLogout = () => {
-    localStorage.removeItem("user");
-    localStorage.removeItem("user_id");
-    navigate("/login");
+  const handleLogout = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (token) {
+        await fetch(`${API_BASE_URL}/logout`, {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${token}` },
+        });
+      }
+    } catch {
+      // Ignore network errors on logout
+    } finally {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      navigate("/login");
+    }
   };
 
   return (

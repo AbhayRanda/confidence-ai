@@ -34,10 +34,11 @@ function Signup() {
     setLoading(true);
     setError("");
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/signup?email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`,
-        { method: "POST" }
-      );
+      const response = await fetch(`${API_BASE_URL}/signup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
       const data = await response.json();
       if (response.ok) {
         setOtp(data.dev_otp);

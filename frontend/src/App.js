@@ -15,7 +15,7 @@ const PUBLIC_ROUTES = ["/login", "/signup", "/verify"];
 function AppShell() {
   const location = useLocation();
   const isPublic = PUBLIC_ROUTES.some((r) => location.pathname.startsWith(r));
-  const isLoggedIn = !!localStorage.getItem("user");
+  const isLoggedIn = !!localStorage.getItem("token");
 
   if (isPublic) {
     return (

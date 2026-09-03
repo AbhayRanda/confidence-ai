@@ -21,8 +21,8 @@ function VideoAnalytics() {
   const fetchVideoData = useCallback(() => {
     setLoading(true);
     setError(null);
-    const userId = localStorage.getItem("user_id");
-    fetch(`${API_BASE_URL}/dashboard`, { headers: { "X-User-ID": userId || "" } })
+    const token = localStorage.getItem("token");
+    fetch(`${API_BASE_URL}/dashboard`, { headers: { "Authorization": `Bearer ${token || ""}` } })
       .then((r) => { if (!r.ok) throw new Error("Failed to fetch"); return r.json(); })
       .then((data) => {
         const videos = Array.isArray(data) ? data : [];

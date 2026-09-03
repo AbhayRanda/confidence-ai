@@ -1,8 +1,19 @@
+import math
+import os
+from pathlib import Path
 import cv2
 import whisper
 from moviepy import VideoFileClip
-import mediapipe as mp
-from typing import Dict, List
+try:
+    from mediapipe.python.solutions import pose as mp_pose
+except ImportError:
+    try:
+        import mediapipe as mp
+        mp_pose = getattr(mp.solutions, "pose", None)
+    except Exception:
+        mp_pose = None
+
+from typing import Any, Callable, Dict, List, Optional
 from logger import logger
 from config import get_settings
 
@@ -13,46 +24,73 @@ class VideoAnalyzer:
     """Handles video analysis for confidence scoring"""
     
     def __init__(self):
-        self.face_cascade = cv2.CascadeClassifier(settings.face_cascade_path)
-        self.smile_cascade = cv2.CascadeClassifier(settings.smile_cascade_path)
+        cascade_dir = os.path.dirname(os.path.abspath(__file__))
+        face_path = settings.face_cascade_path if os.path.isabs(settings.face_cascade_path) else os.path.join(cascade_dir, settings.face_cascade_path)
+        smile_path = settings.smile_cascade_path if os.path.isabs(settings.smile_cascade_path) else os.path.join(cascade_dir, settings.smile_cascade_path)
+        
+        self.face_cascade = cv2.CascadeClassifier(face_path)
+        self.smile_cascade = cv2.CascadeClassifier(smile_path)
         self.whisper_model = whisper.load_model(settings.whisper_model)
         
         # Initialize MediaPipe Pose
-        self.mp_pose = mp.solutions.pose
+        self.mp_pose: Any = mp_pose
         
         logger.info(f"VideoAnalyzer initialized with Whisper model: {settings.whisper_model}")
     
-    def analyze_video(self, file_path: str) -> Dict:
+    def analyze_video(
+        self,
+        file_path: str,
+        on_progress: Optional[Callable[[str, int, str], None]] = None,
+    ) -> Dict:
         """
-        Analyze video file and extract confidence metrics
-        
+        Analyze video file and extract confidence metrics.
+
         Args:
-            file_path: Path to the video file
-            
+            file_path:    Path to the video file.
+            on_progress:  Optional callback(stage, percent, message) called
+                          at each analysis stage.  Used by the WebSocket
+                          progress channel — safe to omit.
+
         Returns:
-            Dictionary containing analysis results
+            Dictionary containing analysis results.
         """
+        def _emit(stage: str, percent: int, message: str) -> None:
+            """Fire the progress callback if one was provided."""
+            if on_progress:
+                try:
+                    on_progress(stage, percent, message)
+                except Exception:
+                    pass  # never let a progress error abort analysis
+
         try:
             logger.info(f"Starting analysis for video: {file_path}")
-            
+            _emit("starting", 5, "Preparing analysis…")
+
             # Extract video metrics
+            _emit("video_metrics", 10, "Scanning video frames…")
             video_metrics = self._extract_video_metrics(file_path)
-            
+            _emit("video_metrics_done", 45, "Face & posture analysis complete")
+
             # Extract speech metrics
-            speech_metrics = self._extract_speech_metrics(file_path)
-            
-            # Analyze frame quality and detect wrong frames
+            _emit("speech_extraction", 50, "Extracting audio track…")
+            speech_metrics = self._extract_speech_metrics(file_path, on_progress=_emit)
+            _emit("speech_done", 80, "Speech analysis complete")
+
+            # Analyze frame quality
+            _emit("scoring", 85, "Calculating confidence score…")
             frame_analysis = self._analyze_frame_quality(file_path)
-            
+
             # Calculate confidence score
             confidence_score = self._calculate_confidence_score(video_metrics, speech_metrics)
-            
+
             # Generate suggestions
             suggestions = self._generate_suggestions(video_metrics, speech_metrics, confidence_score)
-            
+
             # Determine confidence level
             confidence_level = self._determine_confidence_level(confidence_score)
-            
+
+            _emit("saving", 95, "Saving results…")
+
             result = {
                 **video_metrics,
                 **speech_metrics,
@@ -61,22 +99,19 @@ class VideoAnalyzer:
                 "suggestions": suggestions,
                 "frame_analysis": frame_analysis
             }
-            
+
             logger.info(f"Analysis complete. Confidence score: {confidence_score:.2f}")
             return result
-            
+
         except Exception as e:
             logger.error(f"Error analyzing video: {str(e)}", exc_info=True)
             raise
     
     def _extract_video_metrics(self, file_path: str) -> Dict:
         """Extract video-based metrics (face, smile, posture, eye contact, hand movement)"""
+        cap = cv2.VideoCapture(file_path)
+        pose = self.mp_pose.Pose() if self.mp_pose else None
         try:
-            import math
-            
-            cap = cv2.VideoCapture(file_path)
-            pose = self.mp_pose.Pose()
-            
             metrics = {
                 "eye_contact_frames": 0,
                 "total_frames": 0,
@@ -123,9 +158,9 @@ class VideoAnalyzer:
                 
                 # Posture and eye contact analysis using MediaPipe
                 rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                results = pose.process(rgb_frame)
+                results = pose.process(rgb_frame) if pose else None
                 
-                if results.pose_landmarks:
+                if results and results.pose_landmarks:
                     frame_height, frame_width, _ = frame.shape
                     
                     # Get landmarks
@@ -175,8 +210,6 @@ class VideoAnalyzer:
                     # Hand movement detection
                     left_wrist = results.pose_landmarks.landmark[self.mp_pose.PoseLandmark.LEFT_WRIST]
                     right_wrist = results.pose_landmarks.landmark[self.mp_pose.PoseLandmark.RIGHT_WRIST]
-                    left_elbow = results.pose_landmarks.landmark[self.mp_pose.PoseLandmark.LEFT_ELBOW]
-                    right_elbow = results.pose_landmarks.landmark[self.mp_pose.PoseLandmark.RIGHT_EAR]
                     
                     head_center_x = (left_ear.x + right_ear.x) / 2
                     head_center_y = (left_ear.y + right_ear.y) / 2
@@ -219,9 +252,6 @@ class VideoAnalyzer:
                     metrics["prev_right_wrist"] = right_wrist
                     metrics["prev_head_center"] = (head_center_x, head_center_y)
             
-            cap.release()
-            pose.close()
-            
             # Convert to percentages
             total = metrics["total_frames"] or 1
             face_frames = metrics["face_frames"] or 1
@@ -238,18 +268,23 @@ class VideoAnalyzer:
         except Exception as e:
             logger.error(f"Error extracting video metrics: {str(e)}", exc_info=True)
             raise
+        finally:
+            cap.release()
+            if pose:
+                pose.close()
     
-    def _extract_speech_metrics(self, file_path: str) -> Dict:
+    def _extract_speech_metrics(
+        self,
+        file_path: str,
+        on_progress: Optional[Callable[[str, int, str], None]] = None,
+    ) -> Dict:
         """Extract speech-based metrics (filler words, WPM, speech score)"""
         try:
-            import os
-            from pathlib import Path
-            
             file_extension = Path(file_path).suffix
             audio_path = file_path.replace(file_extension, ".wav")
-            
+
             video_clip = VideoFileClip(file_path)
-            
+
             if video_clip.audio is None:
                 logger.warning(f"No audio track found in {file_path}")
                 return {
@@ -258,10 +293,16 @@ class VideoAnalyzer:
                     "words_per_minute": 0,
                     "speech_text": ""
                 }
-            
+
             video_clip.audio.write_audiofile(audio_path)
+
+            # Whisper is the longest step — emit progress before starting
+            if on_progress:
+                on_progress("speech_transcription", 60, "Transcribing speech with Whisper…")
+
             result = self.whisper_model.transcribe(audio_path)
-            transcript = result.get("text", "").lower()
+            raw_text = result.get("text", "") if isinstance(result, dict) else ""
+            transcript = str(raw_text).lower()
             logger.info(f"Detected speech: {transcript}")
             
             words = transcript.split()
@@ -280,15 +321,15 @@ class VideoAnalyzer:
             filler_count = sum(word in filler_words_list for word in words)
             
             # Calculate WPM
-            segments = result.get("segments", [])
-            if segments:
-                duration_seconds = segments[-1]["end"]
+            segments = result.get("segments", []) if isinstance(result, dict) else []
+            if isinstance(segments, list) and segments and isinstance(segments[-1], dict) and "end" in segments[-1]:
+                duration_seconds = float(segments[-1]["end"])
             else:
-                duration_seconds = video_clip.duration or 1
+                duration_seconds = float(video_clip.duration or 1)
             
             words_per_minute = (
                 (total_words / duration_seconds) * 60
-                if duration_seconds > 0 else 0
+                if duration_seconds > 0 else 0.0
             )
             
             # Calculate speech score
@@ -416,13 +457,9 @@ class VideoAnalyzer:
     
     def _analyze_frame_quality(self, file_path: str) -> Dict:
         """Analyze individual frames and detect problematic frames vs good frames"""
+        cap = cv2.VideoCapture(file_path)
+        pose = self.mp_pose.Pose() if self.mp_pose else None
         try:
-            import math
-            import os
-            from pathlib import Path
-            
-            cap = cv2.VideoCapture(file_path)
-            pose = self.mp_pose.Pose()
             fps = cap.get(cv2.CAP_PROP_FPS)
             
             wrong_frames = []
@@ -443,13 +480,13 @@ class VideoAnalyzer:
                 gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
                 faces = self.face_cascade.detectMultiScale(gray, 1.3, 5)
                 rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                results = pose.process(rgb_frame)
+                results = pose.process(rgb_frame) if pose else None
                 
                 if len(faces) == 0:
                     frame_quality_score -= 25
                     issues.append("No face detected - poor face visibility")
                 else:
-                    if results.pose_landmarks:
+                    if results and results.pose_landmarks:
                         left_ear = results.pose_landmarks.landmark[self.mp_pose.PoseLandmark.LEFT_EAR]
                         right_ear = results.pose_landmarks.landmark[self.mp_pose.PoseLandmark.RIGHT_EAR]
                         left_eye = results.pose_landmarks.landmark[self.mp_pose.PoseLandmark.LEFT_EYE]
@@ -530,9 +567,6 @@ class VideoAnalyzer:
                         "issues": issues
                     })
             
-            cap.release()
-            pose.close()
-            
             recommendations = []
             
             if wrong_frames:
@@ -577,6 +611,10 @@ class VideoAnalyzer:
                 "right_frames_count": 0,
                 "error": str(e)
             }
+        finally:
+            cap.release()
+            if pose:
+                pose.close()
     
     def _generate_frame_summary(self, wrong_frames: List, right_frames: List, has_frames: bool) -> str:
         """Generate a summary of frame analysis"""

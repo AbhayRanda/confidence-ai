@@ -20,10 +20,11 @@ function VerifyOTP() {
     setLoading(true);
     setError("");
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/verify-otp?email=${encodeURIComponent(email)}&otp=${otp}`,
-        { method: "POST" }
-      );
+      const response = await fetch(`${API_BASE_URL}/verify-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, otp }),
+      });
       const data = await response.json();
       if (response.ok) {
         setSuccess(true);

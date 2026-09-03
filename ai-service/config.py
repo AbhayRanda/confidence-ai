@@ -1,10 +1,6 @@
 from functools import lru_cache
-import os
 
-try:
-    from pydantic_settings import BaseSettings
-except ImportError:
-    from pydantic import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -29,6 +25,10 @@ class Settings(BaseSettings):
     whisper_model: str = "base"
     face_cascade_path: str = "haarcascade_frontalface_default.xml"
     smile_cascade_path: str = "haarcascade_smile.xml"
+
+    # AI / LLM
+    gemini_api_key: str = ""  # Optional — falls back to rule-based engine if empty
+    elevenlabs_api_key: str = ""  # Optional — for high-quality TTS
     
     # Analysis Thresholds
     posture_threshold: float = 0.05
@@ -49,11 +49,21 @@ class Settings(BaseSettings):
     filler_words: str = "um,uh,like,basically,actually"
     ideal_words_per_minute_min: int = 100
     ideal_words_per_minute_max: int = 170
+
+    # JWT Authentication
+    jwt_secret_key: str = "change-me-in-production"  # Override via .env
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 60
+
+    # Rate Limiting  (slowapi — per authenticated user)
+    rate_limit_analyze: str = "5/hour"    # Video analysis  — heavy endpoint
+    rate_limit_chat: str    = "60/minute" # Chat/stream     — lightweight
     
-    class Config:
-        env_file = ".env"
-        case_sensitive = False
-        extra = "ignore"  # Ignore extra fields from .env
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        case_sensitive=False,
+        extra="ignore"
+    )
 
 
 @lru_cache()

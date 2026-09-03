@@ -13,3 +13,12 @@ python-multipart
 python-dotenv
 pydantic
 pydantic-settings
+google-generativeai
+argon2-cffi
+httpx
+python-jose[cryptography]
+slowapi
+# Testing
+pytest
+pytest-cov
+httpx

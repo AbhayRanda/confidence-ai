@@ -1000,3 +1000,21 @@
   0%, 100% { box-shadow: none; }
   50%       { box-shadow: 0 0 6px rgba(167, 139, 250, 0.4); }
 }
+
+/* ── Responsive Layout ──────────────────────────────────────── */
+@media (max-width: 960px) {
+  .ai-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .ai-page {
+    padding: 20px 16px 84px;
+    gap: 16px;
+  }
+  .ai-title {
+    font-size: 22px;
+  }
+}
+

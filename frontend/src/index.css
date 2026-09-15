@@ -82,6 +82,15 @@
   --shadow-lg: 0 8px 32px rgba(0,0,0,0.6);
   --shadow-glow: 0 0 40px var(--accent-glow);
 
+  /* Glassmorphism System */
+  --glass-bg: rgba(20, 24, 39, 0.72);
+  --glass-bg-hover: rgba(31, 37, 64, 0.78);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-border-light: rgba(255, 255, 255, 0.04);
+  --glass-highlight: rgba(255, 255, 255, 0.15);
+  --glass-blur: blur(16px);
+  --glass-blur-lg: blur(24px);
+
   /* Transitions */
   --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -89,33 +98,35 @@
 
 html, body, #root {
   height: 100%;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background: var(--bg-base);
   color: var(--text-primary);
+  text-rendering: optimizeLegibility;
 }
 
 a { color: inherit; text-decoration: none; }
 
 button, input, select, textarea {
   font-family: inherit;
+  color: inherit;
 }
 
 /* Custom Scrollbar */
-::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: var(--accent-030);
+  background: rgba(124, 92, 252, 0.25);
   border-radius: 10px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--accent-050);
+  background: rgba(124, 92, 252, 0.45);
 }
 
 /* Global Keyframes */
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(20px); }
+  from { opacity: 0; transform: translateY(16px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
@@ -131,7 +142,7 @@ button, input, select, textarea {
 
 @keyframes pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
-  50%       { opacity: 0.6; transform: scale(0.92); }
+  50%       { opacity: 0.6; transform: scale(0.94); }
 }
 
 @keyframes shimmer {
@@ -145,7 +156,7 @@ button, input, select, textarea {
 
 @keyframes float {
   0%, 100% { transform: translateY(0px); }
-  50%       { transform: translateY(-8px); }
+  50%       { transform: translateY(-6px); }
 }
 
 @keyframes glow {
@@ -154,6 +165,43 @@ button, input, select, textarea {
 }
 
 /* Utility classes */
-.animate-fadeUp   { animation: fadeUp 0.5s cubic-bezier(0.4,0,0.2,1) both; }
-.animate-fadeIn   { animation: fadeIn 0.4s ease both; }
+.animate-fadeUp   { animation: fadeUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-fadeIn   { animation: fadeIn 0.35s ease both; }
 .animate-float    { animation: float 4s ease-in-out infinite; }
+
+/* Modern Glass Card */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-top: 1px solid var(--glass-highlight);
+  border-radius: var(--radius-lg, 16px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37);
+  transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition);
+}
+
+.glass-card:hover {
+  border-color: rgba(124, 92, 252, 0.28);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45), 0 0 24px var(--accent-008);
+}
+
+/* Shimmer Skeleton */
+.skeleton-box {
+  background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.03) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s infinite ease-in-out;
+  border-radius: 8px;
+}
+
+/* Interactive Pill Badges */
+.badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}

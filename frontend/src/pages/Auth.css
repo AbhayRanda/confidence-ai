@@ -444,3 +444,27 @@
   color: var(--text-muted);
   font-size: 11px;
 }
+
+/* ── Responsive Mobile Layout ───────────────────────────────── */
+@media (max-width: 900px) {
+  .auth-page {
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .auth-hero {
+    display: none;
+  }
+
+  .auth-form-side {
+    width: 100%;
+    min-width: 0;
+    padding: 40px 24px;
+    border-left: none;
+  }
+
+  .auth-form-box {
+    max-width: 100%;
+  }
+}
+

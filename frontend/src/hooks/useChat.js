@@ -213,7 +213,7 @@ export function useChat({ getAnalysisContext = null, character = null, speech = 
       if (err.name === 'AbortError') return;
       throw err;
     }
-  }, [getAnalysisContext, buildHistory, character, speech]);
+  }, [getAnalysisContext, buildHistory, character, speech, profilePrompt, systemPrompt]);
 
   // ── Main send entry point ────────────────────────────────
   const sendMessage = useCallback(async (text) => {
@@ -314,7 +314,7 @@ export function useChat({ getAnalysisContext = null, character = null, speech = 
     speech?.speak(response);
     historyRef.current.push({ role: 'mentor', text: response });
     setIsThinking(false);
-  }, [getAnalysisContext, buildHistory, character, speech, addMessage]);
+  }, [getAnalysisContext, buildHistory, character, speech, addMessage, profilePrompt, systemPrompt]);
 
   // ── Clear chat history ─────────────────────────────────────
   const clearHistory = useCallback(() => {

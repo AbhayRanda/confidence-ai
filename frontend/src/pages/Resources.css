@@ -513,3 +513,16 @@
   opacity: 0.88;
   transform: translateY(-1px);
 }
+
+@media (max-width: 768px) {
+  .res-hero {
+    padding: 36px 20px 28px;
+  }
+  .res-main {
+    padding: 24px 16px 84px;
+  }
+  .res-modal {
+    padding: 24px 20px;
+  }
+}
+

@@ -12,3 +12,9 @@
   height: 100vh;
   overflow-y: auto;
 }
+
+@media (max-width: 768px) {
+  .app-content {
+    padding-bottom: 74px; /* clearance for mobile bottom navbar */
+  }
+}

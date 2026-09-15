@@ -192,9 +192,9 @@
 }
 
 .dash-hero-score-sub {
-  font-size: 10px;
-  color: var(--text-overlay);
-  font-weight: 500;
+  font-size: 10.5px;
+  color: var(--text-secondary);
+  font-weight: 600;
 }
 
 .dash-hero-score-label {
@@ -681,3 +681,21 @@
   margin-bottom: 6px;
   text-align: center;
 }
+
+@media (max-width: 768px) {
+  .dash-page {
+    padding: 20px 16px 84px;
+    gap: 16px;
+  }
+  .dash-hero-banner {
+    padding: 20px 18px;
+  }
+  .dash-metric-row {
+    grid-template-columns: 24px 90px 1fr 48px;
+    gap: 8px;
+  }
+  .dash-metric-row .dash-delta {
+    display: none;
+  }
+}
+

@@ -371,7 +371,7 @@ export function useSpeech({
     } else {
       speakBrowser(text, opts);
     }
-  }, [speakBrowser, onSpeakStart, onSpeakEnd, onError, startTtsAmplitude, stopTtsAmplitude]);
+  }, [speakBrowser, onSpeakStart, onSpeakEnd, startTtsAmplitude, stopTtsAmplitude]);
 
   const cancel = useCallback(() => {
     // Cancel browser TTS

@@ -18,6 +18,7 @@
  */
 
 import { useState, useCallback, useRef } from 'react';
+import { useUserProfile, buildProfilePrompt } from './useUserProfile';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000';
 
@@ -37,12 +38,31 @@ const EMOTION_TAG_RE = /\[EMOTION:(\w+)\]\s*$/i;
 let msgIdCounter = 0;
 const newId = () => ++msgIdCounter;
 
-export function useChat({ getAnalysisContext = null, character = null, speech = null } = {}) {
+export function useChat({ getAnalysisContext = null, character = null, speech = null, systemPrompt = null } = {}) {
+  // Load user profile and build the context string once
+  const { profile } = useUserProfile();
+  const profilePrompt = buildProfilePrompt(profile);
+
+  // Build a personalized initial greeting
+  const initialGreeting = (() => {
+    if (!profile?.name) {
+      return "Hi! I'm your AI confidence coach. Ask me anything about speaking, posture, eye contact, or check your latest results!";
+    }
+    const goalMap = {
+      interview:  'interview prep',
+      speaking:   'public speaking',
+      leadership: 'leadership communication',
+      casual:     'building everyday confidence',
+    };
+    const focus = profile.goal ? ` I know you're working on ${goalMap[profile.goal] || profile.goal}.` : '';
+    return `Hey ${profile.name}! 👋 I'm your AI coach.${focus} Ask me anything — scores, tips, or just chat!`;
+  })();
+
   const [messages, setMessages]     = useState([
     {
       id:        newId(),
       role:      'mentor',
-      text:      "Hi! I'm your AI confidence coach. Ask me anything about speaking, posture, eye contact, or check your latest results!",
+      text:      initialGreeting,
       emotion:   'greeting',
       ts:        Date.now(),
       streaming: false,
@@ -56,6 +76,10 @@ export function useChat({ getAnalysisContext = null, character = null, speech = 
 
   // Track whether streaming is supported (detected on first use)
   const streamSupported = useRef(true);
+
+  // Busy lock and message deduplication to prevent overlapping/double responses
+  const isBusyRef      = useRef(false);
+  const lastMessageRef = useRef({ text: '', time: 0 });
 
   // ── Add a fully-formed message ────────────────────────────
   const addMessage = useCallback((role, text, emotion = 'idle', streaming = false) => {
@@ -77,10 +101,15 @@ export function useChat({ getAnalysisContext = null, character = null, speech = 
   const sendMessageStream = useCallback(async (trimmed) => {
     const token   = localStorage.getItem('token');
     const context = (typeof getAnalysisContext === 'function' ? getAnalysisContext() : null) || null;
+    // Prepend profile to the system prompt so Gemini always knows who it's coaching
+    const enrichedSystemPrompt = profilePrompt
+      ? `${profilePrompt}\n${systemPrompt || ''}`
+      : (systemPrompt || undefined);
     const body    = {
       message: trimmed,
       context,
-      history: buildHistory(),   // Step 4
+      history:       buildHistory(),   // Step 4
+      system_prompt: enrichedSystemPrompt || undefined,
     };
 
     // Create placeholder streaming message
@@ -189,15 +218,30 @@ export function useChat({ getAnalysisContext = null, character = null, speech = 
   // ── Main send entry point ────────────────────────────────
   const sendMessage = useCallback(async (text) => {
     const trimmed = text?.trim();
-    if (!trimmed || isThinking) return;
+    if (!trimmed) return;
+
+    // Reject if chat is currently busy (streaming or fetching response)
+    if (isBusyRef.current) {
+      console.warn('[useChat] Dropping message because chat is busy:', trimmed);
+      return;
+    }
+
+    // Deduplicate rapid identical messages within 2.5 seconds
+    const now = Date.now();
+    if (lastMessageRef.current.text === trimmed && (now - lastMessageRef.current.time < 2500)) {
+      console.warn('[useChat] Dropping duplicate message:', trimmed);
+      return;
+    }
+    lastMessageRef.current = { text: trimmed, time: now };
+
+    isBusyRef.current = true;
+    setIsThinking(true);
+    character?.setState('thinking');
 
     // Add user message
     addMessage('user', trimmed);
     // Step 4: Track in history
     historyRef.current.push({ role: 'user', text: trimmed });
-
-    setIsThinking(true);
-    character?.setState('thinking');
 
     // Cancel any ongoing request
     if (abortRef.current) abortRef.current.abort();
@@ -230,18 +274,23 @@ export function useChat({ getAnalysisContext = null, character = null, speech = 
       character?.setState('idle');
     } finally {
       setIsThinking(false);
+      isBusyRef.current = false;
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isThinking, addMessage, sendMessageStream, character]);
+  }, [addMessage, sendMessageStream, character]);
 
   // ── Non-streaming fallback ───────────────────────────────
   const _sendMessageFallback = useCallback(async (trimmed) => {
     const token   = localStorage.getItem('token');
     const context = (typeof getAnalysisContext === 'function' ? getAnalysisContext() : null) || null;
+    const enrichedSystemPrompt = profilePrompt
+      ? `${profilePrompt}\n${systemPrompt || ''}`
+      : (systemPrompt || undefined);
     const body    = {
-      message: trimmed,
+      message:       trimmed,
       context,
-      history: buildHistory(),
+      history:       buildHistory(),
+      system_prompt: enrichedSystemPrompt || undefined,
     };
 
     abortRef.current = new AbortController();
@@ -270,15 +319,18 @@ export function useChat({ getAnalysisContext = null, character = null, speech = 
   // ── Clear chat history ─────────────────────────────────────
   const clearHistory = useCallback(() => {
     historyRef.current = [];
+    const resetMsg = profile?.name
+      ? `Chat cleared, ${profile.name}! What would you like to work on next?`
+      : 'Chat cleared! What would you like to work on?';
     setMessages([{
       id:        newId(),
       role:      'mentor',
-      text:      "Chat cleared! What would you like to work on?",
+      text:      resetMsg,
       emotion:   'greeting',
       ts:        Date.now(),
       streaming: false,
     }]);
-  }, []);
+  }, [profile]);
 
   return {
     messages,

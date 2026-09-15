@@ -84,9 +84,9 @@ function pickVoice() {
 
 // ── Step 7: ElevenLabs TTS via backend proxy ──────────────────
 const API_BASE = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000';
-const DEFAULT_VOICE_ID = 'EXAVITQu4vr4xnSDxMaL'; // "Bella" — warm, friendly
+const DEFAULT_VOICE_ID = '21m00Tcm4TlvDq8ikWAM'; // Rachel — reliable on all ElevenLabs plans
 
-async function speakViaBackend(text, onStart, onEnd, onError) {
+async function speakViaBackend(text, onStart, onEnd, onSilentFallback) {
   try {
     onStart?.();
     const res = await fetch(`${API_BASE}/tts`, {
@@ -95,17 +95,26 @@ async function speakViaBackend(text, onStart, onEnd, onError) {
       body: JSON.stringify({ text, voice_id: DEFAULT_VOICE_ID }),
     });
 
-    if (!res.ok) throw new Error(`Backend TTS error: ${res.status}`);
+    if (!res.ok) {
+      // Don't show error toast — backend TTS is an enhancement, not a requirement.
+      // Silently fall back to browser TTS so the user still hears audio.
+      console.warn(`[TTS] Backend unavailable (${res.status}), using browser TTS`);
+      onSilentFallback?.();
+      onEnd?.();
+      return null;
+    }
 
     const blob      = await res.blob();
     const url       = URL.createObjectURL(blob);
     const audio     = new Audio(url);
     audio.onended   = () => { URL.revokeObjectURL(url); onEnd?.(); };
-    audio.onerror   = () => { URL.revokeObjectURL(url); onError?.('Audio playback error'); onEnd?.(); };
+    audio.onerror   = () => { URL.revokeObjectURL(url); onSilentFallback?.(); onEnd?.(); };
     await audio.play();
     return audio;   // caller can .pause() to cancel
   } catch (err) {
-    onError?.(`TTS: ${err.message}`);
+    // Network error etc. — silent fallback, no toast
+    console.warn('[TTS] Backend fetch failed, using browser TTS:', err.message);
+    onSilentFallback?.();
     onEnd?.();
     return null;
   }
@@ -132,6 +141,7 @@ export function useSpeech({
   const voiceRef          = useRef(null);
   const mutedRef          = useRef(false);
   const isSpeakingRef     = useRef(false);
+  const isListeningRef    = useRef(false);  // ref mirror to avoid stale closure in startListening
 
   // Web Audio refs
   const audioCtxRef       = useRef(null);
@@ -153,8 +163,14 @@ export function useSpeech({
   const prevTranscriptRef = useRef('');
   const fillerCountRef    = useRef(0);
 
+  // Acoustic echo suppression: track when speech ends and pending timeouts
+  const lastSpeakEndTimeRef      = useRef(0);
+  const transcriptTimeoutRef     = useRef(null);
+  const accumulatedTranscriptRef = useRef('');
+
   useEffect(() => { mutedRef.current      = isMuted; },     [isMuted]);
   useEffect(() => { isSpeakingRef.current = isSpeaking; },  [isSpeaking]);
+  useEffect(() => { isListeningRef.current = isListening; }, [isListening]);
 
   // Check backend TTS availability on mount
   useEffect(() => {
@@ -236,34 +252,103 @@ export function useSpeech({
   // ── Browser TTS ────────────────────────────────────────────
   const speakBrowser = useCallback((text, opts = {}) => {
     if (!TTS_SUPPORTED || !text?.trim()) return;
+
+    // Immediately stop speech recognition to prevent mic from hearing TTS output
+    if (recognitionRef.current) {
+      try { recognitionRef.current.abort(); } catch {}
+    }
+    clearTimeout(transcriptTimeoutRef.current);
+    accumulatedTranscriptRef.current = '';
+    isListeningRef.current = false;
+    setIsListening(false);
+    isSpeakingRef.current = true;
+    setIsSpeaking(true);
+
     const wordCount   = text.trim().split(/\s+/).length;
     const estimatedMs = Math.max(1500, wordCount * 280);
 
     if (mutedRef.current) {
-      onSpeakStart?.(); startTtsAmplitude(estimatedMs);
-      setTimeout(() => { stopTtsAmplitude(); onSpeakEnd?.(); }, estimatedMs);
+      onSpeakStart?.();
+      startTtsAmplitude(estimatedMs);
+      setTimeout(() => {
+        isSpeakingRef.current = false;
+        lastSpeakEndTimeRef.current = Date.now();
+        setIsSpeaking(false);
+        stopTtsAmplitude();
+        onSpeakEnd?.();
+      }, estimatedMs);
       return;
     }
 
-    window.speechSynthesis.cancel();
+    // Cancel any ongoing browser utterance
+    try { window.speechSynthesis.cancel(); } catch {}
+
     const utter       = new SpeechSynthesisUtterance(text);
     utter.voice       = voiceRef.current || null;
     utter.rate        = opts.rate   ?? 0.95;
     utter.pitch       = opts.pitch  ?? 1.05;
     utter.volume      = opts.volume ?? 1.0;
-    utter.onstart     = () => { setIsSpeaking(true); onSpeakStart?.(); startTtsAmplitude(estimatedMs); };
-    utter.onend       = () => { setIsSpeaking(false); stopTtsAmplitude(); onSpeakEnd?.(); };
+
+    utter.onstart     = () => {
+      isSpeakingRef.current = true;
+      setIsSpeaking(true);
+      onSpeakStart?.();
+      startTtsAmplitude(estimatedMs);
+    };
+
+    const handleDone = () => {
+      isSpeakingRef.current = false;
+      lastSpeakEndTimeRef.current = Date.now();
+      setIsSpeaking(false);
+      stopTtsAmplitude();
+      onSpeakEnd?.();
+    };
+
+    utter.onend       = handleDone;
     utter.onerror     = (e) => {
-      if (e.error === 'interrupted' || e.error === 'canceled') return;
-      setIsSpeaking(false); stopTtsAmplitude(); onSpeakEnd?.();
+      if (e.error === 'interrupted' || e.error === 'canceled') {
+        isSpeakingRef.current = false;
+        lastSpeakEndTimeRef.current = Date.now();
+        setIsSpeaking(false);
+        stopTtsAmplitude();
+        return;
+      }
+      handleDone();
       onError?.(`TTS error: ${e.error}`);
     };
-    window.speechSynthesis.speak(utter);
+
+    // Small delay after cancel() prevents Chromium from glitching/doubling utterances
+    setTimeout(() => {
+      try {
+        window.speechSynthesis.speak(utter);
+      } catch {
+        handleDone();
+      }
+    }, 40);
   }, [onSpeakStart, onSpeakEnd, onError, startTtsAmplitude, stopTtsAmplitude]);
 
   // ── Step 7: Unified speak (backend TTS if available) ────────
   const speak = useCallback((text, opts = {}) => {
     if (!text?.trim()) return;
+
+    // Stop speech recognition immediately
+    if (recognitionRef.current) {
+      try { recognitionRef.current.abort(); } catch {}
+    }
+    clearTimeout(transcriptTimeoutRef.current);
+    accumulatedTranscriptRef.current = '';
+    isListeningRef.current = false;
+    setIsListening(false);
+    isSpeakingRef.current = true;
+
+    // Stop any existing backend audio
+    if (backendAudioRef.current) {
+      try {
+        backendAudioRef.current.pause();
+        backendAudioRef.current = null;
+      } catch {}
+    }
+
     const wordCount   = text.trim().split(/\s+/).length;
     const estimatedMs = Math.max(1500, wordCount * 280);
 
@@ -273,8 +358,15 @@ export function useSpeech({
       speakViaBackend(
         text,
         () => onSpeakStart?.(),
-        () => { setIsSpeaking(false); stopTtsAmplitude(); onSpeakEnd?.(); },
-        (msg) => { onError?.(msg); speakBrowser(text, opts); }, // fallback on backend error
+        () => {
+          isSpeakingRef.current = false;
+          lastSpeakEndTimeRef.current = Date.now();
+          setIsSpeaking(false);
+          stopTtsAmplitude();
+          onSpeakEnd?.();
+        },
+        // Silent fallback: backend TTS failed — switch to browser TTS without any toast
+        () => speakBrowser(text, opts),
       ).then((audio) => { backendAudioRef.current = audio; });
     } else {
       speakBrowser(text, opts);
@@ -283,12 +375,18 @@ export function useSpeech({
 
   const cancel = useCallback(() => {
     // Cancel browser TTS
-    if (TTS_SUPPORTED) window.speechSynthesis.cancel();
+    if (TTS_SUPPORTED) {
+      try { window.speechSynthesis.cancel(); } catch {}
+    }
     // Cancel backend TTS playback
     if (backendAudioRef.current) {
-      backendAudioRef.current.pause();
-      backendAudioRef.current = null;
+      try {
+        backendAudioRef.current.pause();
+        backendAudioRef.current = null;
+      } catch {}
     }
+    isSpeakingRef.current = false;
+    lastSpeakEndTimeRef.current = Date.now();
     setIsSpeaking(false);
     stopTtsAmplitude();
     onSpeakEnd?.();
@@ -296,7 +394,9 @@ export function useSpeech({
 
   const toggleMute = useCallback(() => {
     setIsMuted((v) => {
-      if (!v) window.speechSynthesis?.cancel();
+      if (!v) {
+        try { window.speechSynthesis?.cancel(); } catch {}
+      }
       return !v;
     });
   }, []);
@@ -307,8 +407,21 @@ export function useSpeech({
       onError?.('Speech recognition is not supported in this browser. Please use Chrome or Edge.');
       return;
     }
-    if (isListening) return;
-    window.speechSynthesis?.cancel();
+    // Echo protection: never listen while avatar is speaking
+    if (isSpeakingRef.current) return;
+
+    // If we're still within the echo cooldown window, retry once after the window expires
+    const sinceLastSpeak = Date.now() - lastSpeakEndTimeRef.current;
+    if (sinceLastSpeak < 400) {
+      const remaining = 400 - sinceLastSpeak + 50; // small buffer
+      setTimeout(() => startListening(), remaining);
+      return;
+    }
+
+    // Use ref (not state) to avoid stale closure — state update is async
+    if (isListeningRef.current) return;
+
+    try { window.speechSynthesis?.cancel(); } catch {}
     startMicAnalysis();
 
     const rec             = new SpeechRecognitionAPI();
@@ -317,24 +430,48 @@ export function useSpeech({
     rec.interimResults    = true;
     rec.maxAlternatives   = 1;
 
+    accumulatedTranscriptRef.current = '';
+
     rec.onstart = () => {
+      isListeningRef.current = true;
       setIsListening(true);
       setTranscript('');
       prevTranscriptRef.current = '';
+      accumulatedTranscriptRef.current = '';
       onListenStart?.();
     };
 
+    const finalizeTranscript = () => {
+      clearTimeout(transcriptTimeoutRef.current);
+      transcriptTimeoutRef.current = null;
+      const finalTxt = accumulatedTranscriptRef.current.trim();
+      if (finalTxt && !isSpeakingRef.current && (Date.now() - lastSpeakEndTimeRef.current >= 400)) {
+        accumulatedTranscriptRef.current = '';
+        onTranscript?.(finalTxt);
+      }
+    };
+
     rec.onresult = (e) => {
+      // Acoustic echo suppression: discard mic audio only if avatar is actively speaking
+      if (isSpeakingRef.current || (Date.now() - lastSpeakEndTimeRef.current < 400)) {
+        accumulatedTranscriptRef.current = '';
+        return;
+      }
+
       let interim = '';
       let final   = '';
-      for (let i = e.resultIndex; i < e.results.length; i++) {
+      for (let i = 0; i < e.results.length; i++) {
         const t = e.results[i][0].transcript;
         if (e.results[i].isFinal) final += t;
         else interim += t;
       }
 
-      const current = final || interim;
+      const current = (final || interim).trim();
       setTranscript(current);
+
+      if (final) {
+        accumulatedTranscriptRef.current = final;
+      }
 
       // Step 5: Count new filler words in incremental transcript
       const newText = current.slice(prevTranscriptRef.current.length);
@@ -347,30 +484,44 @@ export function useSpeech({
       }
       prevTranscriptRef.current = current;
 
-      if (final) onTranscript?.(final.trim());
+      // Debounce emission of final transcript so full sentences are emitted once
+      if (final) {
+        clearTimeout(transcriptTimeoutRef.current);
+        transcriptTimeoutRef.current = setTimeout(finalizeTranscript, 600);
+      }
     };
 
     rec.onerror = (e) => {
+      clearTimeout(transcriptTimeoutRef.current);
+      accumulatedTranscriptRef.current = '';
+      isListeningRef.current = false;
       setIsListening(false);
       stopMicAnalysis();
       onListenEnd?.();
-      if (e.error === 'no-speech')     onError?.('No speech detected. Please try again.');
+      if (e.error === 'no-speech') return; // Natural silence, don't spam errors
       else if (e.error === 'not-allowed') onError?.('Microphone access denied.');
       else if (e.error !== 'aborted')  onError?.(`Microphone error: ${e.error}`);
     };
 
     rec.onend = () => {
+      finalizeTranscript();
+      isListeningRef.current = false;
       setIsListening(false);
       stopMicAnalysis();
       onListenEnd?.();
     };
 
     recognitionRef.current = rec;
-    rec.start();
-  }, [isListening, onTranscript, onListenStart, onListenEnd, onError, startMicAnalysis, stopMicAnalysis]);
+    try {
+      rec.start();
+    } catch {}
+  }, [onTranscript, onListenStart, onListenEnd, onError, startMicAnalysis, stopMicAnalysis]);
 
   const stopListening = useCallback(() => {
-    recognitionRef.current?.stop();
+    clearTimeout(transcriptTimeoutRef.current);
+    accumulatedTranscriptRef.current = '';
+    try { recognitionRef.current?.stop(); } catch {}
+    isListeningRef.current = false;
     setIsListening(false);
     stopMicAnalysis();
     onListenEnd?.();
@@ -385,6 +536,8 @@ export function useSpeech({
 
   // Clean up on unmount
   useEffect(() => () => {
+    clearTimeout(transcriptTimeoutRef.current);
+    accumulatedTranscriptRef.current = '';
     recognitionRef.current?.abort();
     window.speechSynthesis?.cancel();
     backendAudioRef.current?.pause();

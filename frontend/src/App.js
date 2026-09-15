@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import "./App.css";
 import Navbar from "./components/Navbar";
@@ -9,6 +9,9 @@ import Dashboard from "./pages/Dashboard";
 import AIDashboard from "./pages/AIDashboard";
 import Resources from "./pages/Resources";
 import VideoAnalytics from "./pages/VideoAnalytics";
+import LiveAvatarChat from "./pages/LiveAvatarChat";
+import { UserOnboardingModal } from "./components/UserOnboardingModal";
+import { useUserProfile } from "./hooks/useUserProfile";
 
 const PUBLIC_ROUTES = ["/login", "/signup", "/verify"];
 
@@ -16,6 +19,8 @@ function AppShell() {
   const location = useLocation();
   const isPublic = PUBLIC_ROUTES.some((r) => location.pathname.startsWith(r));
   const isLoggedIn = !!localStorage.getItem("token");
+  const { hasProfile } = useUserProfile();
+  const [onboardingDone, setOnboardingDone] = useState(false);
 
   if (isPublic) {
     return (
@@ -32,6 +37,10 @@ function AppShell() {
 
   return (
     <div className="app-shell">
+      {/* Onboarding modal — shown once to new users */}
+      {!hasProfile && !onboardingDone && (
+        <UserOnboardingModal onComplete={() => setOnboardingDone(true)} />
+      )}
       <Navbar />
       <div className="app-content">
         <Routes>
@@ -40,6 +49,7 @@ function AppShell() {
           <Route path="/ai" element={<AIDashboard />} />
           <Route path="/resources" element={<Resources />} />
           <Route path="/video/:id" element={<VideoAnalytics />} />
+          <Route path="/live" element={<LiveAvatarChat />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </div>

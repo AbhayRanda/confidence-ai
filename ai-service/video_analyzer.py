@@ -279,6 +279,8 @@ class VideoAnalyzer:
         on_progress: Optional[Callable[[str, int, str], None]] = None,
     ) -> Dict:
         """Extract speech-based metrics (filler words, WPM, speech score)"""
+        video_clip = None
+        audio_path = None
         try:
             file_extension = Path(file_path).suffix
             audio_path = file_path.replace(file_extension, ".wav")
@@ -353,13 +355,6 @@ class VideoAnalyzer:
             
             speech_score = max(0, min(100, speech_score))
             
-            video_clip.close()
-            
-            try:
-                os.remove(audio_path)
-            except:
-                pass
-            
             return {
                 "speech_score": round(speech_score, 2),
                 "filler_word_count": filler_count,
@@ -375,6 +370,17 @@ class VideoAnalyzer:
                 "words_per_minute": 0,
                 "speech_text": ""
             }
+        finally:
+            if video_clip is not None:
+                try:
+                    video_clip.close()
+                except Exception:
+                    pass
+            if audio_path is not None and os.path.exists(audio_path):
+                try:
+                    os.remove(audio_path)
+                except Exception:
+                    pass
     
     def _calculate_confidence_score(self, video_metrics: Dict, speech_metrics: Dict) -> float:
         """Calculate overall confidence score using weighted metrics"""
@@ -460,18 +466,25 @@ class VideoAnalyzer:
         cap = cv2.VideoCapture(file_path)
         pose = self.mp_pose.Pose() if self.mp_pose else None
         try:
-            fps = cap.get(cv2.CAP_PROP_FPS)
+            fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
+            total_video_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0)
+            frame_skip = max(1, total_video_frames // 15) if total_video_frames > 0 else 10
             
             wrong_frames = []
             right_frames = []
             frame_issues = []
             
+            raw_frame_idx = 0
             frame_number = 0
             
             while True:
                 ret, frame = cap.read()
                 if not ret:
                     break
+                
+                raw_frame_idx += 1
+                if frame_skip > 1 and (raw_frame_idx % frame_skip != 0):
+                    continue
                 
                 frame_number += 1
                 frame_quality_score = 100

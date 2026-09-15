@@ -208,10 +208,10 @@ ENCOURAGEMENT_RESPONSES = [
 ]
 
 UNKNOWN_RESPONSES = [
-    "That's a great question! Try asking me about specific areas like 'eye contact', 'posture', 'speech pace', or 'hand gestures'.",
-    "I'm best at coaching on confidence skills. You can ask things like 'how do I stop saying um?' or 'tips for better eye contact'.",
-    "Hmm, I'm not sure about that one. Ask me about your speaking skills — I have lots of tips on voice, posture, and eye contact!",
-    "I'm a confidence coach, so I'm best at things like speaking tips, body language, and voice techniques. Try asking about one of those!",
+    "Great question! I can help with that. Let me think...",
+    "Interesting! Here's what I know about that...",
+    "Happy to chat about that! And feel free to ask me about your confidence or speaking skills anytime too.",
+    "Sure, let's talk about it!",
 ]
 
 SCORE_UNKNOWN = [
@@ -259,21 +259,28 @@ def _parse_emotion_tag(text: str):
     return text.strip(), "gesture"
 
 
-# ── Step 1: Gemini system prompt builder ──────────────────────
-def _build_system_prompt(context: Optional[dict]) -> str:
-    lines = [
-        "You are an expert AI confidence and public speaking coach.",
-        "Your tone is warm, encouraging, and concise.",
-        "Respond in 2–4 sentences maximum — no bullet lists unless the user specifically asks.",
-        "Always end your response with exactly one emotion tag on its own: [EMOTION:happy], "
-        "[EMOTION:encouraging], [EMOTION:gesture], [EMOTION:thinking], or [EMOTION:greeting].",
-        "Choose the emotion that matches your response tone:",
-        "  happy       → celebrate achievements, high scores",
-        "  encouraging → motivate the user, acknowledge struggle",
-        "  gesture     → explain a technique, give specific advice",
-        "  thinking    → analytical, reflective responses",
-        "  greeting    → welcome messages",
-    ]
+# ── Step 1: Gemini system prompt builder ────────────────────────────────────
+def _build_system_prompt(context: Optional[dict], system_prompt_override: Optional[str] = None) -> str:
+    # If the caller provides a full system prompt (from live chat mode), use it as the
+    # base but still append metric context and emotion-tagging instructions.
+    if system_prompt_override:
+        base = system_prompt_override
+    else:
+        base = (
+            "You are a highly intelligent, knowledgeable AI assistant and confidence coach. "
+            "You have broad knowledge across all topics: science, technology, history, culture, "
+            "current events, coding, mathematics, philosophy, arts, health, relationships, career advice, "
+            "and much more — just like a brilliant, well-read friend. "
+            "You NEVER refuse to answer a question by saying it's outside your scope. "
+            "You always engage helpfully with whatever the user brings up. "
+            "You ALSO specialise in confidence coaching: public speaking, eye contact, posture, "
+            "body language, interview prep, reducing filler words, and vocal delivery. "
+            "When the user asks about confidence or speaking skills, lean into your coaching expertise. "
+            "Your tone is warm, encouraging, curious, and natural — like a brilliant knowledgeable friend. "
+            "Keep responses concise (2-4 sentences) unless the user asks for more detail."
+        )
+
+    lines = [base]
 
     if context:
         score = context.get("confidence_score")
@@ -294,15 +301,38 @@ def _build_system_prompt(context: Optional[dict]) -> str:
                     lines.append(f"  {k}: {v}")
             lines.append("Use these metrics to personalise your advice when relevant.")
 
+        # Live vision context
+        live_parts = []
+        if context.get("smiling") is not None:
+            live_parts.append(f"user is {'smiling' if context['smiling'] else 'not smiling'}")
+        if context.get("eye_contact") is not None:
+            live_parts.append(f"user {'has' if context['eye_contact'] else 'lacks'} eye contact")
+        if context.get("gesture"):
+            live_parts.append(f"user is making a {context['gesture']} gesture")
+        if context.get("detected_objects"):
+            live_parts.append(f"visible objects: {', '.join(context['detected_objects'])}")
+        if live_parts:
+            lines.append(f"\nLive camera context: {'; '.join(live_parts)}.")
+
+    # Emotion tag — always LAST, AFTER all content (including any required interview question).
+    # It is a trailing annotation only, never a substitute for required content.
+    lines.append(
+        "\nEMOTION TAG (append after your full response, on its own line): "
+        "End every reply with exactly one of: [EMOTION:happy] [EMOTION:encouraging] "
+        "[EMOTION:gesture] [EMOTION:thinking] [EMOTION:greeting]. "
+        "Pick the tag that matches your tone. This tag comes AFTER all other content."
+    )
+
     return "\n".join(lines)
 
 
-# ── Step 1+4: Gemini LLM call ─────────────────────────────────
+# ── Step 1+4: Gemini LLM call ──────────────────────────────────────────
 def _llm_response(
-    message:  str,
-    context:  Optional[dict]        = None,
-    history:  Optional[List[dict]]  = None,
-    api_key:  str                   = "",
+    message:       str,
+    context:       Optional[dict]       = None,
+    history:       Optional[List[dict]] = None,
+    api_key:       str                  = "",
+    system_prompt: Optional[str]        = None,
 ) -> Optional[dict]:
     """
     Call Gemini 2.0 Flash. Returns { response, emotion } or None on failure.
@@ -314,7 +344,7 @@ def _llm_response(
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel(
             model_name="gemini-2.0-flash",
-            system_instruction=_build_system_prompt(context),
+            system_instruction=_build_system_prompt(context, system_prompt),
         )
 
         # Step 4: Build multi-turn history for Gemini
@@ -338,12 +368,13 @@ def _llm_response(
         return None
 
 
-# ── Step 1+4: Streaming Gemini generator ─────────────────────
+# ── Step 1+4: Streaming Gemini generator ───────────────────────────────────
 def _llm_stream(
-    message:  str,
-    context:  Optional[dict]        = None,
-    history:  Optional[List[dict]]  = None,
-    api_key:  str                   = "",
+    message:       str,
+    context:       Optional[dict]       = None,
+    history:       Optional[List[dict]] = None,
+    api_key:       str                  = "",
+    system_prompt: Optional[str]        = None,
 ):
     """
     Generator that yields text chunks from Gemini stream.
@@ -358,7 +389,7 @@ def _llm_stream(
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel(
             model_name="gemini-2.0-flash",
-            system_instruction=_build_system_prompt(context),
+            system_instruction=_build_system_prompt(context, system_prompt),
         )
 
         chat_history = []
@@ -527,13 +558,31 @@ def generate_analysis_report(
 
 
 # ── Rule-based response (fallback / offline) ──────────────────
-def _rule_based_response(message: str, context: Optional[dict] = None) -> dict:
+def _extract_name_from_system_prompt(system_prompt: Optional[str]) -> str:
+    """Pull 'Name: <value>' from the injected profile block, or return empty string."""
+    if not system_prompt:
+        return ""
+    for line in system_prompt.splitlines():
+        stripped = line.strip()
+        if stripped.lower().startswith("name:"):
+            return stripped[5:].strip()
+    return ""
+
+
+def _rule_based_response(message: str, context: Optional[dict] = None, name: str = "") -> dict:
     msg_lower = message.lower().strip()
+    greeting_name = f", {name}" if name else ""
 
     # Greeting
     greeting_words = ["hi", "hello", "hey", "howdy", "good morning", "good afternoon", "sup", "yo"]
     if any(msg_lower.startswith(w) for w in greeting_words) or msg_lower in greeting_words:
-        return {"response": _pick(GREETING_RESPONSES), "emotion": "greeting"}
+        responses = [
+            f"Hello{greeting_name}! I'm your AI confidence coach. Ask me anything — about your scores, specific skills, or general tips!",
+            f"Hey{greeting_name}! Great to see you practicing. What would you like to work on today?",
+            f"Hi{greeting_name}! I'm here to help you become a more confident communicator. What's on your mind?",
+            f"Welcome{greeting_name}! I can give you tips on eye contact, posture, speech, hand gestures — just ask!",
+        ]
+        return {"response": _pick(responses), "emotion": "greeting"}
 
     # Thanks
     thanks_words = ["thank", "thanks", "thx", "ty", "cheers", "great", "awesome", "cool", "perfect"]
@@ -652,39 +701,43 @@ def _rule_based_response(message: str, context: Optional[dict] = None) -> dict:
 
 # ── Main entry point ─────────────────────────────────────────
 def generate_response(
-    message:  str,
-    context:  Optional[dict]        = None,
-    history:  Optional[List[dict]]  = None,
-    api_key:  str                   = "",
+    message:       str,
+    context:       Optional[dict]       = None,
+    history:       Optional[List[dict]] = None,
+    api_key:       str                  = "",
+    system_prompt: Optional[str]        = None,
 ) -> dict:
     """
     Generate a coaching response for a user message.
     Tries Gemini LLM first; falls back to rule-based engine.
 
     Args:
-        message: The user's input text
-        context: Optional dict with analysis metrics
-        history: Optional list of recent messages [{"role": "user"|"mentor", "text": str}]
-        api_key: Gemini API key (from settings)
+        message:       The user's input text
+        context:       Optional dict with analysis metrics / live vision context
+        history:       Optional list of recent messages [{"role": "user"|"mentor", "text": str}]
+        api_key:       Gemini API key (from settings)
+        system_prompt: Optional override (live chat mode persona)
 
     Returns:
         { "response": str, "emotion": str }
     """
     # Step 1+8: Try LLM first
-    llm_result = _llm_response(message, context, history, api_key)
+    llm_result = _llm_response(message, context, history, api_key, system_prompt)
     if llm_result:
         return llm_result
 
-    # Fallback to rule-based
-    return _rule_based_response(message, context)
+    # Fallback to rule-based — extract name from injected profile block
+    name = _extract_name_from_system_prompt(system_prompt)
+    return _rule_based_response(message, context, name=name)
 
 
 # Expose streaming generator for /chat/stream endpoint
 def generate_response_stream(
-    message:  str,
-    context:  Optional[dict]        = None,
-    history:  Optional[List[dict]]  = None,
-    api_key:  str                   = "",
+    message:       str,
+    context:       Optional[dict]       = None,
+    history:       Optional[List[dict]] = None,
+    api_key:       str                  = "",
+    system_prompt: Optional[str]        = None,
 ):
     """Generator version for SSE streaming."""
-    yield from _llm_stream(message, context, history, api_key)
+    yield from _llm_stream(message, context, history, api_key, system_prompt)

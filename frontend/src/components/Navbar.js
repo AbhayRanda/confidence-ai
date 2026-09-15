@@ -1,5 +1,8 @@
+import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import "./Navbar.css";
+import { useUserProfile } from "../hooks/useUserProfile";
+import { UserOnboardingModal } from "./UserOnboardingModal";
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
 
@@ -25,6 +28,16 @@ const NAV_ITEMS = [
     ),
   },
   {
+    to: "/live",
+    label: "Live Call",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M15.05 5A5 5 0 0 1 19 8.95M15.05 1A9 9 0 0 1 23 8.94" />
+        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
+      </svg>
+    ),
+  },
+  {
     to: "/resources",
     label: "Resources",
     icon: (
@@ -41,6 +54,9 @@ function Navbar() {
   const navigate = useNavigate();
   const user = localStorage.getItem("user");
   const userInitial = user ? user.charAt(0).toUpperCase() : "U";
+  const { profile } = useUserProfile();
+  const [showEditProfile, setShowEditProfile] = useState(false);
+  const displayName = profile?.name || (user ? user.split('@')[0] : null);
 
   const handleLogout = async () => {
     try {
@@ -106,13 +122,29 @@ function Navbar() {
       <div className="navbar-footer">
         {user && (
           <div className="navbar-user">
-            <div className="navbar-avatar">{userInitial}</div>
-            <div className="navbar-user-info">
-              <span className="navbar-user-name" title={user}>
-                {user.length > 16 ? user.slice(0, 14) + "…" : user}
-              </span>
-              <span className="navbar-user-role">Member</span>
+            <div className="navbar-avatar" style={profile?.name ? { background: 'linear-gradient(135deg, #7c5cfc, #5b8def)' } : {}}>
+              {profile?.name ? profile.name.charAt(0).toUpperCase() : userInitial}
             </div>
+            <div className="navbar-user-info">
+              <span className="navbar-user-name" title={displayName}>
+                {displayName && displayName.length > 16 ? displayName.slice(0, 14) + "…" : (displayName || user)}
+              </span>
+              <span className="navbar-user-role">
+                {profile?.goal === 'interview'  ? '💼 Interview Prep'
+                : profile?.goal === 'speaking'  ? '🎤 Public Speaking'
+                : profile?.goal === 'leadership'? '🚀 Leadership'
+                : profile?.goal === 'casual'    ? '💬 Free Chat'
+                : 'Member'}
+              </span>
+            </div>
+            {/* Edit profile button */}
+            <button
+              className="navbar-edit-profile-btn"
+              onClick={() => setShowEditProfile(true)}
+              title="Edit Profile"
+            >
+              ✏️
+            </button>
           </div>
         )}
         <button onClick={handleLogout} className="navbar-logout">
@@ -123,6 +155,11 @@ function Navbar() {
           Sign out
         </button>
       </div>
+
+      {/* Edit profile modal */}
+      {showEditProfile && (
+        <UserOnboardingModal onComplete={() => setShowEditProfile(false)} />
+      )}
     </aside>
   );
 }

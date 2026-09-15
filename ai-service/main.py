@@ -41,6 +41,11 @@ class ChatContext(BaseModel):
     speech_score:             Optional[float] = None
     filler_word_count:        Optional[int]   = None
     words_per_minute:         Optional[float] = None
+    # Live vision context (sent by /live page)
+    smiling:                  Optional[bool]  = None
+    eye_contact:              Optional[bool]  = None
+    gesture:                  Optional[str]   = None
+    detected_objects:         Optional[List[str]] = None
 
 
 class HistoryMessage(BaseModel):
@@ -51,9 +56,10 @@ class HistoryMessage(BaseModel):
 
 class ChatRequest(BaseModel):
     """Request body for the /chat and /chat/stream endpoints"""
-    message: str
-    context: Optional[ChatContext]       = None
-    history: Optional[List[HistoryMessage]] = None   # Step 4: conversation history
+    message:       str
+    context:       Optional[ChatContext]          = None
+    history:       Optional[List[HistoryMessage]] = None   # Step 4: conversation history
+    system_prompt: Optional[str]                  = None   # Live mode override (Coach / Interview / Free Chat / Vision)
 
 
 # Initialize settings
@@ -169,6 +175,107 @@ def home() -> dict:
         "message": "AI Confidence Service Running Successfully",
         "gemini_enabled": bool(settings.gemini_api_key),
     }
+
+
+# ═══════════════ TTS PROXY (ElevenLabs) ══════════════════════
+
+# Reliable ElevenLabs voices (always available on free tier):
+#   Rachel  → 21m00Tcm4TlvDq8ikWAM  (warm, clear female)
+#   Adam    → pNInz6obpgDQGcFmaJgB   (confident male)
+DEFAULT_VOICE_ID  = "21m00Tcm4TlvDq8ikWAM"   # Rachel — reliable on all plans
+DEFAULT_TTS_MODEL = "eleven_turbo_v2_5"        # Fast, current ElevenLabs model
+
+# Track quota exhaustion in memory (resets on server restart)
+_tts_quota_exhausted = False
+
+
+class TTSRequest(BaseModel):
+    text:     str
+    voice_id: str = DEFAULT_VOICE_ID
+
+
+@app.get("/tts/status")
+def tts_status() -> dict:
+    """Report whether backend TTS (ElevenLabs) is available."""
+    available = bool(settings.elevenlabs_api_key) and not _tts_quota_exhausted
+    reason = "quota_exhausted" if _tts_quota_exhausted else (None if available else "no_api_key")
+    return {"available": available, "provider": "elevenlabs" if available else None, "reason": reason}
+
+
+@app.post("/tts")
+async def tts_proxy(body: TTSRequest) -> StreamingResponse:
+    """
+    Proxy TTS requests to ElevenLabs and return audio/mpeg.
+    The frontend (useSpeech.js) calls this when backendTtsRef is True.
+    Falls back gracefully: if the key is missing or quota is exhausted, returns 503.
+    """
+    global _tts_quota_exhausted
+
+    api_key = settings.elevenlabs_api_key
+    if not api_key:
+        raise HTTPException(status_code=503, detail="TTS not configured (no ElevenLabs API key)")
+
+    if _tts_quota_exhausted:
+        raise HTTPException(status_code=503, detail="ElevenLabs quota exhausted — using browser TTS")
+
+    text = body.text.strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="text is required")
+
+    # Truncate very long strings to avoid excessive ElevenLabs charges
+    if len(text) > 1000:
+        text = text[:997] + "..."
+
+    voice_id = body.voice_id or DEFAULT_VOICE_ID
+    url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
+    headers = {
+        "xi-api-key":   api_key,
+        "Content-Type": "application/json",
+        "Accept":       "audio/mpeg",
+    }
+    payload = {
+        "text":     text,
+        "model_id": DEFAULT_TTS_MODEL,
+        "voice_settings": {
+            "stability":        0.45,
+            "similarity_boost": 0.80,
+            "style":            0.0,
+            "use_speaker_boost": True,
+        },
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=25.0) as client:
+            resp = await client.post(url, headers=headers, json=payload)
+
+        if resp.status_code != 200:
+            err_body = resp.text[:400]
+            logger.warning(f"ElevenLabs TTS {resp.status_code}: {err_body}")
+
+            # Mark quota as exhausted so future calls skip the backend immediately
+            if resp.status_code in (401, 429) and "quota" in err_body.lower():
+                _tts_quota_exhausted = True
+                logger.warning("ElevenLabs quota exhausted — disabling backend TTS for this session")
+                raise HTTPException(status_code=503, detail="ElevenLabs quota exhausted")
+
+            raise HTTPException(
+                status_code=resp.status_code,
+                detail=f"ElevenLabs error {resp.status_code}: {err_body}",
+            )
+
+        return StreamingResponse(
+            iter([resp.content]),
+            media_type="audio/mpeg",
+            headers={"Cache-Control": "no-cache", "Content-Length": str(len(resp.content))},
+        )
+
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail="TTS request timed out")
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error(f"TTS proxy error: {exc}")
+        raise HTTPException(status_code=500, detail="TTS proxy error")
 
 
 # ═══════════════ WEBSOCKET PROGRESS ═════════════════════════
@@ -698,6 +805,7 @@ def chat(request: Request, req: ChatRequest) -> dict:
             context=context_dict,
             history=history_list,
             api_key=settings.gemini_api_key,
+            system_prompt=req.system_prompt or None,
         )
         logger.info(f"Chat response — emotion: {result.get('emotion')}, llm: {bool(settings.gemini_api_key)}")
         return result
@@ -736,6 +844,7 @@ async def chat_stream(request: Request, req: ChatRequest):
                 context=context_dict,
                 history=history_list,
                 api_key=settings.gemini_api_key,
+                system_prompt=req.system_prompt or None,
             ):
                 if chunk:
                     # Escape newlines so SSE format is valid
@@ -754,91 +863,6 @@ async def chat_stream(request: Request, req: ChatRequest):
             "X-Accel-Buffering": "no",
         },
     )
-
-
-# ═══════════════ TTS PROXY (ElevenLabs) ══════════════════════
-
-class TTSRequest(BaseModel):
-    """Request body for the /tts endpoint"""
-    text: str
-    voice_id: str = "EXAVITQu4vr4xnSDxMaL"  # Default: "Bella" — warm, friendly
-
-
-@app.get("/tts/status")
-def tts_status() -> dict:
-    """
-    Check whether ElevenLabs TTS is configured on the backend.
-    Returns { "available": bool } — never exposes the key itself.
-    """
-    return {"available": bool(settings.elevenlabs_api_key)}
-
-
-@app.post("/tts")
-async def tts_synthesize(req: TTSRequest):
-    """
-    Proxy TTS request to ElevenLabs API.
-    - Reads ELEVENLABS_API_KEY from server-side .env (never exposed to browser)
-    - Streams audio/mpeg back to the frontend
-    - Returns 503 if key is not configured
-    - Returns 502 if ElevenLabs returns an error
-    """
-    if not settings.elevenlabs_api_key:
-        raise HTTPException(
-            status_code=503,
-            detail="ElevenLabs TTS is not configured on the server.",
-        )
-
-    if not req.text or not req.text.strip():
-        raise HTTPException(status_code=400, detail="Text cannot be empty")
-
-    elevenlabs_url = f"https://api.elevenlabs.io/v1/text-to-speech/{req.voice_id}"
-
-    try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            el_response = await client.post(
-                elevenlabs_url,
-                headers={
-                    "xi-api-key":   settings.elevenlabs_api_key,
-                    "Content-Type": "application/json",
-                    "Accept":       "audio/mpeg",
-                },
-                json={
-                    "text":           req.text.strip(),
-                    "model_id":       "eleven_turbo_v2",
-                    "voice_settings": {
-                        "stability":        0.55,
-                        "similarity_boost": 0.75,
-                        "style":            0.35,
-                        "use_speaker_boost": True,
-                    },
-                },
-            )
-
-        if el_response.status_code != 200:
-            logger.error(
-                f"ElevenLabs API error: {el_response.status_code} — {el_response.text[:200]}"
-            )
-            raise HTTPException(
-                status_code=502,
-                detail=f"ElevenLabs returned status {el_response.status_code}",
-            )
-
-        logger.info(f"TTS synthesised: {len(req.text)} chars, voice={req.voice_id}")
-
-        return StreamingResponse(
-            iter([el_response.content]),
-            media_type="audio/mpeg",
-            headers={
-                "Content-Disposition": "inline",
-                "Cache-Control":       "no-cache",
-            },
-        )
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"TTS proxy error: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=502, detail=f"TTS proxy error: {str(e)}")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,420 @@
+/* ─────────────────────────────────────────────────────────────
+   UserOnboardingModal.css
+   Glassmorphism onboarding modal — matches the ConfidenceAI dark theme
+   ───────────────────────────────────────────────────────────── */
+
+/* ── Overlay ────────────────────────────────────────────────── */
+.onb-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 11, 20, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 16px;
+  animation: fadeIn 0.3s ease both;
+}
+
+/* ── Modal card ─────────────────────────────────────────────── */
+.onb-modal {
+  width: 100%;
+  max-width: 520px;
+  background: linear-gradient(145deg, #141827 0%, #0e1220 100%);
+  border: 1px solid rgba(124, 92, 252, 0.2);
+  border-radius: 24px;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 24px 64px rgba(0, 0, 0, 0.7),
+    0 0 80px rgba(124, 92, 252, 0.12);
+  display: flex;
+  flex-direction: column;
+  animation: onbSlideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  overflow: hidden;
+  max-height: 92vh;
+}
+
+@keyframes onbSlideUp {
+  from { opacity: 0; transform: translateY(32px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── Header ─────────────────────────────────────────────────── */
+.onb-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.onb-logo {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(124,92,252,0.15), rgba(91,141,239,0.12));
+  border: 1px solid rgba(124, 92, 252, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 16px rgba(124, 92, 252, 0.25);
+  flex-shrink: 0;
+}
+
+.onb-header-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #f0f2ff;
+  letter-spacing: -0.3px;
+}
+
+.onb-header-sub {
+  font-size: 11px;
+  color: rgba(124, 92, 252, 0.9);
+  font-weight: 600;
+  margin-left: auto;
+  background: rgba(124, 92, 252, 0.1);
+  border: 1px solid rgba(124, 92, 252, 0.2);
+  border-radius: 20px;
+  padding: 2px 10px;
+}
+
+/* ── Progress indicator ─────────────────────────────────────── */
+.onb-progress {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  padding: 18px 24px 4px;
+}
+
+.onb-progress-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: #50587a;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.onb-progress-dot--active {
+  border-color: #7c5cfc;
+  background: rgba(124, 92, 252, 0.15);
+  color: #a78bfa;
+  box-shadow: 0 0 16px rgba(124, 92, 252, 0.35);
+}
+
+.onb-progress-dot--done {
+  border-color: #22c55e;
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+}
+
+.onb-progress-line {
+  height: 2px;
+  width: 64px;
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 1px;
+  transition: background 0.4s ease;
+  flex-shrink: 0;
+}
+
+.onb-progress-line--done {
+  background: linear-gradient(90deg, #22c55e, #7c5cfc);
+}
+
+/* ── Content area ───────────────────────────────────────────── */
+.onb-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.onb-step {
+  padding: 20px 28px 8px;
+  animation: onbStepIn 0.3s ease both;
+}
+
+@keyframes onbStepIn {
+  from { opacity: 0; transform: translateX(16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.onb-step-icon {
+  font-size: 36px;
+  display: block;
+  margin-bottom: 10px;
+}
+
+.onb-step-title {
+  font-size: 21px;
+  font-weight: 800;
+  color: #f0f2ff;
+  letter-spacing: -0.5px;
+  margin-bottom: 6px;
+}
+
+.onb-step-desc {
+  font-size: 13px;
+  color: #8b92b5;
+  line-height: 1.5;
+  margin-bottom: 22px;
+}
+
+/* ── Fields ─────────────────────────────────────────────────── */
+.onb-field-group {
+  margin-bottom: 16px;
+}
+
+.onb-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #8b92b5;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 7px;
+}
+
+.onb-input,
+.onb-select {
+  width: 100%;
+  padding: 11px 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 10px;
+  color: #f0f2ff;
+  font-size: 14px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  outline: none;
+  appearance: none;
+}
+
+.onb-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b92b5' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 38px;
+  cursor: pointer;
+}
+
+.onb-select option {
+  background: #141827;
+  color: #f0f2ff;
+}
+
+.onb-input:focus,
+.onb-select:focus {
+  border-color: rgba(124, 92, 252, 0.5);
+  box-shadow: 0 0 0 3px rgba(124, 92, 252, 0.12);
+}
+
+.onb-input::placeholder { color: #50587a; }
+
+/* ── Goal cards ─────────────────────────────────────────────── */
+.onb-goal-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.onb-goal-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  padding: 14px 14px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+}
+
+.onb-goal-card:hover {
+  background: rgba(124, 92, 252, 0.08);
+  border-color: rgba(124, 92, 252, 0.25);
+  transform: translateY(-1px);
+}
+
+.onb-goal-card--active {
+  background: rgba(124, 92, 252, 0.12);
+  border-color: rgba(124, 92, 252, 0.5);
+  box-shadow: 0 0 20px rgba(124, 92, 252, 0.15);
+}
+
+.onb-goal-icon {
+  font-size: 24px;
+  display: block;
+}
+
+.onb-goal-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #f0f2ff;
+  display: block;
+}
+
+.onb-goal-desc {
+  font-size: 11px;
+  color: #8b92b5;
+  line-height: 1.4;
+  display: block;
+}
+
+.onb-goal-check {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7c5cfc, #5b8def);
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Level cards ─────────────────────────────────────────────── */
+.onb-level-row {
+  display: flex;
+  gap: 10px;
+}
+
+.onb-level-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 14px 8px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.onb-level-card:hover {
+  background: rgba(124, 92, 252, 0.08);
+  border-color: rgba(124, 92, 252, 0.25);
+  transform: translateY(-1px);
+}
+
+.onb-level-card--active {
+  background: rgba(124, 92, 252, 0.12);
+  border-color: rgba(124, 92, 252, 0.5);
+  box-shadow: 0 0 20px rgba(124, 92, 252, 0.15);
+}
+
+.onb-level-icon  { font-size: 22px; }
+.onb-level-label { font-size: 12px; font-weight: 700; color: #f0f2ff; }
+.onb-level-desc  { font-size: 10px; color: #8b92b5; line-height: 1.35; }
+
+/* ── Weakness chips ─────────────────────────────────────────── */
+.onb-weakness-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.onb-weakness-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  color: #8b92b5;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.onb-weakness-chip:hover {
+  background: rgba(124, 92, 252, 0.08);
+  border-color: rgba(124, 92, 252, 0.25);
+  color: #f0f2ff;
+}
+
+.onb-weakness-chip--active {
+  background: rgba(124, 92, 252, 0.15);
+  border-color: rgba(124, 92, 252, 0.5);
+  color: #a78bfa;
+  box-shadow: 0 0 10px rgba(124, 92, 252, 0.15);
+}
+
+/* ── Footer ─────────────────────────────────────────────────── */
+.onb-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  gap: 12px;
+}
+
+.onb-footer-left { display: flex; align-items: center; }
+
+.onb-btn-back,
+.onb-btn-skip {
+  background: none;
+  border: none;
+  color: #8b92b5;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 8px 4px;
+  transition: color 0.2s ease;
+}
+
+.onb-btn-back:hover,
+.onb-btn-skip:hover {
+  color: #f0f2ff;
+}
+
+.onb-btn-primary {
+  padding: 11px 28px;
+  background: linear-gradient(135deg, #7c5cfc 0%, #5b8def 100%);
+  border: none;
+  border-radius: 12px;
+  color: white;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 20px rgba(124, 92, 252, 0.35);
+  letter-spacing: -0.2px;
+}
+
+.onb-btn-primary:hover:not(.onb-btn-primary--disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 28px rgba(124, 92, 252, 0.5);
+}
+
+.onb-btn-primary--disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  box-shadow: none;
+}

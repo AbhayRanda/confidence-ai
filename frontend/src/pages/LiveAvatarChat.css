@@ -1,0 +1,769 @@
+/**
+ * LiveAvatarChat.css
+ * ─────────────────────────────────────────────────────────────
+ * Ultra-premium dark glassmorphism video conference UI.
+ * Split-screen layout with user webcam tile + 3D avatar tile,
+ * live call controls, vision HUD, detection event log, and
+ * session mode picker.
+ * ─────────────────────────────────────────────────────────────
+ */
+
+/* ── Page container ─────────────────────────────────────────── */
+.live-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 100vh;
+  background: var(--bg-base);
+  position: relative;
+  overflow: hidden;
+}
+
+.live-page::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 60% 40% at 25% 35%, rgba(124, 92, 252, 0.12) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 45% at 75% 65%, rgba(91, 141, 239, 0.08) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 30% at 50% 20%, rgba(167, 139, 250, 0.06) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.live-page > * { position: relative; z-index: 1; }
+
+/* ── Top bar ────────────────────────────────────────────────── */
+.live-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(14, 18, 32, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  flex-shrink: 0;
+}
+
+.live-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.live-call-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--success);
+  letter-spacing: 0.02em;
+}
+
+.live-call-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--success);
+  animation: pulse 1.8s ease-in-out infinite;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.6);
+}
+
+.live-call-timer {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+.live-topbar-title {
+  font-size: 16px;
+  font-weight: 700;
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.live-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.live-fps-badge {
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--accent-008);
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Mode selector ──────────────────────────────────────────── */
+.live-mode-selector {
+  display: flex;
+  gap: 4px;
+  background: var(--bg-elevated);
+  border-radius: 10px;
+  padding: 3px;
+  border: 1px solid var(--border);
+}
+
+.live-mode-btn {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+
+.live-mode-btn:hover {
+  color: var(--text-primary);
+  background: var(--accent-008);
+}
+
+.live-mode-btn--active {
+  background: var(--accent-gradient);
+  color: #fff;
+  box-shadow: 0 2px 12px var(--accent-glow);
+}
+
+/* ── Main content grid ──────────────────────────────────────── */
+.live-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  flex: 1;
+  padding: 16px 24px;
+  min-height: 0;
+}
+
+@media (max-width: 900px) {
+  .live-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1fr;
+  }
+}
+
+/* ── Video tiles (shared) ───────────────────────────────────── */
+.live-tile {
+  position: relative;
+  border-radius: 20px;
+  overflow: hidden;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+}
+
+.live-tile::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 20px;
+  pointer-events: none;
+  z-index: 2;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+/* ── User webcam tile ───────────────────────────────────────── */
+.live-tile--user {
+  background: #0a0e1a;
+}
+
+.live-user-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1); /* Mirror */
+  border-radius: 20px;
+}
+
+.live-user-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 3;
+  transform: scaleX(-1); /* Mirror to match video */
+}
+
+.live-tile-label {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 14px;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.live-tile-label-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.5);
+}
+
+/* ── Camera off placeholder ─────────────────────────────────── */
+.live-cam-off {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.live-cam-off-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--accent-010);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Avatar tile ────────────────────────────────────────────── */
+.live-tile--avatar {
+  background: radial-gradient(ellipse 80% 70% at 50% 60%, #0e1535 0%, #080b14 100%);
+}
+
+.live-tile--avatar .aic-root {
+  width: 100%;
+  height: 100%;
+}
+
+/* Override AICharacter wrapper to fill the tile */
+.live-tile--avatar .aic-canvas-wrap {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 300px;
+}
+
+/* Hide the default message bubble & preset picker in live mode */
+.live-tile--avatar .aic-message-bubble,
+.live-tile--avatar .aic-preset-picker {
+  display: none;
+}
+
+/* ── Vision HUD overlay badges ──────────────────────────────── */
+.live-vision-hud {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 200px;
+}
+
+.live-hud-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  animation: fadeUp 0.3s ease both;
+  white-space: nowrap;
+}
+
+.live-hud-pill--face {
+  background: rgba(124, 92, 252, 0.25);
+  color: #d4c4ff;
+}
+
+.live-hud-pill--gesture {
+  background: rgba(34, 197, 94, 0.25);
+  color: #a8f0c4;
+}
+
+.live-hud-pill--object {
+  background: rgba(91, 141, 239, 0.25);
+  color: #b4d0ff;
+}
+
+.live-hud-pill--warn {
+  background: rgba(245, 158, 11, 0.25);
+  color: #fcd299;
+}
+
+.live-hud-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+/* ── Detection event log (side drawer) ──────────────────────── */
+.live-event-log {
+  position: absolute;
+  bottom: 14px;
+  left: 14px;
+  right: 14px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 120px;
+  overflow-y: auto;
+  mask-image: linear-gradient(to bottom, transparent, black 20%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, black 20%);
+}
+
+.live-event-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  font-size: 11px;
+  color: var(--text-secondary);
+  animation: fadeUp 0.25s ease both;
+}
+
+.live-event-time {
+  color: var(--text-muted);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  min-width: 40px;
+}
+
+.live-event-text {
+  flex: 1;
+}
+
+/* ── Avatar speech subtitle ─────────────────────────────────── */
+.live-subtitle-bar {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  max-width: 85%;
+  text-align: center;
+  padding: 10px 22px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  line-height: 1.5;
+  animation: fadeUp 0.35s ease both;
+}
+
+.live-subtitle-bar--thinking {
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.live-subtitle-bar--thinking::after {
+  content: '';
+  display: inline-block;
+  width: 4px;
+  height: 14px;
+  background: var(--accent);
+  border-radius: 2px;
+  margin-left: 4px;
+  vertical-align: middle;
+  animation: pulse 0.8s ease-in-out infinite;
+}
+
+/* ── Bottom control bar ─────────────────────────────────────── */
+.live-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px 24px;
+  background: rgba(14, 18, 32, 0.9);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.live-ctrl-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+
+.live-ctrl-btn:hover {
+  background: var(--bg-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.live-ctrl-btn--active {
+  background: var(--accent-gradient);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 4px 16px var(--accent-glow);
+}
+
+.live-ctrl-btn--danger {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 4px 16px rgba(239, 68, 68, 0.3);
+}
+
+.live-ctrl-btn--danger:hover {
+  background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+}
+
+.live-ctrl-btn--muted {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.25);
+  color: #fca5a5;
+}
+
+.live-ctrl-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.live-ctrl-label {
+  font-size: 12px;
+}
+
+/* ── Audio meter visualizer ring ────────────────────────────── */
+.live-audio-ring {
+  position: absolute;
+  bottom: 14px;
+  right: 14px;
+  z-index: 5;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 3px solid var(--accent-030);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.live-audio-ring--active {
+  border-color: var(--accent);
+  box-shadow: 0 0 16px var(--accent-glow);
+}
+
+.live-audio-ring-inner {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent-gradient);
+  transition: transform 0.1s;
+}
+
+/* ── Loading / model init overlay ───────────────────────────── */
+.live-loading-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: rgba(8, 11, 20, 0.92);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-radius: 20px;
+  animation: fadeIn 0.3s ease;
+}
+
+.live-loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--accent-020);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.live-loading-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.live-loading-subtext {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: -8px;
+}
+
+/* ── End call summary modal ─────────────────────────────────── */
+.live-summary-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  animation: fadeIn 0.3s ease;
+}
+
+.live-summary-modal {
+  width: 90%;
+  max-width: 520px;
+  max-height: 80vh;
+  overflow-y: auto;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 32px;
+  box-shadow: 0 32px 64px rgba(0, 0, 0, 0.5), 0 0 80px var(--accent-glow);
+  animation: fadeUp 0.4s ease both;
+}
+
+.live-summary-title {
+  font-size: 20px;
+  font-weight: 800;
+  margin-bottom: 8px;
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.live-summary-subtitle {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+}
+
+.live-summary-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.live-summary-stat {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  text-align: center;
+}
+
+.live-summary-stat-value {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--accent-light);
+}
+
+.live-summary-stat-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.live-summary-events {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  max-height: 180px;
+  overflow-y: auto;
+  margin-bottom: 20px;
+}
+
+.live-summary-events-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.live-summary-event-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.live-summary-event-row:last-child {
+  border-bottom: none;
+}
+
+.live-summary-close-btn {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 14px;
+  background: var(--accent-gradient);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition);
+  box-shadow: 0 4px 16px var(--accent-glow);
+}
+
+.live-summary-close-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 24px var(--accent-glow);
+}
+
+/* ── Pulsing audio ring animation on tiles ──────────────────── */
+@keyframes audioRingPulse {
+  0%   { box-shadow: 0 0 0 0 var(--accent-035); }
+  70%  { box-shadow: 0 0 0 8px rgba(124, 92, 252, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(124, 92, 252, 0); }
+}
+
+.live-tile--speaking::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 22px;
+  border: 2px solid var(--accent);
+  z-index: 1;
+  animation: audioRingPulse 1.4s ease-out infinite;
+  pointer-events: none;
+}
+
+/* ── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .live-topbar {
+    padding: 10px 16px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .live-grid {
+    padding: 10px 12px;
+    gap: 10px;
+  }
+
+  .live-controls {
+    padding: 12px 16px;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .live-ctrl-label {
+    display: none;
+  }
+
+  .live-ctrl-btn {
+    padding: 10px 14px;
+  }
+
+  .live-mode-selector {
+    order: 3;
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ── Profile banner (pre-call screen) ───────────────────────── */
+.live-profile-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 auto 4px;
+  padding: 10px 18px;
+  background: rgba(124, 92, 252, 0.08);
+  border: 1px solid rgba(124, 92, 252, 0.2);
+  border-radius: 40px;
+  animation: fadeUp 0.4s ease both;
+  max-width: 360px;
+  width: calc(100% - 32px);
+}
+
+.live-profile-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7c5cfc, #5b8def);
+  color: white;
+  font-size: 15px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 0 14px rgba(124, 92, 252, 0.35);
+}
+
+.live-profile-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.live-profile-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #f0f2ff;
+}
+
+.live-profile-goal {
+  font-size: 11px;
+  color: #8b92b5;
+}

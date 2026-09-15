@@ -1,8 +1,9 @@
 import { render, screen } from '@testing-library/react';
 import App from './App';
 
-test('renders learn react link', () => {
+test('renders ConfidenceAI authentication screen by default when not logged in', () => {
   render(<App />);
-  const linkElement = screen.getByText(/learn react/i);
-  expect(linkElement).toBeInTheDocument();
+  expect(screen.getByText(/Welcome back/i)).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /Sign In/i })).toBeInTheDocument();
 });
+

@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import List, Optional
-from sqlalchemy import Integer, Float, String, DateTime, Boolean, ForeignKey
+from sqlalchemy import Integer, Float, String, DateTime, Boolean, ForeignKey, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from database import Base
 
@@ -52,6 +52,17 @@ class User(Base):
     otp: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     otp_expiry: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    # ── User Profile (persisted in DB, not localStorage) ────────────
+    name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    profession: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    industry: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    goal: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)   # interview|speaking|leadership|casual
+    experience_level: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)  # beginner|intermediate|advanced
+    weaknesses: Mapped[Optional[str]] = mapped_column(Text, nullable=True)   # JSON array stored as text
+
+    # Tracking
+    last_login: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
     # Metadata
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

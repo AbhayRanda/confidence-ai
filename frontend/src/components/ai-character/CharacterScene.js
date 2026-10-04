@@ -79,56 +79,134 @@ function CameraRig({ mousePosition }) {
   return null;
 }
 
-// ── Cinematic scene lighting ──────────────────────────────────
+// ── Portrait lighting — improved for humanoid skin realism ────
 function SceneLighting({ stateColor }) {
   const color = stateColor || '#7c5cfc';
   return (
     <>
       {/* Soft ambient */}
-      <ambientLight intensity={0.28} color="#b8b0e0" />
+      <ambientLight intensity={0.22} color="#b8b0e0" />
 
-      {/* Key light — warm front-left */}
+      {/* Primary key light — warm front-left, portrait style */}
       <directionalLight
-        position={[-2.2, 3.5, 2.5]}
-        intensity={1.8}
+        position={[-2.2, 3.8, 2.5]}
+        intensity={2.0}
         color="#f0e8ff"
         castShadow
-        shadow-mapSize-width={1024}
-        shadow-mapSize-height={1024}
+        shadow-mapSize-width={2048}
+        shadow-mapSize-height={2048}
         shadow-camera-near={0.1}
         shadow-camera-far={25}
         shadow-camera-left={-2.5}
         shadow-camera-right={2.5}
         shadow-camera-top={4}
         shadow-camera-bottom={-1.5}
-        shadow-bias={-0.0005}
+        shadow-bias={-0.0004}
       />
 
-      {/* Fill light — cool front-right */}
-      <directionalLight position={[2.8, 2.2, 1.8]} intensity={0.6} color="#b0c8ff" />
+      {/* Secondary key — warm top-right, fills forehead/cheekbone */}
+      <directionalLight
+        position={[1.8, 4.5, 1.5]}
+        intensity={0.90}
+        color="#ffeedd"
+      />
 
-      {/* Rim / back light — state-driven accent (smoothly transitioned) */}
-      <pointLight position={[0, 1.8, -3.0]} intensity={1.2} color={color} distance={7} decay={2} />
+      {/* Fill light — cool front-right, reduces harsh shadows */}
+      <directionalLight position={[2.8, 2.2, 1.8]} intensity={0.45} color="#b0c8ff" />
 
-      {/* Ground bounce */}
-      <pointLight position={[0, -1.2, 1.2]} intensity={0.30} color="#5b8def" distance={5} decay={2} />
+      {/* Eye-level softbox — prevents eye socket going too dark */}
+      <pointLight position={[0, 0.4, 3]} intensity={0.18} color="#e0e8ff" distance={6} decay={2} />
+
+      {/* SSS backlight — simulates light through ears/nose translucency */}
+      <pointLight position={[0, 1.0, -2.5]} intensity={0.55} color="#ffb090" distance={5} decay={2} />
+
+      {/* Rim / back accent — state-driven */}
+      <pointLight position={[0, 1.8, -3.0]} intensity={1.1} color={color} distance={7} decay={2} />
+
+      {/* Ground bounce — warm skin undertone from below */}
+      <pointLight position={[0, -1.2, 1.2]} intensity={0.28} color="#5b8def" distance={5} decay={2} />
 
       {/* Top crown light */}
       <spotLight
         position={[0, 4.5, 0.6]}
-        angle={0.38}
-        penumbra={0.9}
-        intensity={0.65}
+        angle={0.36}
+        penumbra={0.92}
+        intensity={0.70}
         color="#c0a0ff"
-        target-position={[0, 0.35, 0]}
+        target-position={[0, 0.4, 0]}
       />
 
-      {/* Side accent — left */}
-      <pointLight position={[-3.0, 0.5, 0]} intensity={0.18} color="#7c5cfc" distance={5} decay={2} />
-      {/* Side accent — right */}
-      <pointLight position={[ 3.0, 0.5, 0]} intensity={0.18} color="#5b8def" distance={5} decay={2} />
+      {/* Side accent — left: state-driven */}
+      <pointLight position={[-3.0, 0.5, 0]} intensity={0.20} color={color} distance={5} decay={2} />
+      {/* Side accent — right: cool complement */}
+      <pointLight position={[ 3.0, 0.5, 0]} intensity={0.16} color="#a0c8ff" distance={5} decay={2} />
     </>
   );
+}
+
+// ── Floating orb behind character ────────────────────────────
+function FloatingOrb({ stateColor }) {
+  const orbRef  = useRef();
+  const currentColor = useRef(new THREE.Color(stateColor || '#7c5cfc'));
+
+  const mat = useMemo(() => new THREE.MeshBasicMaterial({
+    color: currentColor.current.clone(),
+    transparent: true,
+    opacity: 0.13,
+  }), []);
+  const geo = useMemo(() => new THREE.SphereGeometry(0.38, 24, 24), []);
+
+  useFrame((state, delta) => {
+    const t  = state.clock.elapsedTime;
+    const dt = Math.min(delta, 0.05);
+    currentColor.current.lerp(new THREE.Color(stateColor || '#7c5cfc'), 1 - Math.exp(-5 * dt));
+    mat.color.copy(currentColor.current);
+    if (orbRef.current) {
+      orbRef.current.position.y = 0.22 + Math.sin(t * 0.55) * 0.07;
+      orbRef.current.scale.setScalar(1 + Math.sin(t * 0.9 + 1) * 0.045);
+      mat.opacity = 0.10 + Math.sin(t * 0.7) * 0.04;
+    }
+  });
+
+  useEffect(() => () => { mat.dispose(); geo.dispose(); }, []); // eslint-disable-line
+
+  return (
+    <mesh ref={orbRef} geometry={geo} material={mat} position={[0, 0.22, -0.85]} />
+  );
+}
+
+// ── Holographic grid floor ──────────────────────────────────
+// Note: GridHelper has two materials (center + grid lines); we set both transparent
+function HoloGrid({ stateColor }) {
+  const ref = useRef();
+  const currentHex = useRef(stateColor || '#7c5cfc');
+
+  const grid = useMemo(() => {
+    const color = new THREE.Color(currentHex.current);
+    const g = new THREE.GridHelper(3.6, 16, color, color);
+    const setOpacity = (m) => {
+      if (!m) return;
+      m.transparent = true;
+      m.opacity     = 0.09;
+      m.depthWrite  = false;
+    };
+    if (Array.isArray(g.material)) g.material.forEach(setOpacity);
+    else setOpacity(g.material);
+    return g;
+  }, []); // eslint-disable-line
+
+  // Fade in / pulse opacity in frame
+  useFrame((state) => {
+    const t = state.clock.elapsedTime;
+    const pulse = 0.07 + Math.sin(t * 0.6) * 0.02;
+    const setOp = (m) => { if (m) m.opacity = pulse; };
+    if (Array.isArray(grid.material)) grid.material.forEach(setOp);
+    else setOp(grid.material);
+  });
+
+  useEffect(() => () => grid.geometry.dispose(), [grid]);
+
+  return <primitive ref={ref} object={grid} position={[0, -0.862, 0]} />;
 }
 
 // ── Holographic platform ──────────────────────────────────────
@@ -351,14 +429,20 @@ function InnerScene({ state, mousePosition, onReady, isMobile, audioAmplitude = 
       <CameraRig mousePosition={mousePosition} />
       <SceneLighting stateColor={cssColor} />
 
-      {/* Subtle environment for specular highlights */}
-      <Environment preset="night" />
+      {/* Studio environment — slightly warmer for skin specular */}
+      <Environment preset="studio" />
 
       {/* Step 2: Dynamic particle field */}
       <DynamicSparkles stateColor={cssColor} state={state} isMobile={isMobile} />
 
       {/* Step 2: Data stream for ANALYZING state */}
       <DataStream stateColor={cssColor} active={isAnalyzing} />
+
+      {/* Holographic grid floor */}
+      <HoloGrid stateColor={cssColor} />
+
+      {/* Floating orb — state-reactive glow sphere */}
+      <FloatingOrb stateColor={cssColor} />
 
       {/* Holographic platform base — Step 1: smooth color */}
       <HoloPlatform stateColor={cssColor} />
@@ -460,7 +544,7 @@ export function CharacterScene({
     >
       <Canvas
         shadows
-        camera={{ position: [0, 0.28, 2.25], fov: 40, near: 0.1, far: 60 }}
+        camera={{ position: [0, 0.55, 2.25], fov: 36, near: 0.1, far: 60 }}
         gl={{
           antialias:             !isLowEnd,
           alpha:                 true,

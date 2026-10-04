@@ -7,6 +7,7 @@ import { useAICharacter } from "../hooks/useAICharacter";
 import { useSpeech } from "../hooks/useSpeech";
 import { useChat } from "../hooks/useChat";
 import { ChatPanel } from "../components/ChatPanel";
+import { IdealPerformanceDemo } from "./IdealPerformanceDemo";
 
 const API_BASE_URL  = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
 const WS_BASE_URL   = process.env.REACT_APP_WS_URL  || "ws://127.0.0.1:8000";
@@ -211,6 +212,10 @@ function AIDashboard() {
 
   // Step 5: Live filler counter
   const [liveFillers, setLiveFillers]   = useState(0);
+
+  // Ideal Performance Demo
+  const [showIdealDemo, setShowIdealDemo]   = useState(false);
+  const [lastResult, setLastResult]         = useState(null);
 
   const timerRef         = useRef(null);
   const mediaRecorderRef = useRef(null);
@@ -432,11 +437,14 @@ function AIDashboard() {
         if (result.report.exercise) setExercise(result.report.exercise);
       }
 
+      // Save result for Ideal Performance Demo
+      setLastResult(result);
+
       character.onAnalysisComplete(result.confidence_score);
 
       setTimeout(() => {
-        const score     = result.confidence_score;
-        const metrics   = [
+        const score   = result.confidence_score;
+        const metrics = [
           { name: "Eye Contact",   value: result.eye_contact_percentage },
           { name: "Posture",       value: result.posture_percentage },
           { name: "Smile",         value: result.smile_percentage },
@@ -445,8 +453,8 @@ function AIDashboard() {
         ];
         const weakest = metrics.reduce((a, b) => a.value < b.value ? a : b);
         const nudge   = score >= 70
-          ? `Great session! Your confidence score is ${score.toFixed(1)}/100. What would you like to work on next?`
-          : `Your score is ${score.toFixed(1)}/100. Your biggest opportunity is ${weakest.name} at ${Math.round(weakest.value)}%. Ask me for a targeted tip!`;
+          ? `Score: ${score.toFixed(1)}/100 — great session! What do you want to work on?`
+          : `Score: ${score.toFixed(1)}/100 — ask me for a tip on ${weakest.name}.`;
         chat.sendMessage(nudge);
       }, 1500);
 
@@ -477,20 +485,75 @@ function AIDashboard() {
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const video = document.createElement("video");
+
+    // Fast-path: check file size first (100 MB limit)
+    const MAX_SIZE_MB = 100;
+    if (file.size > MAX_SIZE_MB * 1024 * 1024) {
+      toast.error(`File is too large (${(file.size / 1024 / 1024).toFixed(0)} MB). Maximum is ${MAX_SIZE_MB} MB.`);
+      e.target.value = "";
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(file);
+    const video     = document.createElement("video");
+    let   settled   = false;
+
+    const accept = () => {
+      if (settled) return;
+      settled = true;
+      URL.revokeObjectURL(objectUrl);
+      setSelectedFile(file);
+      toast.success(`Selected: ${file.name}`);
+    };
+
+    const reject = (msg) => {
+      if (settled) return;
+      settled = true;
+      URL.revokeObjectURL(objectUrl);
+      toast.error(msg);
+      e.target.value = "";
+      setSelectedFile(null);
+    };
+
+    // If metadata loads successfully — enforce 30s cap
     video.onloadedmetadata = () => {
-      if (video.duration > 30) {
-        toast.error(`Video is ${Math.ceil(video.duration)}s. Maximum is 30 seconds.`);
-        e.target.value = "";
-        setSelectedFile(null);
+      // Some WebM files report Infinity; treat as unknown ≤ 30s (backend validates)
+      const dur = video.duration;
+      if (isFinite(dur) && dur > 30) {
+        reject(`Video is ${Math.ceil(dur)}s. Maximum is 30 seconds.`);
       } else {
-        setSelectedFile(file);
-        toast.success(`Selected: ${file.name}`);
+        accept();
       }
     };
-    video.onerror = () => { toast.error("Unable to read video file."); e.target.value = ""; };
-    video.src = URL.createObjectURL(file);
+
+    // onerror fires for many valid WebM files (VP8/VP9, missing duration header).
+    // The backend (OpenCV + FFmpeg) can decode these perfectly — so we warn but allow.
+    video.onerror = () => {
+      if (settled) return;
+      settled = true;
+      URL.revokeObjectURL(objectUrl);
+      // Accept the file but warn the user the duration check was skipped
+      const isWebm = file.name.toLowerCase().endsWith(".webm") ||
+                     file.type === "video/webm";
+      if (isWebm) {
+        setSelectedFile(file);
+        toast.info(`Selected: ${file.name} (WebM — duration check skipped, 30s limit still applies)`);
+      } else {
+        toast.error("Unable to read video file. Please try a different format (MP4 or WebM recommended).");
+        e.target.value = "";
+      }
+    };
+
+    // Fallback timeout: if neither event fires in 4s, accept the file
+    setTimeout(() => {
+      if (!settled) accept();
+    }, 4000);
+
+    video.preload = "metadata";
+    video.src     = objectUrl;
   };
+
+
 
   const formatTime = (s) =>
     `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
@@ -526,6 +589,14 @@ function AIDashboard() {
 
       {/* Step 3: Full report modal */}
       {showReport && <CoachingReport report={report} onClose={() => setShowReport(false)} />}
+
+      {/* Ideal Performance Demo modal */}
+      {showIdealDemo && (
+        <IdealPerformanceDemo
+          analysisData={lastResult}
+          onClose={() => setShowIdealDemo(false)}
+        />
+      )}
 
       {/* Header */}
       <div className="ai-header animate-fadeUp">
@@ -758,7 +829,9 @@ function AIDashboard() {
           <ChatPanel
             messages={chat.messages}
             isThinking={chat.isThinking}
+            isStreaming={chat.isStreaming}
             onSendMessage={chat.sendMessage}
+            onStop={chat.stopResponse}
             onClear={chat.clearHistory}
             speech={speech}
             className="animate-fadeUp"
@@ -816,6 +889,24 @@ function AIDashboard() {
                 {report && (
                   <button className="ai-report-btn" onClick={() => setShowReport(true)}>
                     📋 View Full Coaching Report
+                  </button>
+                )}
+
+                {/* Ideal Performance Demo trigger */}
+                {lastResult && (
+                  <button
+                    className="ipd-trigger-btn"
+                    onClick={() => setShowIdealDemo(true)}
+                    id="ideal-demo-trigger-btn"
+                  >
+                    <span className="ipd-trigger-btn-icon">🤖</span>
+                    <span className="ipd-trigger-btn-text">
+                      <span className="ipd-trigger-btn-main">✨ See Ideal Performance Demo</span>
+                      <span className="ipd-trigger-btn-sub">
+                        {lastResult.speech_text ? "Watch 3D avatar deliver your speech with improved confidence" : "Watch your AI-improved 3D presentation"}
+                      </span>
+                    </span>
+                    <span className="ipd-trigger-btn-arrow">→</span>
                   </button>
                 )}
               </div>

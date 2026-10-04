@@ -1,0 +1,274 @@
+/* ==========================================================================
+   THEME SWITCHER COMPONENT STYLES
+   ========================================================================== */
+
+.theme-switcher-container {
+  position: relative;
+  width: 100%;
+}
+
+/* Trigger button */
+.theme-switcher-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--radius-md, 12px);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition);
+  text-align: left;
+}
+
+.theme-switcher-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--accent-030);
+  box-shadow: 0 0 12px var(--accent-015);
+}
+
+.theme-switcher-btn--open {
+  border-color: var(--accent);
+  box-shadow: 0 0 16px var(--accent-glow);
+  background: var(--bg-hover);
+}
+
+.theme-switcher-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: all var(--transition);
+}
+
+.theme-switcher-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.theme-switcher-label {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+}
+
+.theme-switcher-chevron {
+  color: var(--text-secondary);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.theme-switcher-chevron--open {
+  transform: rotate(180deg);
+  color: var(--accent);
+}
+
+/* Flyout Dropdown Menu */
+.theme-dropdown-menu {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  width: 270px;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-top: 1px solid var(--glass-highlight);
+  border-radius: var(--radius-lg, 16px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 30px var(--accent-012);
+  padding: 12px;
+  z-index: 1000;
+  animation: themeMenuPop 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes themeMenuPop {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.theme-dropdown-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 6px 10px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 8px;
+}
+
+.theme-dropdown-title {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  color: var(--accent);
+}
+
+.theme-dropdown-subtitle {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Theme Options List */
+.theme-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 380px;
+  overflow-y: auto;
+}
+
+/* Individual Theme Option Card */
+.theme-option-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-md, 12px);
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all var(--transition);
+  text-align: left;
+  width: 100%;
+}
+
+.theme-option-card:hover {
+  background: rgba(0, 0, 0, 0.06);
+  border-color: var(--border);
+  transform: translateX(2px);
+}
+
+.theme-option-card--active {
+  background: var(--accent-010);
+  border-color: var(--theme-opt-accent, var(--accent));
+  box-shadow: 0 2px 12px var(--accent-008);
+}
+
+/* Theme Icon Box */
+.theme-option-icon-box {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  border: 1px solid;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+/* Details */
+.theme-option-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.theme-option-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.theme-option-name {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.2px;
+}
+
+.theme-option-badge {
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--theme-opt-accent, var(--accent));
+  color: #000;
+}
+
+.theme-option-tagline {
+  font-size: 10.5px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Swatches */
+.theme-swatches {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 3px;
+}
+
+.theme-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.4);
+}
+
+.theme-swatch--border {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Checkmark */
+.theme-option-check {
+  color: var(--theme-opt-accent, var(--accent));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ── Mobile Layout ────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .theme-switcher-btn {
+    padding: 6px 8px;
+    font-size: 10.5px;
+    height: auto;
+    border-radius: 8px;
+    justify-content: center;
+    border: none;
+    background: transparent;
+  }
+
+  .theme-switcher-dot {
+    display: none;
+  }
+
+  .theme-switcher-label {
+    display: none;
+  }
+
+  .theme-switcher-chevron {
+    display: none;
+  }
+
+  .theme-dropdown-menu {
+    position: fixed;
+    bottom: 74px;
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-width: 360px;
+    margin: 0 auto;
+  }
+}

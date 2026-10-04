@@ -154,6 +154,7 @@ class TestAuthGuard:
         ("GET",  "/dashboard"),
         ("GET",  "/storage"),
         ("GET",  "/progress"),
+        ("GET",  "/profile"),
     ]
 
     @pytest.mark.parametrize("method,path", PROTECTED)
@@ -474,3 +475,108 @@ class TestAnalyzeEndpoint:
         }
         for key in EXPECTED_KEYS:
             assert key in data, f"Missing key: {key}"
+
+
+# ── Ideal Script Generation ───────────────────────────────────
+
+class TestIdealScript:
+
+    def test_requires_auth(self, client):
+        r = client.post("/generate-ideal-script", json={"speech_text": "hello"})
+        assert r.status_code == 401
+
+    def test_with_user_speech(self, client, auth_headers):
+        payload = {
+            "confidence_score": 65.0,
+            "eye_contact_percentage": 55.0,
+            "speech_score": 60.0,
+            "filler_word_count": 4,
+            "words_per_minute": 120.0,
+            "speech_text": "um hello everyone uh today i want to present our machine learning project and like it is going to be really great",
+        }
+        r = client.post("/generate-ideal-script", json=payload, headers=auth_headers)
+        assert r.status_code == 200
+        data = r.json()
+        assert "script" in data
+        assert len(data["script"]) > 20
+        assert data["used_user_speech"] is True
+        assert data["original_speech"] == payload["speech_text"]
+        # Script should not have raw filler words 'um' or 'uh'
+        assert "um" not in data["script"].lower().split()
+        assert "uh" not in data["script"].lower().split()
+
+    def test_without_user_speech(self, client, auth_headers):
+        payload = {
+            "confidence_score": 50.0,
+            "eye_contact_percentage": 40.0,
+            "speech_score": 50.0,
+            "filler_word_count": 0,
+            "words_per_minute": 0.0,
+            "speech_text": "",
+        }
+        r = client.post("/generate-ideal-script", json=payload, headers=auth_headers)
+        assert r.status_code == 200
+        data = r.json()
+        assert "script" in data
+        assert len(data["script"]) > 30
+        assert data["used_user_speech"] is False
+
+
+# ── Profile ───────────────────────────────────────────────────
+
+class TestProfile:
+
+    def test_get_profile_success(self, client, auth_headers, verified_user):
+        r = client.get("/profile", headers=auth_headers)
+        assert r.status_code == 200
+        data = r.json()
+        assert data["email"] == verified_user.email
+        assert data["totalSessions"] == 0
+        assert isinstance(data["weaknesses"], list)
+
+    def test_get_profile_with_sessions(self, client, auth_headers, verified_user, db_session):
+        from models import AnalysisResult
+        result = AnalysisResult(
+            user_id=verified_user.id,
+            confidence_score=85.0,
+            confidence_level="High Confidence",
+            eye_contact_percentage=80.0,
+            face_visibility_percentage=90.0,
+            smile_percentage=75.0,
+            posture_percentage=80.0,
+            speech_score=85.0,
+            filler_word_count=1,
+            words_per_minute=130.0,
+            hand_movement_percentage=40.0,
+            video_path="test_video2.webm",
+        )
+        db_session.add(result)
+        db_session.commit()
+
+        r = client.get("/profile", headers=auth_headers)
+        assert r.status_code == 200
+        data = r.json()
+        assert data["totalSessions"] == 1
+
+    def test_update_profile(self, client, auth_headers):
+        payload = {
+            "name": "Jane Doe",
+            "profession": "Engineer",
+            "industry": "Tech",
+            "goal": "leadership",
+            "experienceLevel": "intermediate",
+            "weaknesses": ["eye_contact", "filler_words"],
+        }
+        r = client.put("/profile", json=payload, headers=auth_headers)
+        assert r.status_code == 200
+        assert r.json()["message"] == "Profile saved"
+
+        get_res = client.get("/profile", headers=auth_headers)
+        assert get_res.status_code == 200
+        profile = get_res.json()
+        assert profile["name"] == "Jane Doe"
+        assert profile["profession"] == "Engineer"
+        assert profile["industry"] == "Tech"
+        assert profile["goal"] == "leadership"
+        assert profile["experienceLevel"] == "intermediate"
+        assert profile["weaknesses"] == ["eye_contact", "filler_words"]

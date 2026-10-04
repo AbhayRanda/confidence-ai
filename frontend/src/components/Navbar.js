@@ -4,6 +4,8 @@ import "./Navbar.css";
 import { useUserProfile } from "../hooks/useUserProfile";
 import { UserOnboardingModal } from "./UserOnboardingModal";
 
+import ThemeSwitcher from "./ThemeSwitcher";
+
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
 
 const NAV_ITEMS = [
@@ -85,8 +87,8 @@ function Navbar() {
             <path d="M12 2L22 8.5v7L12 22 2 15.5v-7L12 2Z" fill="url(#logoGrad)" />
             <defs>
               <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#7c5cfc"/>
-                <stop offset="100%" stopColor="#5b8def"/>
+                <stop offset="0%" stopColor="var(--accent)"/>
+                <stop offset="100%" stopColor="var(--accent-2)"/>
               </linearGradient>
             </defs>
           </svg>
@@ -118,11 +120,17 @@ function Navbar() {
       {/* Spacer */}
       <div className="navbar-spacer" />
 
+      {/* Theme Switcher section */}
+      <div className="navbar-theme-section">
+        <div className="navbar-section-label navbar-section-label--theme">APPEARANCE</div>
+        <ThemeSwitcher />
+      </div>
+
       {/* User section */}
       <div className="navbar-footer">
         {user && (
           <div className="navbar-user">
-            <div className="navbar-avatar" style={profile?.name ? { background: 'linear-gradient(135deg, #7c5cfc, #5b8def)' } : {}}>
+            <div className="navbar-avatar" style={profile?.name ? { background: 'var(--accent-gradient)' } : {}}>
               {profile?.name ? profile.name.charAt(0).toUpperCase() : userInitial}
             </div>
             <div className="navbar-user-info">

@@ -1,36 +1,37 @@
 /**
  * useUserProfile.js
  * ─────────────────────────────────────────────────────────────
- * Manages the user's onboarding profile stored in localStorage.
+ * Manages the user's profile, persisted in the DATABASE via
+ * GET /profile and PUT /profile endpoints.
  *
- * Profile shape:
- *   {
- *     name:            string   — user's first name
- *     profession:      string   — e.g. "Software Engineer"
- *     industry:        string   — e.g. "Technology"
- *     goal:            string   — "interview" | "speaking" | "leadership" | "casual"
- *     experienceLevel: string   — "beginner" | "intermediate" | "advanced"
- *     weaknesses:      string[] — e.g. ["filler_words", "eye_contact"]
- *   }
- *
- * Usage:
- *   const { profile, saveProfile, clearProfile, hasProfile } = useUserProfile();
+ * Strategy:
+ *   - On mount: load from localStorage immediately (instant UX),
+ *     then fetch from backend and update (source of truth).
+ *   - On save: write to backend + update localStorage as cache.
+ *   - Falls back gracefully to localStorage if backend is down.
  * ─────────────────────────────────────────────────────────────
  */
 
 import { useState, useCallback, useEffect } from 'react';
 
-const STORAGE_KEY = 'confidence_ai_profile';
+const STORAGE_KEY   = 'confidence_ai_profile';
 const PROFILE_EVENT = 'confidence_ai_profile_change';
+const API_BASE      = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000';
 
-/** Read raw profile from localStorage (or null). */
-function readProfile() {
+function readLocal() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
   }
+}
+
+function writeLocal(profile) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
+    window.dispatchEvent(new Event(PROFILE_EVENT));
+  } catch {}
 }
 
 /** Build a plain-English context string to inject into AI system prompts. */
@@ -60,11 +61,7 @@ export function buildProfilePrompt(profile) {
     confidence:    'overall confidence',
   };
 
-  const lines = [
-    `\n--- User Profile ---`,
-    `Name: ${profile.name}`,
-  ];
-
+  const lines = [`\n--- User Profile ---`, `Name: ${profile.name}`];
   if (profile.profession) lines.push(`Profession: ${profile.profession}${profile.industry ? ` (${profile.industry})` : ''}`);
   if (profile.goal)        lines.push(`Primary goal: ${goalLabels[profile.goal] || profile.goal}`);
   if (profile.experienceLevel) lines.push(`Experience level: ${levelLabels[profile.experienceLevel] || profile.experienceLevel}`);
@@ -79,25 +76,61 @@ export function buildProfilePrompt(profile) {
     `  - Focus feedback on their stated weak areas first.`,
     `--- End Profile ---\n`,
   );
-
   return lines.join('\n');
 }
 
 export function useUserProfile() {
-  const [profile, setProfile] = useState(() => readProfile());
+  const [profile, setProfile] = useState(() => readLocal());
+  const [syncing, setSyncing] = useState(false);
 
-  // Listen for changes from other components (e.g. modal saving profile)
+  // Fetch profile from backend on mount (source of truth)
   useEffect(() => {
-    const handler = () => setProfile(readProfile());
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    setSyncing(true);
+    fetch(`${API_BASE}/profile`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data && data.name) {
+          const synced = {
+            name: data.name, profession: data.profession || '',
+            industry: data.industry || '', goal: data.goal || '',
+            experienceLevel: data.experienceLevel || '',
+            weaknesses: data.weaknesses || [],
+          };
+          writeLocal(synced);
+          setProfile(synced);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setSyncing(false));
+  }, []);
+
+  useEffect(() => {
+    const handler = () => setProfile(readLocal());
     window.addEventListener(PROFILE_EVENT, handler);
     return () => window.removeEventListener(PROFILE_EVENT, handler);
   }, []);
 
-  const saveProfile = useCallback((data) => {
-    const merged = { ...readProfile(), ...data };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+  const saveProfile = useCallback(async (data) => {
+    const merged = { ...readLocal(), ...data };
+    writeLocal(merged);
     setProfile(merged);
-    window.dispatchEvent(new Event(PROFILE_EVENT));
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        await fetch(`${API_BASE}/profile`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({
+            name: merged.name, profession: merged.profession,
+            industry: merged.industry, goal: merged.goal,
+            experienceLevel: merged.experienceLevel,
+            weaknesses: merged.weaknesses || [],
+          }),
+        });
+      } catch {}
+    }
   }, []);
 
   const clearProfile = useCallback(() => {
@@ -108,7 +141,8 @@ export function useUserProfile() {
 
   return {
     profile,
-    hasProfile: profile !== null,
+    syncing,
+    hasProfile:    profile !== null && !!profile.name,
     saveProfile,
     clearProfile,
     profilePrompt: buildProfilePrompt(profile),

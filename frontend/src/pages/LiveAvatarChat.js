@@ -34,7 +34,7 @@ const MODES = [
   {
     id:     'coach',
     label:  '🎯 Coach',
-    system: 'You are a highly knowledgeable AI confidence coach and general assistant. You can discuss ANY topic — science, history, technology, current events, career advice, or anything else. You ALSO watch the user through their camera and give real-time feedback on their posture, eye contact, and expressions. Never refuse to engage with a topic.',
+    system: 'You are an AI confidence coach. STRICT BREVITY: reply in 1-2 sentences MAX — never more. Give one direct observation or tip per message. No bullet points, no preamble, no markdown formatting — plain text only, no asterisks or symbols. You watch the user via camera and give real-time feedback on posture, eye contact, and expressions.',
     allowVisionReactions: true,   // coach actively comments on what it sees
   },
   {
@@ -57,21 +57,29 @@ const MODES = [
       '- Keep each response to 3 sentences maximum. Short and focused.',
       '',
       'The conversation has already started with: "Tell me about yourself and what role you are preparing for?" — do not repeat this question.',
-    ].join(' '),
+    ].join('\n'),
     allowVisionReactions: false,  // interview = respond to words only, no vision interruptions
   },
   {
     id:     'freeChat',
     label:  '💬 Free Chat',
-    system: 'You are a brilliant, knowledgeable AI companion. Talk about ANYTHING the user wants — science, technology, philosophy, pop culture, movies, history, career advice, coding, life, or just casual chat. You are warm, curious, witty, and engaging. You also know a lot about confidence and public speaking if they want coaching tips.',
+    system: 'You are a friendly AI companion. STRICT BREVITY: reply in 1-2 sentences MAX. Be warm, direct, and engaging. No long paragraphs, no bullet lists, no markdown — plain text only. Answer only what was asked.',
     allowVisionReactions: true,
   },
   {
     id:     'vision',
     label:  '👁️ Vision Sandbox',
-    system: 'Focus on describing what you can see through the user\'s camera. Comment on objects, gestures, and facial expressions in real-time.',
+    system: 'Focus on what you see through the camera. Reply in 1 sentence only — name the observation and nothing else.',
     allowVisionReactions: true,
   },
+];
+
+// ── Quick prompt suggestions for Gemini ──────────────────────
+const QUICK_PROMPTS = [
+  "How is my posture and eye contact?",
+  "Give me an interview question",
+  "How can I sound more confident?",
+  "What tips do you have for my body language?",
 ];
 
 // ── Vision-reactive response templates ───────────────────────
@@ -149,6 +157,11 @@ export default function LiveAvatarChat() {
   const [hudOn,     setHudOn]     = useState(true);
   const [mode,      setMode]      = useState('coach');
   const [callActive, setCallActive] = useState(false);
+
+  // ── Text chat drawer state ─────────────────────────────────
+  const [chatOpen,  setChatOpen]  = useState(false);
+  const [textInput, setTextInput] = useState('');
+  const chatMessagesEndRef        = useRef(null);
 
   // ── User profile ───────────────────────────────────────────
   const { profile } = useUserProfile();
@@ -324,6 +337,67 @@ export default function LiveAvatarChat() {
 
   // Keep the ref always pointing to the latest handleUserSpeech
   handleUserSpeechRef.current = handleUserSpeech;
+
+  // ── Send typed text message to Gemini ───────────────────────
+  const handleSendText = useCallback((e) => {
+    e?.preventDefault();
+    const trimmed = textInput.trim();
+    if (!trimmed || chat.isThinking) return;
+
+    setTextInput('');
+    sessionStatsRef.current.messagesExchanged++;
+
+    const currentMode = MODES.find(m => m.id === mode);
+    let enrichedMessage = trimmed;
+    if (currentMode?.allowVisionReactions !== false) {
+      const visionCtx = getVisionContext();
+      if (visionCtx) {
+        const parts = [];
+        if (visionCtx.smiling) parts.push('user is smiling');
+        if (visionCtx.eye_contact === false) parts.push('user is not making eye contact');
+        if (visionCtx.gesture) parts.push(`user is making a ${visionCtx.gesture} gesture`);
+        if (visionCtx.detected_objects?.length) parts.push(`visible objects: ${visionCtx.detected_objects.join(', ')}`);
+        if (parts.length > 0) {
+          enrichedMessage = `[Vision context: ${parts.join('; ')}]\n${trimmed}`;
+        }
+      }
+    }
+
+    chat.sendMessage(enrichedMessage);
+    addEvent('💬', `You: "${trimmed.slice(0, 50)}${trimmed.length > 50 ? '…' : ''}"`, 'chat-text');
+  }, [textInput, chat, mode, getVisionContext, addEvent]);
+
+  // ── Send quick prompt chip to Gemini ────────────────────────
+  const handleSendQuickPrompt = useCallback((promptText) => {
+    if (!promptText || chat.isThinking) return;
+    sessionStatsRef.current.messagesExchanged++;
+
+    const currentMode = MODES.find(m => m.id === mode);
+    let enrichedMessage = promptText;
+    if (currentMode?.allowVisionReactions !== false) {
+      const visionCtx = getVisionContext();
+      if (visionCtx) {
+        const parts = [];
+        if (visionCtx.smiling) parts.push('user is smiling');
+        if (visionCtx.eye_contact === false) parts.push('user is not making eye contact');
+        if (visionCtx.gesture) parts.push(`user is making a ${visionCtx.gesture} gesture`);
+        if (visionCtx.detected_objects?.length) parts.push(`visible objects: ${visionCtx.detected_objects.join(', ')}`);
+        if (parts.length > 0) {
+          enrichedMessage = `[Vision context: ${parts.join('; ')}]\n${promptText}`;
+        }
+      }
+    }
+
+    chat.sendMessage(enrichedMessage);
+    addEvent('💡', `Prompt: "${promptText}"`, 'chat-text');
+  }, [chat, mode, getVisionContext, addEvent]);
+
+  // Auto-scroll chat messages drawer
+  useEffect(() => {
+    if (chatOpen) {
+      chatMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [chat.messages, chatOpen]);
 
   // ── Show avatar subtitle when chat responds ────────────────
   useEffect(() => {
@@ -621,6 +695,10 @@ export default function LiveAvatarChat() {
         <div className="live-topbar">
           <div className="live-topbar-left">
             <span className="live-topbar-title">Live AI Video Chat</span>
+            <span className="live-gemini-badge">
+              <span className="live-gemini-dot" />
+              ✨ Gemini AI Powered
+            </span>
           </div>
         </div>
 
@@ -684,6 +762,10 @@ export default function LiveAvatarChat() {
           </div>
           <span className="live-call-timer">{formatTime(elapsed)}</span>
           <span className="live-topbar-title">ConfidenceAI Live</span>
+          <span className="live-gemini-badge">
+            <span className="live-gemini-dot" />
+            ✨ Gemini Active
+          </span>
         </div>
         <div className="live-topbar-right">
           {vision.isReady && <span className="live-fps-badge">Vision: {vision.fps} FPS</span>}
@@ -702,8 +784,9 @@ export default function LiveAvatarChat() {
         </div>
       </div>
 
-      {/* ── Main grid ───────────────────────────────────────── */}
-      <div className="live-grid">
+      {/* ── Main body (grid + text chat drawer) ─────────────── */}
+      <div className="live-body">
+        <div className={`live-grid${chatOpen ? ' live-grid--with-chat' : ''}`}>
         {/* User webcam tile */}
         <div className={`live-tile live-tile--user${micOn && speech.micAmplitude > 0.1 ? ' live-tile--speaking' : ''}`}>
           <video
@@ -821,6 +904,107 @@ export default function LiveAvatarChat() {
         </div>
       </div>
 
+        {/* ── Slide-in Chat Drawer ───────────────────────────── */}
+        {chatOpen && (
+          <aside className="live-chat-drawer" aria-label="AI Live Chat">
+            <div className="live-chat-header">
+              <div className="live-chat-header-info">
+                <span className="live-chat-header-title">💬 Live Session Chat</span>
+                <span className="live-chat-gemini-pill">
+                  <span className="live-gemini-dot" />
+                  Gemini LLM
+                </span>
+              </div>
+              <button
+                type="button"
+                className="live-chat-close-btn"
+                onClick={() => setChatOpen(false)}
+                title="Close Chat"
+                aria-label="Close Chat"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Quick suggestions */}
+            <div className="live-chat-quick-prompts">
+              {QUICK_PROMPTS.map((prompt, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  className="live-chat-quick-btn"
+                  onClick={() => handleSendQuickPrompt(prompt)}
+                  disabled={chat.isThinking}
+                >
+                  {prompt}
+                </button>
+              ))}
+            </div>
+
+            {/* Messages list */}
+            <div className="live-chat-messages">
+              {chat.messages.map((m) => {
+                const isUser = m.role === 'user';
+                const displayText = isUser
+                  ? m.text.replace(/^\[Vision context:[^\]]+\]\s*/i, '')
+                  : m.text;
+                if (!displayText && m.streaming) return null;
+
+                return (
+                  <div
+                    key={m.id}
+                    className={`live-chat-bubble ${isUser ? 'live-chat-bubble--user' : 'live-chat-bubble--mentor'}`}
+                  >
+                    <div className="live-chat-bubble-author">
+                      {isUser ? '👤 You' : '🤖 AI Mentor'}
+                      {m.emotion && !isUser && (
+                        <span className="live-chat-bubble-tag">{m.emotion}</span>
+                      )}
+                    </div>
+                    <div className="live-chat-bubble-text">
+                      {displayText}
+                      {m.streaming && <span className="live-chat-cursor">▍</span>}
+                    </div>
+                  </div>
+                );
+              })}
+              {chat.isThinking && (
+                <div className="live-chat-bubble live-chat-bubble--mentor live-chat-bubble--thinking">
+                  <span className="live-chat-dot" />
+                  <span className="live-chat-dot" />
+                  <span className="live-chat-dot" />
+                  <span style={{ marginLeft: 6, fontSize: 12 }}>Gemini is thinking…</span>
+                </div>
+              )}
+              <div ref={chatMessagesEndRef} />
+            </div>
+
+            {/* Text input form */}
+            <form className="live-chat-input-bar" onSubmit={handleSendText}>
+              <input
+                type="text"
+                className="live-chat-input"
+                placeholder="Ask Gemini or type your response…"
+                value={textInput}
+                onChange={(e) => setTextInput(e.target.value)}
+                disabled={chat.isThinking}
+              />
+              <button
+                type="submit"
+                className="live-chat-send-btn"
+                disabled={!textInput.trim() || chat.isThinking}
+                title="Send to Gemini"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="22" y1="2" x2="11" y2="13" />
+                  <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                </svg>
+              </button>
+            </form>
+          </aside>
+        )}
+      </div>
+
       {/* ── Bottom controls ─────────────────────────────────── */}
       <div className="live-controls">
         {/* Mic toggle */}
@@ -878,6 +1062,18 @@ export default function LiveAvatarChat() {
             <circle cx="12" cy="12" r="3" />
           </svg>
           <span className="live-ctrl-label">Vision HUD</span>
+        </button>
+
+        {/* Text Chat Drawer toggle */}
+        <button
+          className={`live-ctrl-btn${chatOpen ? ' live-ctrl-btn--active' : ''}`}
+          onClick={() => setChatOpen(!chatOpen)}
+          title={chatOpen ? 'Close Chat Panel' : 'Open Text Chat'}
+        >
+          <svg className="live-ctrl-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          </svg>
+          <span className="live-ctrl-label">{chatOpen ? 'Close Chat' : 'Text Chat'}</span>
         </button>
 
         {/* End call */}

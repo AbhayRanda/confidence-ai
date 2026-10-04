@@ -6,69 +6,70 @@
   padding: 0;
 }
 
-:root {
+:root,
+:root[data-theme="cyber-violet"] {
   /* Backgrounds */
-  --bg-base: #080b14;
-  --bg-surface: #0e1220;
-  --bg-elevated: #141827;
-  --bg-card: #1a1f35;
-  --bg-hover: #1f2540;
+  --bg-base: #f4f5f9;
+  --bg-surface: #ffffff;
+  --bg-elevated: #eceef4;
+  --bg-card: #ffffff;
+  --bg-hover: #e4e7f0;
 
   /* Borders */
-  --border: rgba(255, 255, 255, 0.07);
-  --border-light: rgba(255, 255, 255, 0.04);
+  --border: rgba(124, 92, 252, 0.15);
+  --border-light: rgba(0, 0, 0, 0.05);
 
   /* Accent Colors */
   --accent: #7c5cfc;
-  --accent-2: #5b8def;
-  --accent-light: #a78bfa;
-  --accent-gradient: linear-gradient(135deg, #7c5cfc 0%, #5b8def 100%);
+  --accent-2: #6366f1;
+  --accent-light: #9065f6;
+  --accent-gradient: linear-gradient(135deg, #7c5cfc 0%, #6366f1 100%);
   
   /* Accent with Opacity */
-  --accent-glow: rgba(124, 92, 252, 0.25);
-  --accent-008: rgba(124, 92, 252, 0.08);
-  --accent-010: rgba(124, 92, 252, 0.1);
-  --accent-012: rgba(124, 92, 252, 0.12);
-  --accent-015: rgba(124, 92, 252, 0.15);
-  --accent-018: rgba(124, 92, 252, 0.18);
-  --accent-020: rgba(124, 92, 252, 0.2);
-  --accent-022: rgba(124, 92, 252, 0.22);
-  --accent-025: rgba(124, 92, 252, 0.25);
-  --accent-030: rgba(124, 92, 252, 0.3);
-  --accent-035: rgba(124, 92, 252, 0.35);
+  --accent-glow: rgba(124, 92, 252, 0.18);
+  --accent-008: rgba(124, 92, 252, 0.06);
+  --accent-010: rgba(124, 92, 252, 0.08);
+  --accent-012: rgba(124, 92, 252, 0.1);
+  --accent-015: rgba(124, 92, 252, 0.12);
+  --accent-018: rgba(124, 92, 252, 0.15);
+  --accent-020: rgba(124, 92, 252, 0.18);
+  --accent-022: rgba(124, 92, 252, 0.2);
+  --accent-025: rgba(124, 92, 252, 0.22);
+  --accent-030: rgba(124, 92, 252, 0.28);
+  --accent-035: rgba(124, 92, 252, 0.32);
   --accent-050: rgba(124, 92, 252, 0.5);
   --accent-090: rgba(124, 92, 252, 0.9);
 
   /* Accent 2 with Opacity */
-  --accent-2-012: rgba(91, 141, 239, 0.12);
-  --accent-2-015: rgba(91, 141, 239, 0.15);
+  --accent-2-012: rgba(99, 102, 241, 0.1);
+  --accent-2-015: rgba(99, 102, 241, 0.14);
 
   /* Text Colors */
-  --text-primary: #f0f2ff;
-  --text-secondary: #8b92b5;
-  --text-muted: #50587a;
+  --text-primary: #1a1c29;
+  --text-secondary: #64748b;
+  --text-muted: #94a3b8;
   
   /* Text with Opacity */
-  --text-overlay: rgba(255, 255, 255, 0.05);
-  --text-overlay-08: rgba(255, 255, 255, 0.08);
-  --text-overlay-50: rgba(255, 255, 255, 0.5);
-  --text-overlay-55: rgba(255, 255, 255, 0.55);
-  --text-overlay-60: rgba(255, 255, 255, 0.6);
+  --text-overlay: rgba(0, 0, 0, 0.03);
+  --text-overlay-08: rgba(0, 0, 0, 0.06);
+  --text-overlay-50: rgba(0, 0, 0, 0.5);
+  --text-overlay-55: rgba(0, 0, 0, 0.55);
+  --text-overlay-60: rgba(0, 0, 0, 0.6);
 
   /* Status Colors */
-  --success: #22c55e;
-  --warning: #f59e0b;
-  --danger: #ef4444;
-  --danger-010: rgba(239, 68, 68, 0.1);
-  --danger-025: rgba(239, 68, 68, 0.25);
-  --info: #3b82f6;
+  --success: #16a34a;
+  --warning: #d97706;
+  --danger: #dc2626;
+  --danger-010: rgba(220, 38, 38, 0.08);
+  --danger-025: rgba(220, 38, 38, 0.2);
+  --info: #2563eb;
 
   /* Gradients */
-  --gradient-hero: linear-gradient(150deg, #0e0629 0%, #120834 40%, #0a1535 100%);
-  --gradient-hero-alt: linear-gradient(150deg, #0e0629 0%, #120834 50%, #0a1535 100%);
-  --gradient-text-accent: linear-gradient(90deg, #a78bfa, #60a5fa);
-  --gradient-accent-radial: radial-gradient(ellipse 70% 60% at 30% 40%, rgba(124,92,252,0.22) 0%, transparent 70%);
-  --gradient-accent-2-radial: radial-gradient(ellipse 50% 50% at 80% 70%, rgba(91,141,239,0.15) 0%, transparent 70%);
+  --gradient-hero: linear-gradient(150deg, #ede9fe 0%, #e0e7ff 40%, #f1f5f9 100%);
+  --gradient-hero-alt: linear-gradient(150deg, #ede9fe 0%, #e0e7ff 50%, #f1f5f9 100%);
+  --gradient-text-accent: linear-gradient(90deg, #7c5cfc, #6366f1);
+  --gradient-accent-radial: radial-gradient(ellipse 70% 60% at 30% 40%, rgba(124,92,252,0.12) 0%, transparent 70%);
+  --gradient-accent-2-radial: radial-gradient(ellipse 50% 50% at 80% 70%, rgba(99,102,241,0.1) 0%, transparent 70%);
 
   /* Spacing */
   --radius-sm: 8px;
@@ -77,23 +78,231 @@
   --radius-xl: 24px;
 
   /* Shadows */
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
-  --shadow-md: 0 4px 16px rgba(0,0,0,0.5);
-  --shadow-lg: 0 8px 32px rgba(0,0,0,0.6);
-  --shadow-glow: 0 0 40px var(--accent-glow);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
+  --shadow-glow: 0 0 30px var(--accent-glow);
 
   /* Glassmorphism System */
-  --glass-bg: rgba(20, 24, 39, 0.72);
-  --glass-bg-hover: rgba(31, 37, 64, 0.78);
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --glass-border-light: rgba(255, 255, 255, 0.04);
-  --glass-highlight: rgba(255, 255, 255, 0.15);
+  --glass-bg: rgba(255, 255, 255, 0.78);
+  --glass-bg-hover: rgba(255, 255, 255, 0.92);
+  --glass-border: rgba(124, 92, 252, 0.12);
+  --glass-border-light: rgba(255, 255, 255, 0.6);
+  --glass-highlight: rgba(255, 255, 255, 0.9);
   --glass-blur: blur(16px);
   --glass-blur-lg: blur(24px);
 
   /* Transitions */
   --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ==========================================================================
+   THEME 2: PEAK EMERALD (Light Mode Variant)
+   ========================================================================== */
+:root[data-theme="peak-emerald"] {
+  --bg-base: #f0fdf4;
+  --bg-surface: #ffffff;
+  --bg-elevated: #dcfce7;
+  --bg-card: #ffffff;
+  --bg-hover: #bbf7d0;
+
+  --border: rgba(16, 185, 129, 0.2);
+  --border-light: rgba(0, 0, 0, 0.05);
+
+  --accent: #059669;
+  --accent-2: #0891b2;
+  --accent-light: #10b981;
+  --accent-gradient: linear-gradient(135deg, #059669 0%, #0891b2 100%);
+
+  --accent-glow: rgba(5, 150, 105, 0.2);
+  --accent-008: rgba(5, 150, 105, 0.06);
+  --accent-010: rgba(5, 150, 105, 0.08);
+  --accent-012: rgba(5, 150, 105, 0.1);
+  --accent-015: rgba(5, 150, 105, 0.12);
+  --accent-018: rgba(5, 150, 105, 0.15);
+  --accent-020: rgba(5, 150, 105, 0.18);
+  --accent-022: rgba(5, 150, 105, 0.2);
+  --accent-025: rgba(5, 150, 105, 0.22);
+  --accent-030: rgba(5, 150, 105, 0.28);
+  --accent-035: rgba(5, 150, 105, 0.32);
+  --accent-050: rgba(5, 150, 105, 0.5);
+  --accent-090: rgba(5, 150, 105, 0.9);
+
+  --accent-2-012: rgba(8, 145, 178, 0.1);
+  --accent-2-015: rgba(8, 145, 178, 0.14);
+
+  --text-primary: #064e3b;
+  --text-secondary: #047857;
+  --text-muted: #6ee7b7;
+
+  --gradient-hero: linear-gradient(150deg, #ecfdf5 0%, #d1fae5 40%, #f0fdf4 100%);
+  --gradient-hero-alt: linear-gradient(150deg, #ecfdf5 0%, #d1fae5 50%, #f0fdf4 100%);
+  --gradient-text-accent: linear-gradient(90deg, #059669, #0891b2);
+  --gradient-accent-radial: radial-gradient(ellipse 70% 60% at 30% 40%, rgba(5, 150, 105, 0.12) 0%, transparent 70%);
+  --gradient-accent-2-radial: radial-gradient(ellipse 50% 50% at 80% 70%, rgba(8, 145, 178, 0.1) 0%, transparent 70%);
+
+  --glass-bg: rgba(255, 255, 255, 0.8);
+  --glass-bg-hover: rgba(255, 255, 255, 0.94);
+  --glass-border: rgba(5, 150, 105, 0.18);
+  --glass-border-light: rgba(255, 255, 255, 0.6);
+  --glass-highlight: rgba(255, 255, 255, 0.9);
+}
+
+/* ==========================================================================
+   THEME 3: EXECUTIVE GOLD (Light Mode Variant)
+   ========================================================================== */
+:root[data-theme="executive-gold"] {
+  --bg-base: #fffbeb;
+  --bg-surface: #ffffff;
+  --bg-elevated: #fef3c7;
+  --bg-card: #ffffff;
+  --bg-hover: #fde68a;
+
+  --border: rgba(217, 119, 6, 0.2);
+  --border-light: rgba(0, 0, 0, 0.05);
+
+  --accent: #d97706;
+  --accent-2: #0284c7;
+  --accent-light: #f59e0b;
+  --accent-gradient: linear-gradient(135deg, #d97706 0%, #0284c7 100%);
+
+  --accent-glow: rgba(217, 119, 6, 0.2);
+  --accent-008: rgba(217, 119, 6, 0.06);
+  --accent-010: rgba(217, 119, 6, 0.08);
+  --accent-012: rgba(217, 119, 6, 0.1);
+  --accent-015: rgba(217, 119, 6, 0.12);
+  --accent-018: rgba(217, 119, 6, 0.15);
+  --accent-020: rgba(217, 119, 6, 0.18);
+  --accent-022: rgba(217, 119, 6, 0.2);
+  --accent-025: rgba(217, 119, 6, 0.22);
+  --accent-030: rgba(217, 119, 6, 0.28);
+  --accent-035: rgba(217, 119, 6, 0.32);
+  --accent-050: rgba(217, 119, 6, 0.5);
+  --accent-090: rgba(217, 119, 6, 0.9);
+
+  --accent-2-012: rgba(2, 132, 199, 0.1);
+  --accent-2-015: rgba(2, 132, 199, 0.14);
+
+  --text-primary: #78350f;
+  --text-secondary: #92400e;
+  --text-muted: #d97706;
+
+  --gradient-hero: linear-gradient(150deg, #fefce8 0%, #fef3c7 40%, #fffbeb 100%);
+  --gradient-hero-alt: linear-gradient(150deg, #fefce8 0%, #fef3c7 50%, #fffbeb 100%);
+  --gradient-text-accent: linear-gradient(90deg, #d97706, #0284c7);
+  --gradient-accent-radial: radial-gradient(ellipse 70% 60% at 30% 40%, rgba(217, 119, 6, 0.12) 0%, transparent 70%);
+  --gradient-accent-2-radial: radial-gradient(ellipse 50% 50% at 80% 70%, rgba(2, 132, 199, 0.1) 0%, transparent 70%);
+
+  --glass-bg: rgba(255, 255, 255, 0.8);
+  --glass-bg-hover: rgba(255, 255, 255, 0.94);
+  --glass-border: rgba(217, 119, 6, 0.18);
+  --glass-border-light: rgba(255, 255, 255, 0.6);
+  --glass-highlight: rgba(255, 255, 255, 0.9);
+}
+
+/* ==========================================================================
+   THEME 4: RADIANT CORAL (Light Mode Variant)
+   ========================================================================== */
+:root[data-theme="radiant-coral"] {
+  --bg-base: #fff1f2;
+  --bg-surface: #ffffff;
+  --bg-elevated: #ffe4e6;
+  --bg-card: #ffffff;
+  --bg-hover: #fecdd3;
+
+  --border: rgba(225, 29, 72, 0.2);
+  --border-light: rgba(0, 0, 0, 0.05);
+
+  --accent: #e11d48;
+  --accent-2: #f97316;
+  --accent-light: #f43f5e;
+  --accent-gradient: linear-gradient(135deg, #e11d48 0%, #f97316 100%);
+
+  --accent-glow: rgba(225, 29, 72, 0.2);
+  --accent-008: rgba(225, 29, 72, 0.06);
+  --accent-010: rgba(225, 29, 72, 0.08);
+  --accent-012: rgba(225, 29, 72, 0.1);
+  --accent-015: rgba(225, 29, 72, 0.12);
+  --accent-018: rgba(225, 29, 72, 0.15);
+  --accent-020: rgba(225, 29, 72, 0.18);
+  --accent-022: rgba(225, 29, 72, 0.2);
+  --accent-025: rgba(225, 29, 72, 0.22);
+  --accent-030: rgba(225, 29, 72, 0.28);
+  --accent-035: rgba(225, 29, 72, 0.32);
+  --accent-050: rgba(225, 29, 72, 0.5);
+  --accent-090: rgba(225, 29, 72, 0.9);
+
+  --accent-2-012: rgba(249, 115, 22, 0.1);
+  --accent-2-015: rgba(249, 115, 22, 0.14);
+
+  --text-primary: #881337;
+  --text-secondary: #9f1239;
+  --text-muted: #f43f5e;
+
+  --gradient-hero: linear-gradient(150deg, #fff1f2 0%, #ffe4e6 40%, #fff1f2 100%);
+  --gradient-hero-alt: linear-gradient(150deg, #fff1f2 0%, #ffe4e6 50%, #fff1f2 100%);
+  --gradient-text-accent: linear-gradient(90deg, #e11d48, #f97316);
+  --gradient-accent-radial: radial-gradient(ellipse 70% 60% at 30% 40%, rgba(225, 29, 72, 0.12) 0%, transparent 70%);
+  --gradient-accent-2-radial: radial-gradient(ellipse 50% 50% at 80% 70%, rgba(249, 115, 22, 0.1) 0%, transparent 70%);
+
+  --glass-bg: rgba(255, 255, 255, 0.8);
+  --glass-bg-hover: rgba(255, 255, 255, 0.94);
+  --glass-border: rgba(225, 29, 72, 0.18);
+  --glass-border-light: rgba(255, 255, 255, 0.6);
+  --glass-highlight: rgba(255, 255, 255, 0.9);
+}
+
+/* ==========================================================================
+   THEME 5: OCEAN TEAL (Light Mode Variant)
+   ========================================================================== */
+:root[data-theme="ocean-teal"] {
+  --bg-base: #ecfeff;
+  --bg-surface: #ffffff;
+  --bg-elevated: #cffafe;
+  --bg-card: #ffffff;
+  --bg-hover: #a5f3fc;
+
+  --border: rgba(8, 145, 178, 0.2);
+  --border-light: rgba(0, 0, 0, 0.05);
+
+  --accent: #0891b2;
+  --accent-2: #4f46e5;
+  --accent-light: #06b6d4;
+  --accent-gradient: linear-gradient(135deg, #0891b2 0%, #4f46e5 100%);
+
+  --accent-glow: rgba(8, 145, 178, 0.2);
+  --accent-008: rgba(8, 145, 178, 0.06);
+  --accent-010: rgba(8, 145, 178, 0.08);
+  --accent-012: rgba(8, 145, 178, 0.1);
+  --accent-015: rgba(8, 145, 178, 0.12);
+  --accent-018: rgba(8, 145, 178, 0.15);
+  --accent-020: rgba(8, 145, 178, 0.18);
+  --accent-022: rgba(8, 145, 178, 0.2);
+  --accent-025: rgba(8, 145, 178, 0.22);
+  --accent-030: rgba(8, 145, 178, 0.28);
+  --accent-035: rgba(8, 145, 178, 0.32);
+  --accent-050: rgba(8, 145, 178, 0.5);
+  --accent-090: rgba(8, 145, 178, 0.9);
+
+  --accent-2-012: rgba(79, 70, 229, 0.1);
+  --accent-2-015: rgba(79, 70, 229, 0.14);
+
+  --text-primary: #164e63;
+  --text-secondary: #155e75;
+  --text-muted: #06b6d4;
+
+  --gradient-hero: linear-gradient(150deg, #ecfeff 0%, #cffafe 40%, #ecfeff 100%);
+  --gradient-hero-alt: linear-gradient(150deg, #ecfeff 0%, #cffafe 50%, #ecfeff 100%);
+  --gradient-text-accent: linear-gradient(90deg, #0891b2, #4f46e5);
+  --gradient-accent-radial: radial-gradient(ellipse 70% 60% at 30% 40%, rgba(8, 145, 178, 0.12) 0%, transparent 70%);
+  --gradient-accent-2-radial: radial-gradient(ellipse 50% 50% at 80% 70%, rgba(79, 70, 229, 0.1) 0%, transparent 70%);
+
+  --glass-bg: rgba(255, 255, 255, 0.8);
+  --glass-bg-hover: rgba(255, 255, 255, 0.94);
+  --glass-border: rgba(8, 145, 178, 0.18);
+  --glass-border-light: rgba(255, 255, 255, 0.6);
+  --glass-highlight: rgba(255, 255, 255, 0.9);
 }
 
 html, body, #root {
@@ -104,6 +313,11 @@ html, body, #root {
   background: var(--bg-base);
   color: var(--text-primary);
   text-rendering: optimizeLegibility;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.app-shell, .navbar, .glass-card, .app-content {
+  transition: background 0.3s ease, background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
 }
 
 a { color: inherit; text-decoration: none; }
@@ -117,11 +331,11 @@ button, input, select, textarea {
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(124, 92, 252, 0.25);
+  background: var(--accent-025);
   border-radius: 10px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(124, 92, 252, 0.45);
+  background: var(--accent-050);
 }
 
 /* Global Keyframes */
@@ -177,18 +391,18 @@ button, input, select, textarea {
   border: 1px solid var(--glass-border);
   border-top: 1px solid var(--glass-highlight);
   border-radius: var(--radius-lg, 16px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37);
+  box-shadow: 0 8px 32px rgba(124, 92, 252, 0.06);
   transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition);
 }
 
 .glass-card:hover {
-  border-color: rgba(124, 92, 252, 0.28);
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45), 0 0 24px var(--accent-008);
+  border-color: var(--accent-030);
+  box-shadow: 0 12px 36px rgba(124, 92, 252, 0.12), 0 0 24px var(--accent-008);
 }
 
 /* Shimmer Skeleton */
 .skeleton-box {
-  background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.03) 75%);
+  background: linear-gradient(90deg, rgba(0,0,0,0.03) 25%, rgba(0,0,0,0.08) 50%, rgba(0,0,0,0.03) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.6s infinite ease-in-out;
   border-radius: 8px;

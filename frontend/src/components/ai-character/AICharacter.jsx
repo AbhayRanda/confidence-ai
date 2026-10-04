@@ -39,8 +39,21 @@ import './AICharacter.css';
 
 // Lazy-load the heavy 3D scene to keep initial bundle small
 const CharacterScene = React.lazy(() =>
-  import('./CharacterScene').then((m) => ({ default: m.CharacterScene }))
+  import('./CharacterScene').then((m) => ({ default: m.CharacterScene || m.default }))
 );
+
+// Lazy-load the VRM avatar (heavier — only loads when user switches to it)
+const VRMAvatar = React.lazy(() =>
+  import('./VRMAvatar').then((m) => ({ default: m.VRMAvatar || m.default }))
+);
+
+// Lazy-load the Rive avatar (option 3)
+const RiveAvatar = React.lazy(() =>
+  import('./RiveAvatar').then((m) => ({ default: m.RiveAvatar || m.default }))
+);
+
+// Path to the .vrm file served from /public
+const VRM_URL = '/avatar.vrm';
 
 // ── WebGL detection ───────────────────────────────────────────
 function isWebGLAvailable() {
@@ -80,6 +93,19 @@ function DevPanel({ currentState, onStateChange }) {
   );
 }
 
+// ── State-aware message icon map ──────────────────────────────
+const STATE_ICONS = {
+  [CHARACTER_STATES.IDLE]:        '💬',
+  [CHARACTER_STATES.LISTENING]:   '👂',
+  [CHARACTER_STATES.THINKING]:    '🤔',
+  [CHARACTER_STATES.ANALYZING]:   '📊',
+  [CHARACTER_STATES.TALKING]:     '🎤',
+  [CHARACTER_STATES.HAPPY]:       '🎉',
+  [CHARACTER_STATES.GREETING]:    '👋',
+  [CHARACTER_STATES.GESTURE]:     '☝️',
+  [CHARACTER_STATES.ENCOURAGING]: '💪',
+};
+
 // ── Step 9: Preset picker ─────────────────────────────────────
 function PresetPicker({ currentPreset, onChange }) {
   return (
@@ -95,6 +121,10 @@ function PresetPicker({ currentPreset, onChange }) {
           aria-label={`${p.name} preset`}
         />
       ))}
+      {/* Show active preset name */}
+      <span className="aic-preset-active-name">
+        {CHARACTER_PRESETS.find(p => p.id === currentPreset)?.name || ''}
+      </span>
     </div>
   );
 }
@@ -231,6 +261,24 @@ export function AICharacter({
     } catch { return 0; }
   });
 
+  // Avatar mode: 0 = abstract, 1 = VRM (realistic human), 2 = Rive
+  // Default is 1 = VRM so users always see the realistic human avatar first
+  const [avatarMode, setAvatarMode] = useState(() => {
+    try { return parseInt(localStorage.getItem('aic_avatar_mode') || '1', 10); } catch { return 1; }
+  });
+
+  const cycleAvatarMode = useCallback(() => {
+    setAvatarMode((m) => {
+      const next = (m + 1) % 3;
+      try { localStorage.setItem('aic_avatar_mode', String(next)); } catch {}
+      return next;
+    });
+  }, []);
+
+  // Keep old useVRM for backward compat — derived from avatarMode
+  const useVRM  = avatarMode === 1;
+  const useRive = avatarMode === 2;
+
   const handlePresetChange = useCallback((id) => {
     setPreset(id);
     try { localStorage.setItem('aic_preset', String(id)); } catch { /* noop */ }
@@ -329,10 +377,19 @@ export function AICharacter({
         style={{
           '--glow-color':      glowColor,
           '--glow-color-soft': `${glowColor}30`,
+          '--ring-speed': [
+            CHARACTER_STATES.TALKING, CHARACTER_STATES.HAPPY,
+            CHARACTER_STATES.GREETING, CHARACTER_STATES.ENCOURAGING,
+          ].includes(effectiveState) ? '1.2s' : '2.4s',
         }}
       >
         {/* State-driven glow ring */}
         <div className="aic-glow-ring" aria-hidden="true" />
+
+        {/* Corner brackets (top-left via class, top-right via ::after, bottom via inner divs) */}
+        <div className="aic-corner-tl" aria-hidden="true" />
+        <div className="aic-corner-bl" aria-hidden="true" />
+        <div className="aic-corner-br" aria-hidden="true" />
 
         {/* Loading overlay */}
         {loadStatus === 'loading' && (
@@ -344,27 +401,81 @@ export function AICharacter({
         {/* 3D Scene — Step 8: audioAmplitude, Step 9: preset */}
         <Suspense fallback={null}>
           <ErrorBoundaryWrapper onError={handleError}>
-            <CharacterScene
-              state={effectiveState}
-              onReady={handleReady}
-              audioAmplitude={audioAmplitude}
-              preset={preset}
-              style={{ opacity: loadStatus === 'ready' ? 1 : 0, transition: 'opacity 0.6s ease' }}
-            />
+            {useVRM ? (
+              <VRMAvatar
+                vrmUrl={VRM_URL}
+                state={effectiveState}
+                ttsAmplitude={audioAmplitude}
+                isSpeaking={speech?.isSpeaking || false}
+                onReady={handleReady}
+                style={{ opacity: loadStatus === 'ready' ? 1 : 0, transition: 'opacity 0.6s ease', width: '100%', height: '100%' }}
+              />
+            ) : useRive ? (
+              <RiveAvatar
+                state={effectiveState}
+                isSpeaking={speech?.isSpeaking || false}
+                isListening={speech?.isListening || false}
+                ttsAmplitude={audioAmplitude}
+                onReady={handleReady}
+                style={{ opacity: loadStatus === 'ready' ? 1 : 0, transition: 'opacity 0.6s ease', width: '100%', height: '100%' }}
+              />
+            ) : (
+              <CharacterScene
+                state={effectiveState}
+                onReady={handleReady}
+                audioAmplitude={audioAmplitude}
+                preset={preset}
+                style={{ opacity: loadStatus === 'ready' ? 1 : 0, transition: 'opacity 0.6s ease' }}
+              />
+            )}
           </ErrorBoundaryWrapper>
         </Suspense>
-      </div>
+
+        {/* Avatar mode toggle button — cycles: Abstract → VRM → Rive → Abstract */}
+        <button
+          onClick={(e) => { e.stopPropagation(); cycleAvatarMode(); }}
+          title={`Switch avatar (current: ${avatarMode === 0 ? 'Abstract' : avatarMode === 1 ? 'VRM Human' : 'Rive AI'})`}
+          aria-label="Cycle avatar mode"
+          style={{
+            position: 'absolute', bottom: 10, right: 10,
+            background: avatarMode === 2
+              ? 'rgba(34,197,94,0.85)'
+              : avatarMode === 1
+              ? 'rgba(124,92,252,0.85)'
+              : 'rgba(30,30,60,0.75)',
+            border: '1px solid rgba(124,92,252,0.5)',
+            borderRadius: 8, padding: '4px 10px',
+            color: '#fff', fontSize: 11, fontWeight: 600,
+            cursor: 'pointer', backdropFilter: 'blur(8px)',
+            transition: 'all 0.2s ease', zIndex: 10,
+            letterSpacing: '0.03em',
+          }}
+        >
+          {avatarMode === 0 ? '🤖 Abstract' : avatarMode === 1 ? '🧑 VRM' : '✨ Rive'}
+        </button>
+      </div>{/* /aic-canvas-wrap */}
 
       {/* Status badge */}
       <StatusBadge state={effectiveState} />
 
+
       {/* Step 9: Preset picker */}
       <PresetPicker currentPreset={preset} onChange={handlePresetChange} />
 
-      {/* Mentor message bubble */}
+      {/* Mentor message bubble — state-aware icon + thinking dots */}
       <div className="aic-message-bubble" key={effectiveState}>
-        <span className="aic-message-icon">💬</span>
-        <span className="aic-message-text">{message}</span>
+        <span className="aic-message-icon">
+          {STATE_ICONS[effectiveState] || '💬'}
+        </span>
+        <span className="aic-message-text">
+          {message}
+          {(effectiveState === CHARACTER_STATES.THINKING ||
+            effectiveState === CHARACTER_STATES.ANALYZING) && (
+            <span className="aic-thinking-dots" aria-hidden="true">
+              <span /><span /><span />
+            </span>
+          )}
+        </span>
       </div>
 
       {/* Dev panel */}

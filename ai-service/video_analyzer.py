@@ -278,98 +278,153 @@ class VideoAnalyzer:
         file_path: str,
         on_progress: Optional[Callable[[str, int, str], None]] = None,
     ) -> Dict:
-        """Extract speech-based metrics (filler words, WPM, speech score)"""
-        video_clip = None
+        """Extract speech-based metrics (filler words, WPM, speech score).
+
+        Uses a direct FFmpeg subprocess to extract audio, which correctly
+        handles WebM/VP8/VP9 files that confuse MoviePy's EBML parser.
+        Falls back to MoviePy if ffmpeg subprocess is unavailable.
+        """
+        import subprocess
+        import shutil
+
         audio_path = None
+        video_clip = None
+
+        _EMPTY = {
+            "speech_score": 0,
+            "filler_word_count": 0,
+            "words_per_minute": 0,
+            "speech_text": "",
+        }
+
         try:
-            file_extension = Path(file_path).suffix
-            audio_path = file_path.replace(file_extension, ".wav")
+            file_extension = Path(file_path).suffix.lower()
+            audio_path = file_path.replace(Path(file_path).suffix, "_audio_tmp.wav")
 
-            video_clip = VideoFileClip(file_path)
+            # ── Step 1: Extract audio track to WAV ───────────────
+            # Try direct ffmpeg subprocess first (handles WebM/VP8/VP9 correctly)
+            extracted = False
+            ffmpeg_bin = shutil.which("ffmpeg") or "ffmpeg"
 
-            if video_clip.audio is None:
-                logger.warning(f"No audio track found in {file_path}")
-                return {
-                    "speech_score": 0,
-                    "filler_word_count": 0,
-                    "words_per_minute": 0,
-                    "speech_text": ""
-                }
+            try:
+                cmd = [
+                    ffmpeg_bin,
+                    "-y",                    # overwrite output
+                    "-i", file_path,         # input file
+                    "-vn",                   # no video
+                    "-acodec", "pcm_s16le",  # WAV PCM 16-bit
+                    "-ar", "16000",          # 16 kHz (Whisper optimal)
+                    "-ac", "1",              # mono
+                    audio_path,
+                ]
+                result_proc = subprocess.run(
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    timeout=120,
+                )
+                if result_proc.returncode == 0 and os.path.exists(audio_path):
+                    extracted = True
+                    logger.info(f"[AudioExtract] FFmpeg subprocess succeeded for {file_path}")
+                else:
+                    stderr_out = result_proc.stderr.decode("utf-8", errors="replace")
+                    logger.warning(f"[AudioExtract] FFmpeg subprocess returned {result_proc.returncode}: {stderr_out[:300]}")
+            except Exception as ffmpeg_err:
+                logger.warning(f"[AudioExtract] FFmpeg subprocess failed: {ffmpeg_err}")
 
-            video_clip.audio.write_audiofile(audio_path)
+            # ── Step 2: Fallback — MoviePy (works for MP4, MOV, AVI) ─
+            if not extracted:
+                try:
+                    video_clip = VideoFileClip(file_path)
+                    if video_clip.audio is None:
+                        logger.warning(f"No audio track found in {file_path}")
+                        return _EMPTY
+                    video_clip.audio.write_audiofile(audio_path, logger=None)
+                    extracted = True
+                    logger.info(f"[AudioExtract] MoviePy fallback succeeded for {file_path}")
+                except Exception as mp_err:
+                    logger.error(f"[AudioExtract] MoviePy fallback also failed: {mp_err}")
 
-            # Whisper is the longest step — emit progress before starting
+            if not extracted or not os.path.exists(audio_path):
+                logger.error(f"[AudioExtract] Could not extract audio from {file_path}")
+                return _EMPTY
+
+            # ── Step 3: Whisper transcription ────────────────────
             if on_progress:
                 on_progress("speech_transcription", 60, "Transcribing speech with Whisper…")
 
             result = self.whisper_model.transcribe(audio_path)
-            raw_text = result.get("text", "") if isinstance(result, dict) else ""
+            raw_text  = result.get("text", "") if isinstance(result, dict) else ""
             transcript = str(raw_text).lower()
-            logger.info(f"Detected speech: {transcript}")
-            
+            logger.info(f"Detected speech: {transcript[:120]}")
+
             words = transcript.split()
             total_words = len(words)
-            
+
             if total_words == 0:
-                return {
-                    "speech_score": 0,
-                    "filler_word_count": 0,
-                    "words_per_minute": 0,
-                    "speech_text": ""
-                }
-            
-            # Count filler words
-            filler_words_list = [w.strip() for w in settings.filler_words.split(',')]
+                return _EMPTY
+
+            # ── Step 4: Filler word count ─────────────────────────
+            filler_words_list = [w.strip() for w in settings.filler_words.split(",")]
             filler_count = sum(word in filler_words_list for word in words)
-            
-            # Calculate WPM
+
+            # ── Step 5: WPM ───────────────────────────────────────
             segments = result.get("segments", []) if isinstance(result, dict) else []
-            if isinstance(segments, list) and segments and isinstance(segments[-1], dict) and "end" in segments[-1]:
+            if (
+                isinstance(segments, list)
+                and segments
+                and isinstance(segments[-1], dict)
+                and "end" in segments[-1]
+            ):
                 duration_seconds = float(segments[-1]["end"])
             else:
-                duration_seconds = float(video_clip.duration or 1)
-            
+                # Fall back: get duration via ffprobe or from video_clip
+                duration_seconds = 0.0
+                try:
+                    ffprobe_bin = shutil.which("ffprobe") or "ffprobe"
+                    probe = subprocess.run(
+                        [ffprobe_bin, "-v", "error", "-show_entries",
+                         "format=duration", "-of", "default=noprint_wrappers=1:nokey=1",
+                         file_path],
+                        stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=15,
+                    )
+                    duration_seconds = float(probe.stdout.decode().strip() or "1")
+                except Exception:
+                    duration_seconds = max(1.0, total_words / 2.5)  # rough estimate
+
             words_per_minute = (
                 (total_words / duration_seconds) * 60
                 if duration_seconds > 0 else 0.0
             )
-            
-            # Calculate speech score
-            speech_score = 100
-            
-            filler_ratio = filler_count / total_words
-            filler_penalty = filler_ratio * 30
-            speech_score -= filler_penalty
-            
+
+            # ── Step 6: Speech score ──────────────────────────────
+            speech_score = 100.0
+            filler_ratio   = filler_count / total_words
+            speech_score  -= filler_ratio * 30
+
             ideal_min = settings.ideal_words_per_minute_min
             ideal_max = settings.ideal_words_per_minute_max
-            
+
             if words_per_minute < ideal_min:
-                deviation = (ideal_min - words_per_minute) / ideal_min
-                wpm_penalty = min(deviation * 20, 20)
-                speech_score -= wpm_penalty
+                deviation    = (ideal_min - words_per_minute) / ideal_min
+                speech_score -= min(deviation * 20, 20)
             elif words_per_minute > ideal_max:
-                deviation = (words_per_minute - ideal_max) / ideal_max
-                wpm_penalty = min(deviation * 15, 15)
-                speech_score -= wpm_penalty
-            
-            speech_score = max(0, min(100, speech_score))
-            
+                deviation    = (words_per_minute - ideal_max) / ideal_max
+                speech_score -= min(deviation * 15, 15)
+
+            speech_score = max(0.0, min(100.0, speech_score))
+
             return {
-                "speech_score": round(speech_score, 2),
+                "speech_score":      round(speech_score, 2),
                 "filler_word_count": filler_count,
-                "words_per_minute": round(words_per_minute, 2),
-                "speech_text": transcript
+                "words_per_minute":  round(words_per_minute, 2),
+                "speech_text":       transcript,
             }
-            
+
         except Exception as e:
             logger.error(f"Error extracting speech metrics: {str(e)}", exc_info=True)
-            return {
-                "speech_score": 0,
-                "filler_word_count": 0,
-                "words_per_minute": 0,
-                "speech_text": ""
-            }
+            return _EMPTY
+
         finally:
             if video_clip is not None:
                 try:
@@ -381,6 +436,7 @@ class VideoAnalyzer:
                     os.remove(audio_path)
                 except Exception:
                     pass
+
     
     def _calculate_confidence_score(self, video_metrics: Dict, speech_metrics: Dict) -> float:
         """Calculate overall confidence score using weighted metrics"""

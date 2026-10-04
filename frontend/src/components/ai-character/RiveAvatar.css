@@ -1,0 +1,456 @@
+/* ══════════════════════════════════════════════════════════
+   RiveAvatar.css
+   Styles for the Rive avatar shell + CSS animated fallback
+   ══════════════════════════════════════════════════════════ */
+
+/* ── Root container ─────────────────────────────────────── */
+.rive-avatar-root {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.rive-fallback-layer,
+.rive-canvas-layer {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Glow ring (animated, state-color) ──────────────────── */
+.rive-glow-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid var(--rive-glow, #50587a);
+  box-shadow:
+    0 0 20px var(--rive-glow, #50587a),
+    inset 0 0 20px color-mix(in srgb, var(--rive-glow, #50587a) 15%, transparent);
+  animation: rive-ring-pulse 2.4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes rive-ring-pulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50%       { opacity: 1;   transform: scale(1.015); }
+}
+
+
+/* ══════════════════════════════════════════════════════════
+   CSS AVATAR FALLBACK
+   ══════════════════════════════════════════════════════════ */
+
+.riva-css-root {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  animation: riva-float 3.5s ease-in-out infinite;
+  transform-origin: center bottom;
+}
+
+@keyframes riva-float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-8px); }
+}
+
+/* ── Ambient aura ────────────────────────────────────────── */
+.riva-aura {
+  position: absolute;
+  top: 10px;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--riva-glow) 25%, transparent) 0%, transparent 70%);
+  animation: riva-aura-pulse 2.5s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes riva-aura-pulse {
+  0%, 100% { transform: scale(1);    opacity: 0.6; }
+  50%       { transform: scale(1.15); opacity: 1; }
+}
+
+/* ── Head ────────────────────────────────────────────────── */
+.riva-head {
+  position: relative;
+  width: 100px;
+  height: 115px;
+  background: linear-gradient(160deg, #f5cba7 0%, #e8a87c 60%, #d4956a 100%);
+  border-radius: 50% 50% 45% 45% / 55% 55% 45% 45%;
+  box-shadow:
+    0 4px 20px rgba(0,0,0,0.3),
+    inset 0 -8px 20px rgba(0,0,0,0.12);
+  z-index: 2;
+  animation: riva-head-breathe 3.5s ease-in-out infinite;
+}
+
+@keyframes riva-head-breathe {
+  0%, 100% { transform: scaleY(1); }
+  50%       { transform: scaleY(1.015); }
+}
+
+.riva-head--happy {
+  animation: riva-head-happy 0.5s ease both, riva-head-breathe 3.5s 0.5s ease-in-out infinite;
+}
+@keyframes riva-head-happy {
+  0%   { transform: rotate(0deg); }
+  25%  { transform: rotate(-8deg); }
+  75%  { transform: rotate(8deg); }
+  100% { transform: rotate(0deg); }
+}
+
+.riva-head--greeting {
+  animation: riva-head-greeting 0.8s ease both, riva-head-breathe 3.5s 0.8s ease-in-out infinite;
+}
+@keyframes riva-head-greeting {
+  0%   { transform: translateY(0) rotate(0); }
+  30%  { transform: translateY(-6px) rotate(-5deg); }
+  60%  { transform: translateY(-6px) rotate(5deg); }
+  100% { transform: translateY(0) rotate(0); }
+}
+
+/* ── Hair ────────────────────────────────────────────────── */
+.riva-hair {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 102px;
+  height: 50px;
+  background: linear-gradient(180deg, #2c1a0e 0%, #4a2c17 100%);
+  border-radius: 50% 50% 0 0 / 80% 80% 0 0;
+  z-index: 1;
+}
+
+/* ── Ears ────────────────────────────────────────────────── */
+.riva-ear {
+  position: absolute;
+  top: 38px;
+  width: 18px;
+  height: 24px;
+  background: linear-gradient(135deg, #e8a87c, #d4956a);
+  border-radius: 50%;
+}
+.riva-ear--left  { left: -8px; }
+.riva-ear--right { right: -8px; }
+
+/* ── Eyebrows ────────────────────────────────────────────── */
+.riva-brows {
+  position: absolute;
+  top: 30px;
+  left: 0; right: 0;
+  display: flex;
+  justify-content: space-around;
+  padding: 0 14px;
+}
+
+.riva-brow {
+  width: 22px;
+  height: 4px;
+  background: #2c1a0e;
+  border-radius: 2px;
+  transition: transform 0.3s ease, opacity 0.3s;
+}
+.riva-brow--left  { transform-origin: right center; }
+.riva-brow--right { transform-origin: left center; }
+
+.riva-brow--furrowed.riva-brow--left  { transform: rotate(15deg) translateX(3px); }
+.riva-brow--furrowed.riva-brow--right { transform: rotate(-15deg) translateX(-3px); }
+.riva-brow--raised { transform: translateY(-4px) !important; }
+
+/* ── Eyes ────────────────────────────────────────────────── */
+.riva-eyes {
+  position: absolute;
+  top: 40px;
+  left: 0; right: 0;
+  display: flex;
+  justify-content: space-around;
+  padding: 0 14px;
+}
+
+.riva-eye {
+  width: 20px;
+  height: 22px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.15);
+  overflow: hidden;
+  position: relative;
+  animation: riva-blink 4s ease-in-out infinite;
+}
+
+@keyframes riva-blink {
+  0%, 94%, 100% { transform: scaleY(1); }
+  96%            { transform: scaleY(0.05); }
+}
+
+.riva-eye--squint {
+  height: 10px;
+  border-radius: 50% 50% 0 0;
+}
+
+.riva-iris {
+  position: absolute;
+  width: 13px; height: 13px;
+  background: radial-gradient(circle at 40% 40%, #4a90d9, #1a5fa8);
+  border-radius: 50%;
+  top: 4px; left: 3px;
+}
+.riva-pupil {
+  position: absolute;
+  width: 7px; height: 7px;
+  background: #0d0d0d;
+  border-radius: 50%;
+  top: 8px; left: 6px;
+  animation: riva-pupil-move 6s ease-in-out infinite;
+}
+@keyframes riva-pupil-move {
+  0%, 100% { transform: translate(0, 0); }
+  30%       { transform: translate(2px, -1px); }
+  60%       { transform: translate(-2px, 1px); }
+}
+.riva-shine {
+  position: absolute;
+  width: 4px; height: 4px;
+  background: rgba(255,255,255,0.85);
+  border-radius: 50%;
+  top: 4px; left: 5px;
+}
+
+/* ── Nose ────────────────────────────────────────────────── */
+.riva-nose {
+  position: absolute;
+  top: 66px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 10px;
+  height: 8px;
+  border-left: 3px solid transparent;
+  border-right: 3px solid transparent;
+  border-bottom: 5px solid rgba(0,0,0,0.2);
+  border-radius: 0 0 4px 4px;
+}
+
+/* ── Mouth ────────────────────────────────────────────────── */
+.riva-mouth-wrap {
+  position: absolute;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: hidden;
+  border-radius: 4px;
+  transition: all 0.1s ease;
+}
+
+.riva-mouth {
+  width: 30px;
+  height: 6px;
+  background: #8b4513;
+  border-radius: 0 0 12px 12px;
+  transition: height 0.1s ease, border-radius 0.1s ease;
+  position: relative;
+}
+
+.riva-teeth {
+  width: 24px;
+  height: 5px;
+  background: #fff;
+  border-radius: 0 0 3px 3px;
+  margin-top: -2px;
+  transition: opacity 0.1s;
+}
+
+.riva-mouth-wrap--smile .riva-mouth {
+  height: 10px;
+  border-radius: 0 0 20px 20px;
+  width: 36px;
+}
+
+.riva-mouth-wrap--talking {
+  animation: riva-jaw 0.15s ease-in-out infinite;
+}
+@keyframes riva-jaw {
+  0%, 100% { transform: translateX(-50%) scaleY(1); }
+  50%       { transform: translateX(-50%) scaleY(1.3); }
+}
+
+/* ── Thinking dots ──────────────────────────────────────── */
+.riva-think-dots {
+  position: absolute;
+  top: -24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 5px;
+}
+.riva-think-dots span {
+  width: 7px; height: 7px;
+  background: var(--riva-glow, #f59e0b);
+  border-radius: 50%;
+  animation: riva-dot-bounce 1.2s ease-in-out infinite;
+}
+.riva-think-dots span:nth-child(2) { animation-delay: 0.2s; }
+.riva-think-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes riva-dot-bounce {
+  0%, 100% { transform: translateY(0);    opacity: 0.4; }
+  50%       { transform: translateY(-8px); opacity: 1; }
+}
+
+/* ── Neck ────────────────────────────────────────────────── */
+.riva-neck {
+  width: 28px;
+  height: 18px;
+  background: linear-gradient(180deg, #d4956a, #c4855a);
+  border-radius: 0 0 6px 6px;
+  margin-top: -2px;
+  z-index: 1;
+}
+
+/* ── Body ────────────────────────────────────────────────── */
+.riva-body {
+  position: relative;
+  width: 110px;
+  height: 80px;
+  margin-top: -2px;
+  z-index: 1;
+}
+
+.riva-body--talking {
+  animation: riva-body-talk 0.4s ease-in-out infinite;
+}
+@keyframes riva-body-talk {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-2px); }
+}
+
+.riva-shirt {
+  width: 110px;
+  height: 80px;
+  background: linear-gradient(175deg, #1e3a5f 0%, #152a4a 100%);
+  border-radius: 14px 14px 10px 10px;
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+
+/* Lapels */
+.riva-lapel {
+  position: absolute;
+  top: 0;
+  width: 24px;
+  height: 50px;
+  background: #0d2040;
+}
+.riva-lapel--left  { left: 22px;  border-radius: 0 50% 40% 0 / 0 40% 60% 0; transform: skewX(8deg); }
+.riva-lapel--right { right: 22px; border-radius: 50% 0 0 40% / 40% 0 0 60%; transform: skewX(-8deg); }
+
+/* AI badge on shirt */
+.riva-badge {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #7c5cfc, #5b8def);
+  border-radius: 6px;
+  padding: 3px 7px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  z-index: 3;
+}
+.riva-badge span {
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+.riva-badge-dot {
+  width: 5px; height: 5px;
+  background: #22c55e;
+  border-radius: 50%;
+  animation: riva-badge-blink 2s ease-in-out infinite;
+}
+@keyframes riva-badge-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.2; }
+}
+
+/* ── Arms ────────────────────────────────────────────────── */
+.riva-arm {
+  position: absolute;
+  top: 8px;
+  width: 20px;
+  height: 55px;
+  background: linear-gradient(180deg, #1e3a5f, #152a4a);
+  border-radius: 10px;
+  transition: transform 0.4s ease;
+}
+.riva-arm--left  { left: -14px; transform-origin: top center; transform: rotate(8deg); }
+.riva-arm--right { right: -14px; transform-origin: top center; transform: rotate(-8deg); }
+
+.riva-arm--left.riva-arm--raised  { transform: rotate(-60deg) translateY(-5px); }
+.riva-arm--right.riva-arm--raised { transform: rotate(60deg) translateY(-5px); }
+
+.riva-arm--left.riva-arm--wave  { animation: riva-wave-left  0.5s ease-in-out 3; }
+.riva-arm--right.riva-arm--wave { animation: riva-wave-right 0.5s ease-in-out 3; }
+
+@keyframes riva-wave-left  {
+  0%, 100% { transform: rotate(8deg); }
+  50%       { transform: rotate(-50deg) translateY(-4px); }
+}
+@keyframes riva-wave-right {
+  0%, 100% { transform: rotate(-8deg); }
+  50%       { transform: rotate(50deg) translateY(-4px); }
+}
+
+/* ── Listening pulse rings ────────────────────────────────── */
+.riva-listen-rings {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.riva-listen-rings span {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid var(--riva-glow, #22c55e);
+  animation: riva-listen-pulse 1.8s ease-out infinite;
+}
+.riva-listen-rings span:nth-child(1) { width: 130px; height: 130px; top: -65px; left: -65px; animation-delay: 0s; }
+.riva-listen-rings span:nth-child(2) { width: 160px; height: 160px; top: -80px; left: -80px; animation-delay: 0.4s; }
+.riva-listen-rings span:nth-child(3) { width: 190px; height: 190px; top: -95px; left: -95px; animation-delay: 0.8s; }
+
+@keyframes riva-listen-pulse {
+  0%   { opacity: 0.8; transform: scale(0.8); }
+  100% { opacity: 0;   transform: scale(1.2); }
+}
+
+/* ── Greeting wave hand ──────────────────────────────────── */
+.riva-wave-hand {
+  position: absolute;
+  top: 30%;
+  right: -10px;
+  font-size: 28px;
+  animation: riva-wave-emoji 0.5s ease-in-out 4;
+  transform-origin: bottom center;
+}
+@keyframes riva-wave-emoji {
+  0%, 100% { transform: rotate(0deg); }
+  30%       { transform: rotate(-25deg); }
+  70%       { transform: rotate(25deg); }
+}

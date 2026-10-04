@@ -95,7 +95,9 @@ function LiveTranscript({ text }) {
 export function ChatPanel({
   messages      = [],
   isThinking    = false,
+  isStreaming    = false,
   onSendMessage,
+  onStop,
   onClear,
   speech        = null,
   className     = '',
@@ -157,7 +159,9 @@ export function ChatPanel({
     prevListening.current = speech?.isListening ?? false;
   }, [speech?.isListening, speech?.transcript, handleSubmit]);
 
-  const canSend = inputText.trim().length > 0 && !isThinking;
+  const isBusy  = isThinking || isStreaming;
+  const canSend = inputText.trim().length > 0 && !isBusy;
+  const isSpeaking = speech?.isSpeaking ?? false;
 
   return (
     <div className={`cp-root ${className}`} aria-label="AI Coach Chat">
@@ -189,6 +193,21 @@ export function ChatPanel({
                   <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
                 </svg>
               )}
+            </button>
+          )}
+
+          {/* Stop speaking — shows only when TTS is active */}
+          {isSpeaking && (
+            <button
+              id="stop-speaking-header-btn"
+              className="cp-icon-btn cp-icon-btn--speaking"
+              onClick={() => speech?.cancel?.()}
+              title="Stop speaking"
+              aria-label="Stop mentor voice"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                <rect x="4" y="4" width="16" height="16" rx="3"/>
+              </svg>
             </button>
           )}
 
@@ -238,6 +257,27 @@ export function ChatPanel({
         </div>
       )}
 
+      {/* ── Stop Speaking banner — slides in while TTS is active ── */}
+      {isSpeaking && (
+        <div className="cp-speaking-bar">
+          <span className="cp-speaking-wave">
+            <span/><span/><span/><span/>
+          </span>
+          <span className="cp-speaking-label">Mentor is speaking…</span>
+          <button
+            id="stop-speaking-btn"
+            className="cp-speaking-stop"
+            onClick={() => speech?.cancel?.()}
+            aria-label="Stop speaking"
+          >
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
+              <rect x="4" y="4" width="16" height="16" rx="3"/>
+            </svg>
+            Stop
+          </button>
+        </div>
+      )}
+
       {/* Input row */}
       <div className="cp-input-row">
         {/* Mic button */}
@@ -267,7 +307,7 @@ export function ChatPanel({
           </button>
         )}
 
-        {/* Text input */}
+        {/* Text input — disabled only while AI is generating (NOT while speaking) */}
         <div className="cp-input-wrap">
           <textarea
             ref={inputRef}
@@ -279,28 +319,43 @@ export function ChatPanel({
             placeholder={
               speech?.isListening
                 ? 'Listening… speak now'
-                : 'Ask your mentor anything…'
+                : isBusy ? 'Waiting for response…' : 'Ask your mentor anything…'
             }
             rows={1}
-            disabled={isThinking}
+            disabled={isBusy}
             aria-label="Chat message input"
           />
         </div>
 
-        {/* Send button */}
-        <button
-          id="chat-send-btn"
-          className="cp-send-btn"
-          onClick={() => handleSubmit()}
-          disabled={!canSend}
-          aria-label="Send message"
-          title="Send message"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-            <line x1="22" y1="2" x2="11" y2="13"/>
-            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
-          </svg>
-        </button>
+        {/* Stop button (while AI is responding) OR Send button */}
+        {isBusy ? (
+          <button
+            id="chat-stop-btn"
+            className="cp-stop-btn"
+            onClick={onStop}
+            aria-label="Stop response"
+            title="Stop response"
+          >
+            {/* Square stop icon */}
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+              <rect x="4" y="4" width="16" height="16" rx="3"/>
+            </svg>
+          </button>
+        ) : (
+          <button
+            id="chat-send-btn"
+            className="cp-send-btn"
+            onClick={() => handleSubmit()}
+            disabled={!canSend}
+            aria-label="Send message"
+            title="Send message"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <line x1="22" y1="2" x2="11" y2="13"/>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+            </svg>
+          </button>
+        )}
       </div>
     </div>
   );

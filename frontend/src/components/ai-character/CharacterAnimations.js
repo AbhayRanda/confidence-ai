@@ -72,22 +72,22 @@ export const STATE_CONFIG = {
     description:    'Attentive posture, slight forward lean',
   },
   [CHARACTER_STATES.THINKING]: {
-    breathSpeed:    0.6,
-    breathAmp:      0.010,
-    headBobSpeed:   0.3,
-    headBobAmp:     0.015,
-    headSwaySpeed:  0.4,
-    headSwayAmp:    0.02,
-    bodySwaySpeed:  0.15,
+    breathSpeed:    0.55,
+    breathAmp:      0.009,
+    headBobSpeed:   0.25,
+    headBobAmp:     0.010,
+    headSwaySpeed:  0.35,
+    headSwayAmp:    0.028,  // more pronounced slow sway — pondering
+    bodySwaySpeed:  0.12,
     bodySwayAmp:    0.003,
-    armIdleAmp:     0.003,
-    blinkInterval:  [3000, 6000],
+    armIdleAmp:     0.002,
+    blinkInterval:  [3500, 7000], // blinks less often — deep thought
     mouthOpen:      0,
-    torsoLean:      0.04,
+    torsoLean:      0.05,
     eyebrowRaise:   0,
-    eyebrowFurrow:  0.018, // furrowed — concentrating
+    eyebrowFurrow:  0.026, // strongly furrowed — concentrating
     label:          'Thinking',
-    description:    'Contemplative pose with slight head tilt',
+    description:    'Deep contemplative pose with chin-touch and head tilt',
   },
   [CHARACTER_STATES.ANALYZING]: {
     breathSpeed:    0.7,
@@ -199,14 +199,13 @@ export const STATE_CONFIG = {
   },
 };
 
-// ── Step 9: Character appearance presets ────────────────────────
+// ── Step 9: Character appearance presets (5 — matches app themes) ───
 export const CHARACTER_PRESETS = [
   {
     id:    0,
-    name:  'Classic',
-    color: '#7c5cfc',   // swatch color for UI picker
+    name:  'Cosmic Violet',
+    color: '#7c5cfc',
     palette: {
-      // skin unchanged — default warm tone
       shirt:      '#7c5cfc',
       irisOuter:  '#7c5cfc',
       irisInner:  '#4a3ab0',
@@ -219,7 +218,7 @@ export const CHARACTER_PRESETS = [
   },
   {
     id:    1,
-    name:  'Ocean',
+    name:  'Ocean Blue',
     color: '#00b4d8',
     palette: {
       skin:       '#f0c8a0',
@@ -240,7 +239,7 @@ export const CHARACTER_PRESETS = [
   },
   {
     id:    2,
-    name:  'Sunset',
+    name:  'Sunset Orange',
     color: '#f97316',
     palette: {
       skin:       '#d4956a',
@@ -257,6 +256,48 @@ export const CHARACTER_PRESETS = [
       jacket:     '#1c1008',
       jacketLight:'#2a1810',
       lapel:      '#100800',
+    },
+  },
+  {
+    id:    3,
+    name:  'Peak Emerald',
+    color: '#10b981',
+    palette: {
+      skin:       '#f0c8a0',
+      skinShadow: '#d4a070',
+      skinLight:  '#ffe0c0',
+      hair:       '#0a1a0a',
+      hairSheen:  '#1a3a1a',
+      shirt:      '#10b981',
+      irisOuter:  '#10b981',
+      irisInner:  '#065f46',
+      tie:        '#0d9268',
+      tieDark:    '#047857',
+      tieKnot:    '#0fa678',
+      jacket:     '#0a1f18',
+      jacketLight:'#122b22',
+      lapel:      '#061410',
+    },
+  },
+  {
+    id:    4,
+    name:  'Executive Gold',
+    color: '#f59e0b',
+    palette: {
+      skin:       '#e8c090',
+      skinShadow: '#c89060',
+      skinLight:  '#f5d8b0',
+      hair:       '#18100a',
+      hairSheen:  '#3a2a10',
+      shirt:      '#f59e0b',
+      irisOuter:  '#f59e0b',
+      irisInner:  '#b45309',
+      tie:        '#d97706',
+      tieDark:    '#b45309',
+      tieKnot:    '#e8a500',
+      jacket:     '#1a1500',
+      jacketLight:'#261e00',
+      lapel:      '#100e00',
     },
   },
 ];

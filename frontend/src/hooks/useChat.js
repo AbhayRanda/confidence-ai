@@ -68,7 +68,8 @@ export function useChat({ getAnalysisContext = null, character = null, speech = 
       streaming: false,
     }
   ]);
-  const [isThinking, setIsThinking] = useState(false);
+  const [isThinking,  setIsThinking]  = useState(false);
+  const [isStreaming, setIsStreaming]  = useState(false);  // true while tokens are arriving
   const abortRef    = useRef(null);
 
   // Step 4: Rolling conversation history (last 6 exchanges)
@@ -123,6 +124,7 @@ export function useChat({ getAnalysisContext = null, character = null, speech = 
       streaming: true,
     };
     setMessages((prev) => [...prev, placeholder]);
+    setIsStreaming(true);
 
     abortRef.current = new AbortController();
     let fullText     = '';
@@ -172,6 +174,7 @@ export function useChat({ getAnalysisContext = null, character = null, speech = 
                 ? { ...m, text: cleanText, emotion, streaming: false }
                 : m
             ));
+            setIsStreaming(false);
 
             // Update character state
             character?.setState(EMOTION_TO_STATE[emotion] || 'gesture');
@@ -210,6 +213,9 @@ export function useChat({ getAnalysisContext = null, character = null, speech = 
       }
 
     } catch (err) {
+      // Clean up empty placeholder on error
+      setMessages((prev) => prev.filter((m) => m.id !== placeholderId || m.text.length > 0));
+      setIsStreaming(false);
       if (err.name === 'AbortError') return;
       throw err;
     }
@@ -259,21 +265,19 @@ export function useChat({ getAnalysisContext = null, character = null, speech = 
     } catch (err) {
       if (err.name === 'AbortError') return;
 
-      // If streaming failed, retry with non-streaming
-      if (streamSupported.current) {
-        console.warn('[useChat] Streaming failed, falling back to non-streaming');
-        streamSupported.current = false;
-        try {
-          await _sendMessageFallback(trimmed);
-          return;
-        } catch { /* fall through to error */ }
-      }
+      // If streaming failed, retry with non-streaming for this message
+      console.warn('[useChat] Streaming failed, falling back to non-streaming');
+      try {
+        await _sendMessageFallback(trimmed);
+        return;
+      } catch { /* fall through to error */ }
 
       console.error('[useChat] error:', err);
       addMessage('mentor', "Sorry, I couldn't connect right now. Please make sure the server is running.", 'gesture');
       character?.setState('idle');
     } finally {
       setIsThinking(false);
+      setIsStreaming(false);
       isBusyRef.current = false;
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -332,10 +336,26 @@ export function useChat({ getAnalysisContext = null, character = null, speech = 
     }]);
   }, [profile]);
 
+  // ── Stop ongoing response ──────────────────────────────────
+  const stopResponse = useCallback(() => {
+    if (abortRef.current) abortRef.current.abort();
+    speech?.cancel?.();
+    // Finalize any partial streaming message
+    setMessages((prev) => prev.map((m) =>
+      m.streaming ? { ...m, streaming: false } : m
+    ));
+    setIsThinking(false);
+    setIsStreaming(false);
+    isBusyRef.current = false;
+    character?.setState('idle');
+  }, [character, speech]);
+
   return {
     messages,
     isThinking,
+    isStreaming,
     sendMessage,
+    stopResponse,
     clearHistory,
   };
 }

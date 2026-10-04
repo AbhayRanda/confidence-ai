@@ -86,7 +86,7 @@ function pickVoice() {
 const API_BASE = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000';
 const DEFAULT_VOICE_ID = '21m00Tcm4TlvDq8ikWAM'; // Rachel — reliable on all ElevenLabs plans
 
-async function speakViaBackend(text, onStart, onEnd, onSilentFallback) {
+async function speakViaBackend(text, onStart, onEnd, onSilentFallback, onDisableBackend) {
   try {
     onStart?.();
     const res = await fetch(`${API_BASE}/tts`, {
@@ -99,6 +99,11 @@ async function speakViaBackend(text, onStart, onEnd, onSilentFallback) {
       // Don't show error toast — backend TTS is an enhancement, not a requirement.
       // Silently fall back to browser TTS so the user still hears audio.
       console.warn(`[TTS] Backend unavailable (${res.status}), using browser TTS`);
+      // Permanently disable backend TTS for this session so future speak() calls
+      // go straight to browser TTS without hammering the backend with 503s.
+      if (res.status === 503 || res.status === 402 || res.status === 429 || res.status === 401) {
+        onDisableBackend?.();
+      }
       onSilentFallback?.();
       onEnd?.();
       return null;
@@ -236,9 +241,16 @@ export function useSpeech({
       if (!isSpeakingRef.current) { setTtsAmplitude(0); return; }
       const elapsed  = performance.now() - ttsStartRef.current;
       const progress = Math.min(elapsed / ttsDurationRef.current, 1);
-      const envelope = Math.sin(progress * Math.PI);
-      const syllable = 0.5 + 0.5 * Math.abs(Math.sin(elapsed * 0.012));
-      setTtsAmplitude(Math.max(0, envelope * syllable * 0.75));
+      // Envelope: ramp up quickly, hold, ramp down at end
+      const envelope = progress < 0.08
+        ? progress / 0.08                          // fast attack
+        : progress > 0.90
+          ? (1 - progress) / 0.10                  // gentle release
+          : 1.0;                                    // hold at full
+      // Syllable variation: faster oscillation = more realistic phoneme rhythm
+      const syllable = 0.60 + 0.40 * Math.abs(Math.sin(elapsed * 0.018));
+      // Floor of 0.40 when speaking so mouth never drops to closed mid-sentence
+      setTtsAmplitude(Math.max(0.40, envelope * syllable * 0.95));
       ttsRafRef.current = requestAnimationFrame(tick);
     };
     ttsRafRef.current = requestAnimationFrame(tick);
@@ -331,6 +343,21 @@ export function useSpeech({
   const speak = useCallback((text, opts = {}) => {
     if (!text?.trim()) return;
 
+    // Strip markdown symbols so TTS never reads "asterisk" or "star" aloud
+    const cleanText = text
+      .replace(/\*\*(.+?)\*\*/g, '$1')   // **bold** → bold
+      .replace(/\*(.+?)\*/g,   '$1')    // *italic* → italic
+      .replace(/_{2}(.+?)_{2}/g, '$1')  // __bold__ → bold
+      .replace(/_(.+?)_/g,     '$1')    // _italic_ → italic
+      .replace(/`{1,3}[^`]*`{1,3}/g,   '')  // `code` / ```block``` → remove
+      .replace(/^#{1,6}\s*/gm,  '')    // ## headings → remove #
+      .replace(/^[-*+]\s+/gm,   '')    // bullet list markers → remove
+      .replace(/^\d+\.\s+/gm,   '')    // numbered list → remove
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')  // [text](url) → text
+      .replace(/[*_~`#>]/g,    '')     // any remaining markdown chars
+      .replace(/\s{2,}/g,      ' ')    // collapse extra spaces
+      .trim();
+
     // Stop speech recognition immediately
     if (recognitionRef.current) {
       try { recognitionRef.current.abort(); } catch {}
@@ -349,14 +376,14 @@ export function useSpeech({
       } catch {}
     }
 
-    const wordCount   = text.trim().split(/\s+/).length;
+    const wordCount   = cleanText.trim().split(/\s+/).length;
     const estimatedMs = Math.max(1500, wordCount * 280);
 
     if (backendTtsRef.current && !mutedRef.current) {
       setIsSpeaking(true);
       startTtsAmplitude(estimatedMs);
       speakViaBackend(
-        text,
+        cleanText,
         () => onSpeakStart?.(),
         () => {
           isSpeakingRef.current = false;
@@ -366,10 +393,12 @@ export function useSpeech({
           onSpeakEnd?.();
         },
         // Silent fallback: backend TTS failed — switch to browser TTS without any toast
-        () => speakBrowser(text, opts),
+        () => speakBrowser(cleanText, opts),
+        // Disable backend TTS for remainder of session to stop 503 spam
+        () => { backendTtsRef.current = false; console.info('[TTS] Backend TTS disabled for this session — using browser TTS'); },
       ).then((audio) => { backendAudioRef.current = audio; });
     } else {
-      speakBrowser(text, opts);
+      speakBrowser(cleanText, opts);
     }
   }, [speakBrowser, onSpeakStart, onSpeakEnd, startTtsAmplitude, stopTtsAmplitude]);
 

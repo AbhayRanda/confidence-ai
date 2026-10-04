@@ -16,21 +16,24 @@ is exceeded, the original rule-based engine runs instead.
 """
 
 import re
+import json
 import random
 import logging
 from typing import Any, Optional, List, Dict
 
-logger = logging.getLogger(__name__)
+import httpx
 
-# ── Try to import Gemini SDK ─────────────────────────────────
-genai: Any = None
-try:
-    import google.generativeai as genai  # type: ignore[import-untyped, import-not-found]
-    _GENAI_AVAILABLE = True
-except ImportError:
-    genai = None
-    _GENAI_AVAILABLE = False
-    logger.warning("google-generativeai not installed — using rule-based fallback")
+logger = logging.getLogger("confidence_ai.coaching_engine")
+
+# ── Gemini Models & REST Configuration ───────────────────────
+GEMINI_MODELS = [
+    "gemini-robotics-er-2-preview",  # Fast (2-3s), verified working with SSE and generateContent
+    "gemini-3.5-flash",              # Verified working
+    "gemini-3.8-flash",              # Gemini 3.8 Flash
+    "gemini-flash-latest",           # General fallback
+    "gemma-4-26b-a4b-it",            # Fast open model fallback
+]
+_GENAI_AVAILABLE = True
 
 
 # ── Coaching knowledge base (rule-based fallback) ─────────────
@@ -267,17 +270,15 @@ def _build_system_prompt(context: Optional[dict], system_prompt_override: Option
         base = system_prompt_override
     else:
         base = (
-            "You are a highly intelligent, knowledgeable AI assistant and confidence coach. "
-            "You have broad knowledge across all topics: science, technology, history, culture, "
-            "current events, coding, mathematics, philosophy, arts, health, relationships, career advice, "
-            "and much more — just like a brilliant, well-read friend. "
-            "You NEVER refuse to answer a question by saying it's outside your scope. "
-            "You always engage helpfully with whatever the user brings up. "
-            "You ALSO specialise in confidence coaching: public speaking, eye contact, posture, "
-            "body language, interview prep, reducing filler words, and vocal delivery. "
-            "When the user asks about confidence or speaking skills, lean into your coaching expertise. "
-            "Your tone is warm, encouraging, curious, and natural — like a brilliant knowledgeable friend. "
-            "Keep responses concise (2-4 sentences) unless the user asks for more detail."
+            "You are an AI confidence coach. RESPOND BRIEFLY — maximum 2 sentences for any reply. "
+            "ABSOLUTE RULES (violating these is WRONG): "
+            "1. NEVER write more than 2 sentences. If the answer needs 1 sentence, write 1. "
+            "2. NEVER use bullet points, numbered lists, or multiple tips in one reply. "
+            "3. NEVER use markdown formatting — no asterisks (*), no bold (**text**), no underscores, no hashtags, no backticks. Plain text only. "
+            "4. Answer ONLY the exact question asked — do not add extra context, caveats, or suggestions. "
+            "5. For scores/metrics: ONLY quote numbers that appear in the session metrics below. If no metrics are provided, say you have no session data yet and ask them to record a session. NEVER invent or estimate scores. "
+            "6. For tips: give ONE tip in one sentence. "
+            "7. Be direct. Skip greetings, affirmations like 'Great question!', and filler phrases."
         )
 
     lines = [base]
@@ -300,6 +301,10 @@ def _build_system_prompt(context: Optional[dict], system_prompt_override: Option
                 if v is not None:
                     lines.append(f"  {k}: {v}")
             lines.append("Use these metrics to personalise your advice when relevant.")
+        else:
+            lines.append("\nIMPORTANT: No session metrics available. If asked about scores or performance, tell the user you have no data yet and ask them to record a session first.")
+    else:
+        lines.append("\nIMPORTANT: No session metrics available. If asked about scores or performance, tell the user you have no data yet and ask them to record a session first.")
 
         # Live vision context
         live_parts = []
@@ -335,33 +340,53 @@ def _llm_response(
     system_prompt: Optional[str]        = None,
 ) -> Optional[dict]:
     """
-    Call Gemini 2.0 Flash. Returns { response, emotion } or None on failure.
+    Call Gemini LLM via REST. Returns { response, emotion } or None on failure.
     """
-    if not _GENAI_AVAILABLE or not api_key:
+    if not api_key:
         return None
 
     try:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel(
-            model_name="gemini-2.0-flash",
-            system_instruction=_build_system_prompt(context, system_prompt),
-        )
-
-        # Step 4: Build multi-turn history for Gemini
-        chat_history = []
+        system_instruction_text = _build_system_prompt(context, system_prompt)
+        contents = []
         if history:
             for msg in history[-6:]:   # last 6 messages max
+                if not isinstance(msg, dict):
+                    continue
                 role    = "user" if msg.get("role") == "user" else "model"
-                content = msg.get("content", msg.get("text", ""))
+                content = msg.get("content") or msg.get("text") or ""
                 if content:
-                    chat_history.append({"role": role, "parts": [content]})
+                    contents.append({"role": role, "parts": [{"text": str(content)}]})
 
-        chat   = model.start_chat(history=chat_history)
-        result = chat.send_message(message)
-        text   = result.text.strip()
+        contents.append({"role": "user", "parts": [{"text": message}]})
 
-        clean, emotion = _parse_emotion_tag(text)
-        return {"response": clean, "emotion": emotion}
+        payload = {
+            "contents": contents,
+            "systemInstruction": {"parts": [{"text": system_instruction_text}]},
+        }
+
+        for model in GEMINI_MODELS:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+            try:
+                r = httpx.post(url, json=payload, timeout=10.0)
+                if r.status_code == 200:
+                    data = r.json()
+                    candidates = data.get("candidates") or []
+                    if candidates:
+                        cand0 = candidates[0] or {}
+                        content_obj = cand0.get("content") or {}
+                        parts = content_obj.get("parts") or []
+                        text = "".join(str((p or {}).get("text", "")) for p in parts).strip()
+                        if text:
+                            clean, emotion = _parse_emotion_tag(text)
+                            logger.info(f"Gemini {model} call succeeded")
+                            return {"response": clean, "emotion": emotion}
+                else:
+                    logger.warning(f"Gemini {model} returned status {r.status_code}: {r.text[:120]}")
+            except Exception as model_err:
+                logger.warning(f"Gemini {model} call failed: {model_err}")
+                continue
+
+        return None
 
     except Exception as e:
         logger.warning(f"Gemini call failed ({type(e).__name__}): {e} — using fallback")
@@ -380,31 +405,65 @@ def _llm_stream(
     Generator that yields text chunks from Gemini stream.
     Falls back to yielding the full rule-based response if unavailable.
     """
-    if not _GENAI_AVAILABLE or not api_key:
+    if not api_key:
         result = _rule_based_response(message, context)
         yield result["response"]
         return
 
     try:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel(
-            model_name="gemini-2.0-flash",
-            system_instruction=_build_system_prompt(context, system_prompt),
-        )
-
-        chat_history = []
+        system_instruction_text = _build_system_prompt(context, system_prompt)
+        contents = []
         if history:
             for msg in history[-6:]:
+                if not isinstance(msg, dict):
+                    continue
                 role    = "user" if msg.get("role") == "user" else "model"
-                content = msg.get("content", msg.get("text", ""))
+                content = msg.get("content") or msg.get("text") or ""
                 if content:
-                    chat_history.append({"role": role, "parts": [content]})
+                    contents.append({"role": role, "parts": [{"text": str(content)}]})
 
-        chat   = model.start_chat(history=chat_history)
-        stream = chat.send_message(message, stream=True)
-        for chunk in stream:
-            if chunk.text:
-                yield chunk.text
+        contents.append({"role": "user", "parts": [{"text": message}]})
+
+        payload = {
+            "contents": contents,
+            "systemInstruction": {"parts": [{"text": system_instruction_text}]},
+        }
+
+        streamed_any = False
+        for model in GEMINI_MODELS:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:streamGenerateContent?alt=sse&key={api_key}"
+            try:
+                with httpx.stream("POST", url, json=payload, timeout=12.0) as r:
+                    if r.status_code != 200:
+                        logger.warning(f"Gemini stream {model} returned status {r.status_code}")
+                        continue
+                    for line in r.iter_lines():
+                        if line.startswith("data: "):
+                            try:
+                                data = json.loads(line[6:])
+                                candidates = data.get("candidates") or []
+                                if candidates:
+                                    cand0 = candidates[0] or {}
+                                    content_obj = cand0.get("content") or {}
+                                    parts = content_obj.get("parts") or []
+                                    for p in parts:
+                                        t = (p or {}).get("text", "")
+                                        if t:
+                                            streamed_any = True
+                                            yield t
+                            except Exception:
+                                pass
+                if streamed_any:
+                    logger.info(f"Gemini stream {model} completed successfully")
+                    return
+            except Exception as model_err:
+                logger.warning(f"Gemini stream {model} failed: {model_err}")
+                continue
+
+        if not streamed_any:
+            logger.warning("Gemini streaming failed — using fallback")
+            result = _rule_based_response(message, context)
+            yield result["response"]
 
     except Exception as e:
         logger.warning(f"Gemini stream failed ({type(e).__name__}): {e} — using fallback")
@@ -533,17 +592,27 @@ def generate_analysis_report(
         summary = f"Every journey starts somewhere — {score:.1f}/100 right now. Consistency beats perfection. Let's build from here."
 
     # Optionally use Gemini for a richer summary
-    if api_key and _GENAI_AVAILABLE:
+    if api_key:
         try:
-            genai.configure(api_key=api_key)
-            model = genai.GenerativeModel("gemini-2.0-flash")
             prompt = (
                 f"Write a single encouraging sentence (max 25 words) summarising a coaching session. "
                 f"Confidence score: {score:.1f}/100. Weakest area: {label_map[ranked[0][0]]} at {ranked[0][1]:.0f}%. "
                 f"Best area: {label_map[ranked[-1][0]]} at {ranked[-1][1]:.0f}%."
             )
-            result  = model.generate_content(prompt)
-            summary = result.text.strip().rstrip(".")
+            for model in GEMINI_MODELS:
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+                r = httpx.post(url, json={"contents": [{"parts": [{"text": prompt}]}]}, timeout=10.0)
+                if r.status_code == 200:
+                    data = r.json()
+                    candidates = data.get("candidates") or []
+                    if candidates:
+                        cand0 = candidates[0] or {}
+                        content_obj = cand0.get("content") or {}
+                        parts = content_obj.get("parts") or []
+                        text = "".join(str((p or {}).get("text", "")) for p in parts).strip()
+                        if text:
+                            summary = text.rstrip(".")
+                            break
         except Exception:
             pass   # keep local summary
 

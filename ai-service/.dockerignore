@@ -1,0 +1,14 @@
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+tests/
+logs/*.log
+temp/*
+uploads/*
+.git
+.gitignore
+.env
+confidence.db

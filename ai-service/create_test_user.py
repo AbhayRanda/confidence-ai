@@ -9,7 +9,7 @@ session = SessionLocal()
 # Check if user exists
 existing = session.query(User).filter(User.email == 'abhay@gmail.com').first()
 if existing:
-    print(f"✓ User already exists: {existing.email}")
+    print(f"[OK] User already exists: {existing.email}")
 else:
     # Create new user
     test_user = User(
@@ -19,6 +19,6 @@ else:
     )
     session.add(test_user)
     session.commit()
-    print("✓ Test user created: abhay@gmail.com / password123")
+    print("[OK] Test user created: abhay@gmail.com / password123")
 
 session.close()

@@ -520,6 +520,10 @@ export default function LiveAvatarChat() {
   // ── Start / stop camera stream ─────────────────────────────
   const startCamera = useCallback(async () => {
     try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        addEvent('⚠️', 'Camera blocked: requires HTTPS', 'cam-err');
+        return;
+      }
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
         audio: false, // Audio handled by useSpeech

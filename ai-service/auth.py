@@ -86,7 +86,7 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
             raise credentials_exception
         user_id = int(user_id_str)
     except (JWTError, ValueError):
-        logger.warning("JWT decode failed — invalid or expired token")
+        logger.warning("JWT decode failed -- invalid or expired token")
         raise credentials_exception
 
     db = SessionLocal()

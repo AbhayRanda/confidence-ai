@@ -46,7 +46,12 @@ class User(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     email: Mapped[str] = mapped_column(String, unique=True, index=True)
-    password: Mapped[str] = mapped_column(String)
+    password: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # Null for Google-only users
+
+    # Google OAuth
+    google_id: Mapped[Optional[str]] = mapped_column(String, unique=True, nullable=True, index=True)
+    auth_provider: Mapped[str] = mapped_column(String(20), default="email")  # "email" | "google"
+    avatar_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)  # Google profile photo
 
     # OTP Verification
     otp: Mapped[Optional[str]] = mapped_column(String, nullable=True)

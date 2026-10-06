@@ -1,22 +1,32 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./Auth.css";
-
-const API_BASE_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
+import { API_BASE_URL } from "../utils/api";
 
 function VerifyOTP() {
-  const [otp, setOtp]         = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState("");
-  const [success, setSuccess] = useState(false);
+  const [otp, setOtp]               = useState("");
+  const [loading, setLoading]       = useState(false);
+  const [resending, setResending]   = useState(false);
+  const [cooldown, setCooldown]     = useState(0);
+  const [resendMsg, setResendMsg]   = useState("");
+  const [error, setError]           = useState("");
+  const [success, setSuccess]       = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const email = location.state?.email;
 
+  useEffect(() => {
+    let timer;
+    if (cooldown > 0) {
+      timer = setInterval(() => setCooldown((c) => c - 1), 1000);
+    }
+    return () => clearInterval(timer);
+  }, [cooldown]);
+
   const handleVerify = async (e) => {
     e.preventDefault();
-    if (!otp) { setError("Please enter the OTP"); return; }
-    if (otp.length !== 6 || isNaN(otp)) { setError("OTP must be 6 digits"); return; }
+    if (!otp) { setError("Please enter the 6-digit verification code"); return; }
+    if (otp.length !== 6 || isNaN(otp)) { setError("Verification code must be 6 digits"); return; }
     setLoading(true);
     setError("");
     try {
@@ -30,12 +40,37 @@ function VerifyOTP() {
         setSuccess(true);
         setTimeout(() => navigate("/login"), 2000);
       } else {
-        setError(data.detail || "Invalid OTP. Please try again.");
+        setError(data.detail || "Invalid code. Please check your Gmail.");
       }
     } catch {
       setError("Network error. Please try again.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    if (cooldown > 0 || resending || !email) return;
+    setResending(true);
+    setResendMsg("");
+    setError("");
+    try {
+      const response = await fetch(`${API_BASE_URL}/resend-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setResendMsg("A new verification code has been sent to your Gmail inbox!");
+        setCooldown(45);
+      } else {
+        setError(data.detail || "Failed to resend verification code.");
+      }
+    } catch {
+      setError("Network error. Could not resend code.");
+    } finally {
+      setResending(false);
     }
   };
 
@@ -197,9 +232,30 @@ function VerifyOTP() {
             </button>
           </form>
 
-          <p className="auth-switch" style={{ fontSize: "12px", marginTop: "16px" }}>
-            Didn't receive a code? Check your spam folder.
-          </p>
+          <div style={{ marginTop: "20px", textAlign: "center" }}>
+            <p className="auth-switch" style={{ fontSize: "13px", margin: "0 0 8px 0" }}>
+              Didn't receive a code? Check spam or{" "}
+              <button
+                type="button"
+                onClick={handleResend}
+                disabled={cooldown > 0 || resending}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: cooldown > 0 ? "var(--text-muted)" : "var(--accent)",
+                  fontWeight: "700",
+                  cursor: cooldown > 0 ? "default" : "pointer",
+                  padding: 0,
+                  textDecoration: "underline",
+                }}
+              >
+                {resending ? "Sending…" : cooldown > 0 ? `Resend in ${cooldown}s` : "Resend Code"}
+              </button>
+            </p>
+            {resendMsg && (
+              <p style={{ color: "#4ade80", fontSize: "12px", margin: "6px 0 0" }}>{resendMsg}</p>
+            )}
+          </div>
         </div>
       </div>
     </div>

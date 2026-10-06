@@ -11,14 +11,18 @@
   align-items: center;
   gap: 10px;
   width: 100%;
+  max-width: 100%;
   height: 100%;
   position: relative;
+  box-sizing: border-box;
 }
 
 /* ── Canvas wrapper ────────────────────────────────── */
 .aic-canvas-wrap {
   position: relative;
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   flex: 1;
   min-height: 300px;   /* was 260 — taller for portrait crop */
   max-height: 480px;   /* was 420 */

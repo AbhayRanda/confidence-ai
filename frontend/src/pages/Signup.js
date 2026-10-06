@@ -1,8 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import "./Auth.css";
-
-const API_BASE_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
+import { API_BASE_URL } from "../utils/api";
 
 const STEPS = [
   { n: "01", t: "Create account", d: "Sign up in under 30 seconds" },
@@ -17,12 +16,18 @@ function Signup() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading]                 = useState(false);
   const [error, setError]                     = useState("");
-  const [otp, setOtp]                         = useState(null);
+  const [signupDone, setSignupDone]           = useState(false);
   const navigate = useNavigate();
 
   const validateForm = () => {
     if (!email || !password || !confirmPassword) { setError("Please fill in all fields"); return false; }
-    if (!email.includes("@")) { setError("Please enter a valid email"); return false; }
+    const cleanEmail = email.trim().toLowerCase();
+    // Google Gmail requirements: 6-30 chars, letters/numbers/dots, no consecutive dots
+    const gmailRegex = /^(?!.*\.\.)[a-zA-Z0-9][a-zA-Z0-9.]{4,28}[a-zA-Z0-9]@gmail\.com$/;
+    if (!gmailRegex.test(cleanEmail)) {
+      setError("Please enter a valid Gmail address (6–30 characters, e.g. yourname@gmail.com)");
+      return false;
+    }
     if (password.length < 6) { setError("Password must be at least 6 characters"); return false; }
     if (password !== confirmPassword) { setError("Passwords do not match"); return false; }
     return true;
@@ -33,18 +38,19 @@ function Signup() {
     if (!validateForm()) return;
     setLoading(true);
     setError("");
+    const cleanEmail = email.trim().toLowerCase();
     try {
       const response = await fetch(`${API_BASE_URL}/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: cleanEmail, password }),
       });
       const data = await response.json();
       if (response.ok) {
-        setOtp(data.dev_otp);
-        setTimeout(() => navigate("/verify", { state: { email } }), 2500);
+        setSignupDone(true);
+        setTimeout(() => navigate("/verify", { state: { email: cleanEmail } }), 2200);
       } else {
-        setError(data.detail || "Signup failed. Please try again.");
+        setError(data.detail || "Signup failed. Please check your Gmail address and try again.");
       }
     } catch {
       setError("Network error. Please try again.");
@@ -53,16 +59,35 @@ function Signup() {
     }
   };
 
-  if (otp) {
+  if (signupDone) {
     return (
       <div className="auth-page">
         <div className="auth-otp-screen animate-fadeUp">
           <div className="auth-otp-box">
-            <div className="auth-otp-icon">🎉</div>
-            <div className="auth-otp-title">Account created!</div>
-            <p className="auth-otp-label">Your verification code:</p>
-            <div className="auth-otp-code">{otp}</div>
-            <p className="auth-otp-info">Redirecting to verification…</p>
+            <div className="auth-otp-icon">📬</div>
+            <div className="auth-otp-title">Check your Gmail!</div>
+            <p className="auth-otp-label">We sent a 6-digit verification code to:</p>
+            <div style={{
+              display: "inline-block",
+              background: "rgba(124,92,252,0.12)",
+              border: "1px solid rgba(124,92,252,0.3)",
+              color: "#c4b5fd",
+              padding: "6px 16px",
+              borderRadius: "999px",
+              fontSize: "13.5px",
+              fontWeight: "700",
+              marginBottom: "16px",
+            }}>
+              {email.trim().toLowerCase()}
+            </div>
+            <p className="auth-otp-info">Check your inbox and spam folder. The code is only accessible from your Gmail.</p>
+            <button
+              onClick={() => navigate("/verify", { state: { email: email.trim().toLowerCase() } })}
+              className="auth-submit"
+              style={{ width: "100%", marginTop: "14px" }}
+            >
+              Enter Code Now
+            </button>
           </div>
         </div>
       </div>

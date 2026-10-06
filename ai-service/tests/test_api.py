@@ -46,14 +46,14 @@ class TestSignup:
 
     def test_new_user_returns_200(self, client):
         r = client.post("/signup", json={
-            "email":    "new@example.com",
+            "email":    "newuser123@gmail.com",
             "password": "SecurePass1!",
         })
         assert r.status_code == 200
 
     def test_response_contains_otp(self, client):
         r = client.post("/signup", json={
-            "email":    "otp_user@example.com",
+            "email":    "otpuser123@gmail.com",
             "password": "SecurePass1!",
         })
         data = r.json()
@@ -580,3 +580,286 @@ class TestProfile:
         assert profile["goal"] == "leadership"
         assert profile["experienceLevel"] == "intermediate"
         assert profile["weaknesses"] == ["eye_contact", "filler_words"]
+
+
+# ── OTP Verification & Resend ────────────────────────────────
+
+class TestVerifyAndResendOTP:
+
+    @pytest.fixture()
+    def unverified_user(self, db_session):
+        from models import User
+        from passlib.context import CryptContext
+        from datetime import datetime, timedelta
+
+        pwd = CryptContext(schemes=["argon2"], deprecated="auto")
+        user = User(
+            email="unverified123@gmail.com",
+            password=pwd.hash("TestPass123!"),
+            otp="654321",
+            otp_expiry=datetime.utcnow() + timedelta(minutes=10),
+            is_verified=False,
+        )
+        db_session.add(user)
+        db_session.commit()
+        db_session.refresh(user)
+        return user
+
+    def test_verify_otp_success(self, client, unverified_user, db_session):
+        r = client.post("/verify-otp", json={
+            "email": unverified_user.email,
+            "otp": "654321",
+        })
+        assert r.status_code == 200
+        assert "verified successfully" in r.json()["message"]
+        db_session.refresh(unverified_user)
+        assert unverified_user.is_verified is True
+        assert unverified_user.otp is None
+
+    def test_verify_otp_wrong_code(self, client, unverified_user):
+        r = client.post("/verify-otp", json={
+            "email": unverified_user.email,
+            "otp": "000000",
+        })
+        assert r.status_code == 400
+        assert "Invalid verification code" in r.json()["detail"]
+
+    def test_verify_otp_expired(self, client, unverified_user, db_session):
+        from datetime import datetime, timedelta
+        unverified_user.otp_expiry = datetime.utcnow() - timedelta(minutes=5)
+        db_session.commit()
+
+        r = client.post("/verify-otp", json={
+            "email": unverified_user.email,
+            "otp": "654321",
+        })
+        assert r.status_code == 400
+        assert "expired" in r.json()["detail"].lower()
+
+    def test_verify_otp_nonexistent_user(self, client):
+        r = client.post("/verify-otp", json={
+            "email": "ghost12345@gmail.com",
+            "otp": "654321",
+        })
+        assert r.status_code == 404
+
+    def test_resend_otp_success(self, client, unverified_user, db_session):
+        r = client.post("/resend-otp", json={
+            "email": unverified_user.email,
+        })
+        assert r.status_code == 200
+        assert "new verification code was sent" in r.json()["message"]
+        db_session.refresh(unverified_user)
+        assert unverified_user.otp is not None
+
+    def test_resend_otp_nonexistent_user(self, client):
+        r = client.post("/resend-otp", json={
+            "email": "notfound999@gmail.com",
+        })
+        assert r.status_code == 404
+
+    def test_resend_otp_already_verified(self, client, verified_user):
+        r = client.post("/resend-otp", json={
+            "email": verified_user.email,
+        })
+        assert r.status_code == 400
+        assert "already verified" in r.json()["detail"].lower()
+
+    def test_resend_otp_invalid_email_format(self, client):
+        r = client.post("/resend-otp", json={
+            "email": "bademail@yahoo.com",
+        })
+        assert r.status_code == 400
+
+
+# ── Text to Speech (TTS) ──────────────────────────────────────
+
+class TestTTS:
+
+    def test_tts_status(self, client):
+        r = client.get("/tts/status")
+        assert r.status_code == 200
+        data = r.json()
+        assert "available" in data
+        assert "provider" in data
+        assert "reason" in data
+
+    def test_tts_reset(self, client):
+        r = client.post("/tts/reset")
+        assert r.status_code == 200
+        assert "reset" in r.json()["message"].lower()
+
+    def test_tts_post_missing_key_returns_503(self, client, monkeypatch):
+        import main
+        monkeypatch.setattr(main.settings, "elevenlabs_api_key", "")
+        r = client.post("/tts", json={"text": "Hello world"})
+        assert r.status_code == 503
+
+    def test_tts_post_empty_text_returns_400(self, client, monkeypatch):
+        import main
+        monkeypatch.setattr(main.settings, "elevenlabs_api_key", "test_key")
+        r = client.post("/tts", json={"text": "   "})
+        assert r.status_code == 400
+
+    def test_tts_post_success(self, client, monkeypatch):
+        import main
+        monkeypatch.setattr(main.settings, "elevenlabs_api_key", "test_key")
+        monkeypatch.setattr(main, "_tts_quota_exhausted", False)
+
+        class MockResponse:
+            status_code = 200
+            content = b"dummy_mp3_bytes"
+            headers = {"content-type": "audio/mpeg"}
+            async def aiter_bytes(self, chunk_size=4096):
+                yield b"dummy_mp3_bytes"
+            async def __aenter__(self):
+                return self
+            async def __aexit__(self, *args):
+                pass
+
+        class MockAsyncClient:
+            def __init__(self, *args, **kwargs):
+                pass
+            async def __aenter__(self):
+                return self
+            async def __aexit__(self, *args):
+                pass
+            async def post(self, *args, **kwargs):
+                return MockResponse()
+
+        monkeypatch.setattr("httpx.AsyncClient", MockAsyncClient)
+        r = client.post("/tts", json={"text": "Hello, good job today!"})
+        assert r.status_code == 200
+        assert "audio/mpeg" in r.headers["content-type"]
+
+
+# ── Google OAuth ──────────────────────────────────────────────
+
+class TestGoogleOAuth:
+
+    def test_google_auth_redirect_unconfigured(self, client, monkeypatch):
+        import main
+        monkeypatch.setattr(main.settings, "google_client_id", "")
+        r = client.get("/auth/google", follow_redirects=False)
+        assert r.status_code == 503
+
+    def test_google_auth_redirect_configured(self, client, monkeypatch):
+        import main
+        monkeypatch.setattr(main.settings, "google_client_id", "mock-client-id-123")
+        r = client.get("/auth/google", follow_redirects=False)
+        assert r.status_code in (302, 307)
+        assert "accounts.google.com" in r.headers["location"]
+        assert "mock-client-id-123" in r.headers["location"]
+
+    def test_google_callback_error(self, client):
+        r = client.get("/auth/google/callback?error=access_denied", follow_redirects=False)
+        assert r.status_code in (302, 307)
+        assert "google_denied" in r.headers["location"]
+
+    def test_google_callback_success(self, client, monkeypatch, db_session):
+        import main
+        monkeypatch.setattr(main.settings, "google_client_id", "mock-id")
+        monkeypatch.setattr(main.settings, "google_client_secret", "mock-secret")
+
+        class MockResp:
+            def __init__(self, data):
+                self._data = data
+                self.status_code = 200
+            def json(self):
+                return self._data
+
+        class MockClient:
+            async def __aenter__(self):
+                return self
+            async def __aexit__(self, *args):
+                pass
+            async def post(self, url, **kwargs):
+                return MockResp({"access_token": "mock-access-token"})
+            async def get(self, url, **kwargs):
+                return MockResp({
+                    "sub": "google-user-999",
+                    "email": "oauthuser@gmail.com",
+                    "name": "OAuth User",
+                    "picture": "https://example.com/avatar.jpg",
+                })
+
+        monkeypatch.setattr("httpx.AsyncClient", lambda *args, **kwargs: MockClient())
+
+        r = client.get("/auth/google/callback?code=mock_code", follow_redirects=False)
+        assert r.status_code in (302, 307)
+        location = r.headers["location"]
+        assert "token=" in location
+        assert "oauthuser" in location
+
+
+# ── Chat Stream ───────────────────────────────────────────────
+
+class TestChatStream:
+
+    def test_chat_stream_empty_message_returns_400(self, client):
+        r = client.post("/chat/stream", json={"message": "   "})
+        assert r.status_code == 400
+
+    def test_chat_stream_success(self, client):
+        r = client.post("/chat/stream", json={"message": "How can I improve my eye contact?"})
+        assert r.status_code == 200
+        assert "text/event-stream" in r.headers["content-type"]
+        assert "data:" in r.text
+        assert "[DONE]" in r.text
+
+
+# ── WebSocket Progress ────────────────────────────────────────
+
+class TestWebSocketProgress:
+
+    def test_ws_progress_connection_and_pump(self, client):
+        from progress_manager import progress_manager
+        with client.websocket_connect("/ws/progress/test-job-42") as ws:
+            progress_manager.send_sync("test-job-42", "analyzing", 50, "Analyzing audio")
+            msg1 = ws.receive_json()
+            assert msg1["stage"] == "analyzing"
+            assert msg1["percent"] == 50
+
+            progress_manager.complete_sync("test-job-42")
+            msg2 = ws.receive_json()
+            assert msg2["stage"] == "done"
+            assert msg2["percent"] == 100
+
+
+# ── Upload and Validation Edge Cases ──────────────────────────
+
+class TestValidationEdgeCases:
+
+    def test_signup_short_password_returns_400(self, client):
+        r = client.post("/signup", json={
+            "email": "shortpass@gmail.com",
+            "password": "123",
+        })
+        assert r.status_code == 400
+        assert "at least 6 characters" in r.json()["detail"]
+
+    def test_signup_invalid_gmail_characters_returns_400(self, client):
+        r = client.post("/signup", json={
+            "email": "invalid..dots@gmail.com",
+            "password": "SecurePassword1!",
+        })
+        assert r.status_code == 400
+
+    def test_analyze_empty_filename_rejected(self, client, auth_headers):
+        r = client.post(
+            "/analyze",
+            files={"file": ("", io.BytesIO(b""), "application/octet-stream")},
+            headers=auth_headers,
+        )
+        assert r.status_code in (400, 422)
+
+    def test_analyze_processing_error_returns_500(self, client, auth_headers):
+        with patch("main.video_analyzer.analyze_video", side_effect=RuntimeError("Decoder crash")):
+            r = client.post(
+                "/analyze",
+                files={"file": ("corrupt.mp4", io.BytesIO(b"corrupt"), "video/mp4")},
+                headers=auth_headers,
+            )
+        assert r.status_code == 500
+
+

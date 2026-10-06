@@ -8,14 +8,13 @@ import {
 } from "chart.js";
 import { Line, Radar } from "react-chartjs-2";
 import "./Dashboard.css";
+import { API_BASE_URL } from "../utils/api";
 
 ChartJS.register(
   LineElement, PointElement, LinearScale,
   CategoryScale, Tooltip, Legend, Filler,
   RadialLinearScale,
 );
-
-const API_BASE_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
 
 // ── Score ring ─────────────────────────────────────────────────
 function ScoreRing({ score, size = 80, strokeWidth = 7 }) {
@@ -165,6 +164,7 @@ function Dashboard() {
   const [loading, setLoading] = useState(false);
   const [lastUpdate, setLastUpdate] = useState(null);
   const [activeChart, setActiveChart] = useState("overview"); // "overview" | "metrics"
+  const [activePreviewVideo, setActivePreviewVideo] = useState(null);
   const refreshRef = useRef(null);
 
   const fetchDashboard = useCallback(async () => {
@@ -525,51 +525,168 @@ function Dashboard() {
       {/* Session history */}
       {dataPoints.length > 0 && (
         <div className="dash-section animate-fadeUp">
-          <h2 className="dash-section-title">Session History</h2>
-          <div className="dash-table-wrap">
+          <div className="dash-section-header">
+            <h2 className="dash-section-title">Session History</h2>
+            <span className="dash-section-badge">{dataPoints.length} total sessions</span>
+          </div>
+
+          {/* Desktop Table View (>= 769px) */}
+          <div className="dash-table-wrap dash-desktop-table">
             <table className="dash-table">
               <thead>
                 <tr>
-                  {["#", "Score", "Level", "Eye Contact", "Posture", "Smile", "Date", "Video", "Actions"].map((h) => (
+                  {["#", "Score", "Level", "Eye Contact", "Posture", "Smile", "Date", "Video Preview", "Actions"].map((h) => (
                     <th key={h} className="dash-th">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {dataPoints.map((d, i) => (
-                  <tr key={d.id} className="dash-tr">
-                    <td className="dash-td"><span className="dash-row-num">#{dataPoints.length - i}</span></td>
-                    <td className="dash-td"><span className="dash-score-val">{d.confidence_score?.toFixed(1)}</span></td>
-                    <td className="dash-td">
-                      <span className="dash-level-badge" style={{
-                        background:  `${levelColor(d.confidence_level)}18`,
-                        color:        levelColor(d.confidence_level),
-                        borderColor: `${levelColor(d.confidence_level)}35`,
-                      }}>
-                        {d.confidence_level}
-                      </span>
-                    </td>
-                    <td className="dash-td">{d.eye_contact_percentage?.toFixed(0)}%</td>
-                    <td className="dash-td">{d.posture_percentage?.toFixed(0)}%</td>
-                    <td className="dash-td">{d.smile_percentage?.toFixed(0)}%</td>
-                    <td className="dash-td">{new Date(d.created_at).toLocaleDateString()}</td>
-                    <td className="dash-td">
-                      {d.video_path
-                        ? <video width="88" height="56" controls className="dash-video-thumb">
-                            <source src={`${API_BASE_URL}/uploads/${d.video_path}`} />
-                          </video>
-                        : <span className="dash-no-video">—</span>}
-                    </td>
-                    <td className="dash-td">
-                      <div className="dash-row-actions">
-                        <button className="dash-analytics-btn" onClick={() => navigate(`/video/${d.id}`)}>Analytics</button>
-                        <button className="dash-delete-btn"    onClick={() => handleDelete(d.id)}>Delete</button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {dataPoints.map((d, i) => {
+                  const videoUrl = d.video_path
+                    ? `${API_BASE_URL}/uploads/${d.video_path.replace(/\.webm$/i, '.mp4')}#t=0.001`
+                    : null;
+                  return (
+                    <tr key={d.id} className="dash-tr">
+                      <td className="dash-td"><span className="dash-row-num">#{dataPoints.length - i}</span></td>
+                      <td className="dash-td"><span className="dash-score-val">{d.confidence_score?.toFixed(1)}</span></td>
+                      <td className="dash-td">
+                        <span className="dash-level-badge" style={{
+                          background:  `${levelColor(d.confidence_level)}18`,
+                          color:        levelColor(d.confidence_level),
+                          borderColor: `${levelColor(d.confidence_level)}35`,
+                        }}>
+                          {d.confidence_level}
+                        </span>
+                      </td>
+                      <td className="dash-td">{d.eye_contact_percentage?.toFixed(0)}%</td>
+                      <td className="dash-td">{d.posture_percentage?.toFixed(0)}%</td>
+                      <td className="dash-td">{d.smile_percentage?.toFixed(0)}%</td>
+                      <td className="dash-td">{new Date(d.created_at).toLocaleDateString()}</td>
+                      <td className="dash-td">
+                        {videoUrl ? (
+                          <div
+                            className="dash-thumb-wrap"
+                            onClick={() => setActivePreviewVideo({
+                              url: videoUrl,
+                              id: d.id,
+                              sessionNum: dataPoints.length - i,
+                              score: d.confidence_score?.toFixed(1)
+                            })}
+                            title="Click to play preview"
+                          >
+                            <video
+                              className="dash-video-thumb"
+                              playsInline
+                              webkit-playsinline="true"
+                              preload="auto"
+                              muted
+                              src={videoUrl}
+                            />
+                            <div className="dash-thumb-play">▶</div>
+                          </div>
+                        ) : (
+                          <span className="dash-no-video">—</span>
+                        )}
+                      </td>
+                      <td className="dash-td">
+                        <div className="dash-row-actions">
+                          <button className="dash-analytics-btn" onClick={() => navigate(`/video/${d.id}`)}>Analytics</button>
+                          <button className="dash-delete-btn"    onClick={() => handleDelete(d.id)}>Delete</button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Cards View (< 769px) */}
+          <div className="dash-mobile-cards">
+            {dataPoints.map((d, i) => {
+              const videoUrl = d.video_path
+                ? `${API_BASE_URL}/uploads/${d.video_path.replace(/\.webm$/i, '.mp4')}#t=0.001`
+                : null;
+              return (
+                <div key={d.id} className="dash-m-card">
+                  <div className="dash-m-card-header">
+                    <div className="dash-m-card-title">
+                      <span className="dash-m-card-num">Session #{dataPoints.length - i}</span>
+                      <span className="dash-m-card-date">{new Date(d.created_at).toLocaleDateString()}</span>
+                    </div>
+                    <span
+                      className="dash-level-badge"
+                      style={{
+                        background: `${levelColor(d.confidence_level)}18`,
+                        color: levelColor(d.confidence_level),
+                        borderColor: `${levelColor(d.confidence_level)}35`,
+                      }}
+                    >
+                      {d.confidence_score?.toFixed(1)} • {d.confidence_level}
+                    </span>
+                  </div>
+
+                  {videoUrl ? (
+                    <div
+                      className="dash-m-video-container"
+                      onClick={() => setActivePreviewVideo({
+                        url: videoUrl,
+                        id: d.id,
+                        sessionNum: dataPoints.length - i,
+                        score: d.confidence_score?.toFixed(1)
+                      })}
+                    >
+                      <video
+                        className="dash-m-video-thumb"
+                        playsInline
+                        webkit-playsinline="true"
+                        preload="auto"
+                        muted
+                        src={videoUrl}
+                      />
+                      <div className="dash-m-video-overlay">
+                        <div className="dash-m-play-btn">▶ Play Video</div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="dash-m-no-video">No video recorded</div>
+                  )}
+
+                  <div className="dash-m-stats-row">
+                    <div className="dash-m-stat">
+                      <span className="dash-m-stat-icon">👁</span>
+                      <span className="dash-m-stat-val">{d.eye_contact_percentage?.toFixed(0)}%</span>
+                      <span className="dash-m-stat-lbl">Eye Contact</span>
+                    </div>
+                    <div className="dash-m-stat">
+                      <span className="dash-m-stat-icon">🧍</span>
+                      <span className="dash-m-stat-val">{d.posture_percentage?.toFixed(0)}%</span>
+                      <span className="dash-m-stat-lbl">Posture</span>
+                    </div>
+                    <div className="dash-m-stat">
+                      <span className="dash-m-stat-icon">😊</span>
+                      <span className="dash-m-stat-val">{d.smile_percentage?.toFixed(0)}%</span>
+                      <span className="dash-m-stat-lbl">Smile</span>
+                    </div>
+                  </div>
+
+                  <div className="dash-m-actions">
+                    <button
+                      className="dash-m-analytics-btn"
+                      onClick={() => navigate(`/video/${d.id}`)}
+                    >
+                      📊 View Session Analytics
+                    </button>
+                    <button
+                      className="dash-delete-btn"
+                      onClick={() => handleDelete(d.id)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -586,6 +703,52 @@ function Dashboard() {
               <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
             </svg>
           </button>
+        </div>
+      )}
+
+      {/* Video Preview Modal */}
+      {activePreviewVideo && (
+        <div className="dash-modal-backdrop" onClick={() => setActivePreviewVideo(null)}>
+          <div className="dash-modal-box" onClick={(e) => e.stopPropagation()}>
+            <div className="dash-modal-header">
+              <div>
+                <h3 className="dash-modal-title">Session #{activePreviewVideo.sessionNum} Video</h3>
+                <span className="dash-modal-sub">Confidence Score: {activePreviewVideo.score}/100</span>
+              </div>
+              <button
+                className="dash-modal-close"
+                onClick={() => setActivePreviewVideo(null)}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="dash-modal-body">
+              <video
+                controls
+                autoPlay
+                playsInline
+                webkit-playsinline="true"
+                preload="auto"
+                className="dash-modal-video"
+                src={activePreviewVideo.url}
+              >
+                <source src={activePreviewVideo.url} type="video/mp4" />
+                Your browser does not support video playback.
+              </video>
+            </div>
+            <div className="dash-modal-footer">
+              <button
+                className="dash-analytics-btn dash-modal-action-btn"
+                onClick={() => {
+                  navigate(`/video/${activePreviewVideo.id}`);
+                  setActivePreviewVideo(null);
+                }}
+              >
+                📊 Open Full Session Analytics
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

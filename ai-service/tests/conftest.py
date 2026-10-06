@@ -126,6 +126,14 @@ def client(db_session):
         yield c
 
 
+@pytest.fixture(autouse=True)
+def mock_email_service(monkeypatch):
+    """Stub email_service network calls in main.py for endpoint tests."""
+    import main
+    monkeypatch.setattr(main, "check_gmail_exists", lambda email: (True, "OK"))
+    monkeypatch.setattr(main, "send_otp_email", lambda email, otp: True)
+
+
 @pytest.fixture()
 def verified_user(db_session):
     """Pre-verified user in the per-test DB."""
@@ -134,7 +142,7 @@ def verified_user(db_session):
 
     pwd = CryptContext(schemes=["argon2"], deprecated="auto")
     user = User(
-        email="test@example.com",
+        email="testuser@gmail.com",
         password=pwd.hash("TestPass123!"),
         is_verified=True,
     )

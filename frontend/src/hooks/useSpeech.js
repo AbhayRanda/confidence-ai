@@ -83,8 +83,8 @@ function pickVoice() {
 }
 
 // ── Step 7: ElevenLabs TTS via backend proxy ──────────────────
-const API_BASE = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000';
-const DEFAULT_VOICE_ID = '21m00Tcm4TlvDq8ikWAM'; // Rachel — reliable on all ElevenLabs plans
+const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+const DEFAULT_VOICE_ID = 'EXAVITQu4vr4xnSDxMaL'; // Sarah — natural, expressive, free-tier supported
 
 async function speakViaBackend(text, onStart, onEnd, onSilentFallback, onDisableBackend) {
   try {

@@ -18,7 +18,9 @@
  * ─────────────────────────────────────────────────────────────
  */
 
-export const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000';
+export const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+
+export const WS_BASE_URL = process.env.REACT_APP_WS_URL || 'ws://localhost:8000';
 
 /**
  * Dispatch a custom event that App.js listens to in order to
@@ -55,6 +57,8 @@ export async function apiFetch(endpoint, options = {}) {
     // Session expired or token invalid — clear credentials and notify
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('avatar');
+    localStorage.removeItem('userProfile');
     notifySessionExpired();
     // Return the response so callers can still read error bodies if needed
     return response;

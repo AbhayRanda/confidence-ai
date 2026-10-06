@@ -9,8 +9,7 @@ import { useChat } from "../hooks/useChat";
 import { ChatPanel } from "../components/ChatPanel";
 import { IdealPerformanceDemo } from "./IdealPerformanceDemo";
 
-const API_BASE_URL  = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
-const WS_BASE_URL   = process.env.REACT_APP_WS_URL  || "ws://127.0.0.1:8000";
+import { API_BASE_URL, WS_BASE_URL } from "../utils/api";
 const API_ENDPOINTS = {
   dashboard: `${API_BASE_URL}/dashboard`,
   analyze:   `${API_BASE_URL}/analyze`,
@@ -303,19 +302,47 @@ function AIDashboard() {
       setLiveFillers(0);
       speech.resetFillerCount?.();
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: { ideal: 1280 }, height: { ideal: 720 } },
-        audio: true,
-      });
-      videoRef.current.srcObject = stream;
-      videoRef.current.play();
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        toast.error("Camera/Mic blocked: Mobile browsers require an HTTPS (secure) connection.");
+        return;
+      }
 
-      const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9")
-        ? "video/webm;codecs=vp9"
-        : MediaRecorder.isTypeSupported("video/webm")
-        ? "video/webm" : "video/mp4";
+      // Step 1: Request camera & mic with smart fallback for mobile phones
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: true,
+        });
+      } catch (constraintErr) {
+        console.warn("[Camera] Retrying with generic mobile constraints:", constraintErr);
+        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      }
 
-      const recorder = new MediaRecorder(stream, { mimeType });
+      // Step 2: Attach stream and play muted (mandatory for mobile browsers to allow autoplay)
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.muted = true;
+        try {
+          await videoRef.current.play();
+        } catch (playErr) {
+          console.warn("[Video] Autoplay warning:", playErr);
+        }
+      }
+
+      // Step 3: Determine supported MIME type (safely handles iOS Safari & Android Chrome)
+      let recorderOptions = {};
+      if (typeof MediaRecorder !== "undefined") {
+        if (MediaRecorder.isTypeSupported?.("video/webm;codecs=vp9")) {
+          recorderOptions = { mimeType: "video/webm;codecs=vp9" };
+        } else if (MediaRecorder.isTypeSupported?.("video/webm")) {
+          recorderOptions = { mimeType: "video/webm" };
+        } else if (MediaRecorder.isTypeSupported?.("video/mp4")) {
+          recorderOptions = { mimeType: "video/mp4" };
+        }
+      }
+
+      const recorder = new MediaRecorder(stream, recorderOptions);
       let chunks = [];
       recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
       recorder.onstop = () => {
@@ -348,9 +375,16 @@ function AIDashboard() {
         });
       }, 1000);
     } catch (err) {
-      if (err.name === "NotAllowedError") toast.error("Camera/microphone access denied.");
-      else if (err.name === "NotFoundError") toast.error("Camera or microphone not found.");
-      else toast.error(`Recording failed: ${err.message}`);
+      console.error("[Recording Error]", err);
+      if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
+        toast.error("Camera/Mic permission denied. Please tap the lock icon in the address bar and allow Camera & Microphone.");
+      } else if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
+        toast.error("Camera or microphone not found on this device.");
+      } else if (err.name === "NotReadableError" || err.name === "TrackStartError") {
+        toast.error("Camera is in use by another app. Please close other camera apps.");
+      } else {
+        toast.error(`Recording failed: ${err.message || err.name || "Unknown error"}`);
+      }
     }
   };
 

@@ -16,7 +16,7 @@ import { useState, useCallback, useEffect } from 'react';
 
 const STORAGE_KEY   = 'confidence_ai_profile';
 const PROFILE_EVENT = 'confidence_ai_profile_change';
-const API_BASE      = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000';
+const API_BASE      = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 function readLocal() {
   try {

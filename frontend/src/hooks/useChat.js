@@ -20,7 +20,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { useUserProfile, buildProfilePrompt } from './useUserProfile';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000';
+import { API_BASE_URL } from '../utils/api';
 
 // ── Emotion → character state mapping ────────────────────────
 const EMOTION_TO_STATE = {

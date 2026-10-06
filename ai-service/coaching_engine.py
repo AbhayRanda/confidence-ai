@@ -26,13 +26,27 @@ import httpx
 logger = logging.getLogger("confidence_ai.coaching_engine")
 
 # ── Gemini Models & REST Configuration ───────────────────────
-GEMINI_MODELS = [
-    "gemini-robotics-er-2-preview",  # Fast (2-3s), verified working with SSE and generateContent
-    "gemini-3.5-flash",              # Verified working
-    "gemini-3.8-flash",              # Gemini 3.8 Flash
+_DEFAULT_MODELS = [
+    "gemini-3.5-flash-lite",         # Primary: 500 RPM, 15 concurrency — ultra-low latency & high throughput
+    "gemini-3.5-flash",              # Balanced fallback (20 RPM)
+    "gemini-3.6-flash",              # High quality coaching & report analysis (20 RPM)
+    "gemini-3.7-flash",              # Fresh quota fallback (20 RPM)
     "gemini-flash-latest",           # General fallback
-    "gemma-4-26b-a4b-it",            # Fast open model fallback
+    "gemma-4-26b-a4b-it",            # Ultimate high-capacity fallback (14,400 RPM)
 ]
+
+try:
+    from config import get_settings
+    _preferred = get_settings().gemini_model
+    if _preferred and _preferred in _DEFAULT_MODELS:
+        GEMINI_MODELS = [_preferred] + [m for m in _DEFAULT_MODELS if m != _preferred]
+    elif _preferred:
+        GEMINI_MODELS = [_preferred] + _DEFAULT_MODELS
+    else:
+        GEMINI_MODELS = _DEFAULT_MODELS
+except Exception:
+    GEMINI_MODELS = _DEFAULT_MODELS
+
 _GENAI_AVAILABLE = True
 
 
@@ -282,42 +296,40 @@ def _build_system_prompt(context: Optional[dict], system_prompt_override: Option
         )
 
     lines = [base]
+    ctx = context or {}
 
-    if context:
-        score = context.get("confidence_score")
-        if score is not None:
-            lines.append(f"\nUser's latest session metrics:")
-            lines.append(f"  Overall confidence score: {score:.1f}/100")
-            metric_map = {
-                "Eye Contact":   context.get("eye_contact_percentage"),
-                "Smile":         context.get("smile_percentage"),
-                "Posture":       context.get("posture_percentage"),
-                "Hand Movement": context.get("hand_movement_percentage"),
-                "Speech Score":  context.get("speech_score"),
-                "Filler Words":  context.get("filler_word_count"),
-                "Words/Min":     context.get("words_per_minute"),
-            }
-            for k, v in metric_map.items():
-                if v is not None:
-                    lines.append(f"  {k}: {v}")
-            lines.append("Use these metrics to personalise your advice when relevant.")
-        else:
-            lines.append("\nIMPORTANT: No session metrics available. If asked about scores or performance, tell the user you have no data yet and ask them to record a session first.")
+    score = ctx.get("confidence_score")
+    if score is not None:
+        lines.append(f"\nUser's latest session metrics:")
+        lines.append(f"  Overall confidence score: {score:.1f}/100")
+        metric_map = {
+            "Eye Contact":   ctx.get("eye_contact_percentage"),
+            "Smile":         ctx.get("smile_percentage"),
+            "Posture":       ctx.get("posture_percentage"),
+            "Hand Movement": ctx.get("hand_movement_percentage"),
+            "Speech Score":  ctx.get("speech_score"),
+            "Filler Words":  ctx.get("filler_word_count"),
+            "Words/Min":     ctx.get("words_per_minute"),
+        }
+        for k, v in metric_map.items():
+            if v is not None:
+                lines.append(f"  {k}: {v}")
+        lines.append("Use these metrics to personalise your advice when relevant.")
     else:
         lines.append("\nIMPORTANT: No session metrics available. If asked about scores or performance, tell the user you have no data yet and ask them to record a session first.")
 
-        # Live vision context
-        live_parts = []
-        if context.get("smiling") is not None:
-            live_parts.append(f"user is {'smiling' if context['smiling'] else 'not smiling'}")
-        if context.get("eye_contact") is not None:
-            live_parts.append(f"user {'has' if context['eye_contact'] else 'lacks'} eye contact")
-        if context.get("gesture"):
-            live_parts.append(f"user is making a {context['gesture']} gesture")
-        if context.get("detected_objects"):
-            live_parts.append(f"visible objects: {', '.join(context['detected_objects'])}")
-        if live_parts:
-            lines.append(f"\nLive camera context: {'; '.join(live_parts)}.")
+    # Live vision context
+    live_parts = []
+    if ctx.get("smiling") is not None:
+        live_parts.append(f"user is {'smiling' if ctx['smiling'] else 'not smiling'}")
+    if ctx.get("eye_contact") is not None:
+        live_parts.append(f"user {'has' if ctx['eye_contact'] else 'lacks'} eye contact")
+    if ctx.get("gesture"):
+        live_parts.append(f"user is making a {ctx['gesture']} gesture")
+    if ctx.get("detected_objects"):
+        live_parts.append(f"visible objects: {', '.join(ctx['detected_objects'])}")
+    if live_parts:
+        lines.append(f"\nLive camera context: {'; '.join(live_parts)}.")
 
     # Emotion tag — always LAST, AFTER all content (including any required interview question).
     # It is a trailing annotation only, never a substitute for required content.
@@ -389,7 +401,7 @@ def _llm_response(
         return None
 
     except Exception as e:
-        logger.warning(f"Gemini call failed ({type(e).__name__}): {e} — using fallback")
+        logger.warning(f"Gemini call failed ({type(e).__name__}): {e} -- using fallback")
         return None
 
 
@@ -461,12 +473,12 @@ def _llm_stream(
                 continue
 
         if not streamed_any:
-            logger.warning("Gemini streaming failed — using fallback")
+            logger.warning("Gemini streaming failed -- using fallback")
             result = _rule_based_response(message, context)
             yield result["response"]
 
     except Exception as e:
-        logger.warning(f"Gemini stream failed ({type(e).__name__}): {e} — using fallback")
+        logger.warning(f"Gemini stream failed ({type(e).__name__}): {e} -- using fallback")
         result = _rule_based_response(message, context)
         yield result["response"]
 

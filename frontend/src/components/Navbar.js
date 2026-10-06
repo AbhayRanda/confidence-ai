@@ -6,7 +6,7 @@ import { UserOnboardingModal } from "./UserOnboardingModal";
 
 import ThemeSwitcher from "./ThemeSwitcher";
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
+import { API_BASE_URL } from "../utils/api";
 
 const NAV_ITEMS = [
   {
@@ -74,6 +74,8 @@ function Navbar() {
     } finally {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
+      localStorage.removeItem("avatar");
+      localStorage.removeItem("userProfile");
       navigate("/login");
     }
   };

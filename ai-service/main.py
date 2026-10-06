@@ -29,6 +29,7 @@ from video_analyzer import VideoAnalyzer
 from coaching_engine import generate_response, generate_response_stream, generate_analysis_report
 from auth import create_access_token, get_current_user  # JWT auth
 from progress_manager import progress_manager             # WebSocket progress
+from email_service import send_otp_email, check_gmail_exists  # Real Gmail OTP sender & MX verification
 
 
 # ── Pydantic models ───────────────────────────────────────────
@@ -119,8 +120,9 @@ app.mount("/uploads", StaticFiles(directory=settings.upload_folder), name="uploa
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[origin.strip() for origin in settings.allowed_origins.split(',')],
+    allow_origin_regex=r"^https?://.*",
     allow_credentials=True,
-    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
@@ -182,13 +184,12 @@ def home() -> dict:
 # ═══════════════ TTS PROXY (ElevenLabs) ══════════════════════
 
 # ElevenLabs voice IDs available on ALL plans (including free):
-#   Rachel  → 21m00Tcm4TlvDq8ikWAM  (warm, clear female)
-#   Adam    → pNInz6obpgDQGcFmaJgB   (confident male)
-#
-# IMPORTANT: "eleven_turbo_v2_5" and library voices require a paid plan.
-# "eleven_monolingual_v1" works on the free tier.
-DEFAULT_VOICE_ID  = "21m00Tcm4TlvDq8ikWAM"   # Rachel — available on all plans
-DEFAULT_TTS_MODEL = "eleven_monolingual_v1"    # Free-tier compatible model
+#   Sarah   → EXAVITQu4vr4xnSDxMaL   (clear, expressive female — free-tier supported)
+#   Adam    → pNInz6obpgDQGcFmaJgB   (confident male — free-tier supported)
+#   Alice   → Xb7hH8MSUJpSbSDYk0k2   (natural British/clear female — free-tier supported)
+# Note: Rachel was migrated to library voices and requires a paid plan via API.
+DEFAULT_VOICE_ID  = "EXAVITQu4vr4xnSDxMaL"   # Sarah — available on all plans including free
+DEFAULT_TTS_MODEL = "eleven_flash_v2_5"      # Free-tier compatible, low-latency model
 
 # Track quota exhaustion in memory (resets on server restart, but startup probe re-validates)
 _tts_quota_exhausted = False
@@ -211,19 +212,27 @@ async def _probe_elevenlabs() -> None:
                 headers={"xi-api-key": api_key},
             )
         if resp.status_code == 401:
+            try:
+                err_data = resp.json()
+                # If key is valid but created without the granular user_read permission scope
+                if isinstance(err_data.get("detail"), dict) and err_data["detail"].get("status") == "missing_permissions":
+                    logger.info("[TTS Probe] ElevenLabs API key is active (granular permissions enabled) [OK]")
+                    return
+            except Exception:
+                pass
             _tts_quota_exhausted = True
-            logger.warning("[TTS Probe] ElevenLabs API key is invalid (401) — backend TTS disabled.")
+            logger.warning("[TTS Probe] ElevenLabs API key is invalid (401) -- backend TTS disabled.")
             return
         if resp.status_code != 200:
-            logger.warning(f"[TTS Probe] Subscription check returned {resp.status_code} — TTS will try anyway.")
+            logger.warning(f"[TTS Probe] Subscription check returned {resp.status_code} -- TTS will try anyway.")
             return
         data = resp.json()
         tier            = data.get("tier", "unknown")
         char_remaining  = data.get("character_limit", 0) - data.get("character_count", 0)
-        logger.info(f"[TTS Probe] ElevenLabs plan='{tier}' chars_remaining={char_remaining} ✅")
+        logger.info(f"[TTS Probe] ElevenLabs plan='{tier}' chars_remaining={char_remaining} [OK]")
         if char_remaining <= 0:
             _tts_quota_exhausted = True
-            logger.warning("[TTS Probe] ElevenLabs character quota exhausted — backend TTS disabled.")
+            logger.warning("[TTS Probe] ElevenLabs character quota exhausted -- backend TTS disabled.")
     except Exception as e:
         logger.warning(f"[TTS Probe] Could not reach ElevenLabs: {e}")
 
@@ -311,7 +320,7 @@ async def tts_proxy(body: TTSRequest) -> StreamingResponse:
                             "library_voice" in err_body.lower()
             if is_plan_error or resp.status_code == 429:
                 _tts_quota_exhausted = True
-                logger.info("ElevenLabs TTS disabled for this session — falling back to browser Web Speech API")
+                logger.info("ElevenLabs TTS disabled for this session -- falling back to browser Web Speech API")
                 raise HTTPException(status_code=503, detail="ElevenLabs unavailable — using browser TTS")
 
             raise HTTPException(
@@ -400,11 +409,14 @@ def _remux_to_mp4(webm_path: str) -> str:
         "-analyzeduration", "100M",     # scan more data for stream info
         "-probesize",       "100M",
         "-i", webm_path,                # input WebM
-        # Copy streams — no re-encode (fast, lossless quality)
-        "-c:v", "copy",
+        # Encode with H.264 (yuv420p) for 100% iOS Safari and universal mobile playback
+        "-c:v", "libx264",
+        "-preset", "ultrafast",
+        "-crf", "23",
+        "-pix_fmt", "yuv420p",
         "-c:a", "aac",                  # re-encode audio: webm opus → aac
         "-b:a", "128k",
-        "-movflags", "+faststart",      # move moov atom to front of MP4
+        "-movflags", "+faststart",      # move moov atom to front of MP4 for instant mobile playback
         mp4_path,
     ]
 
@@ -416,7 +428,7 @@ def _remux_to_mp4(webm_path: str) -> str:
             timeout=120,
         )
         if proc.returncode == 0 and os.path.exists(mp4_path) and os.path.getsize(mp4_path) > 0:
-            logger.info(f"[Remux] WebM → MP4 succeeded: {mp4_path}")
+            logger.info(f"[Remux] WebM -> MP4 succeeded: {mp4_path}")
             # Remove the original WebM to save space
             try:
                 os.remove(webm_path)
@@ -522,14 +534,8 @@ async def analyze_video(
             db.refresh(db_result)
             logger.info(f"Analysis result stored with ID: {db_result.id}")
 
-            # Auto-delete uploaded video to free disk space
-            # Metrics are now safely in the DB — raw video is no longer needed
-            try:
-                if os.path.exists(file_path):
-                    os.remove(file_path)
-                    logger.info(f"Auto-deleted video after analysis: {file_path}")
-            except Exception as del_err:
-                logger.warning(f"Could not delete video {file_path}: {del_err}")
+            # Video is kept in uploads directory for session playback and preview
+            # Storage limit is managed via user quota (500MB) and delete endpoint
 
             # Step 3+6: Fetch previous sessions for trend data
             previous_sessions = db.query(AnalysisResult).filter(
@@ -1030,6 +1036,10 @@ def delete_video(video_id: int, current_user: User = Depends(get_current_user)) 
 
 # ═══════════════ USER AUTHENTICATION ═════════════════════════
 
+# Google Gmail rules: 6-30 characters, letters/numbers/dots, no consecutive dots
+GMAIL_REGEX = re.compile(r"^(?!.*\.\.)[a-z0-9][a-z0-9.]{4,28}[a-z0-9]@gmail\.com$", re.IGNORECASE)
+
+
 class SignupRequest(BaseModel):
     """Request body for /signup — credentials in JSON body, never in URL"""
     email: str
@@ -1038,38 +1048,122 @@ class SignupRequest(BaseModel):
 
 @app.post("/signup")
 def signup(req: SignupRequest) -> dict:
-    """Register a new user with email and password"""
-    # ── Validate email ────────────────────────────────
+    """Register a new user with real Gmail and send 6-digit OTP to their inbox"""
+    # ── 1. Strictly enforce real Google Gmail format (6-30 chars) ──
     email = (req.email or "").strip().lower()
-    if not email or "@" not in email or "." not in email.split("@")[-1]:
-        raise HTTPException(status_code=400, detail="Please enter a valid email address")
+    if not email or not GMAIL_REGEX.match(email):
+        raise HTTPException(
+            status_code=400,
+            detail="Please enter a valid Gmail address (6–30 characters, e.g. yourname@gmail.com).",
+        )
     if len(req.password) < 6:
-        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters.")
+
+    # ── 2. Live verification directly with Google MX servers ───────
+    exists, err_msg = check_gmail_exists(email)
+    if not exists:
+        raise HTTPException(status_code=400, detail=err_msg)
 
     db = SessionLocal()
     try:
         existing_user = db.query(User).filter(User.email == email).first()
-        if existing_user:
-            raise HTTPException(status_code=400, detail="Email already registered")
+        if existing_user and existing_user.is_verified:
+            raise HTTPException(status_code=400, detail="This Gmail is already registered. Please sign in.")
 
-        otp        = str(random.randint(100000, 999999))
-        otp_expiry = datetime.utcnow() + timedelta(minutes=5)
-        new_user   = User(
-            email=email, password=hash_password(req.password),
-            otp=otp, otp_expiry=otp_expiry, is_verified=False,
-        )
-        db.add(new_user)
+        otp = str(random.randint(100000, 999999))
+        otp_expiry = datetime.utcnow() + timedelta(minutes=10)
+
+        # ── 3. Deliver OTP directly to the user's Gmail inbox ─────
+        email_sent = send_otp_email(email, otp)
+        if not email_sent:
+            raise HTTPException(
+                status_code=400,
+                detail="Could not deliver verification email to this Gmail address. Please check that the Gmail address is active and spelled correctly.",
+            )
+
+        # ── 4. Only save account after email delivery succeeds ─────
+        if existing_user:
+            existing_user.password = hash_password(req.password)
+            existing_user.otp = otp
+            existing_user.otp_expiry = otp_expiry
+        else:
+            new_user = User(
+                email=email,
+                password=hash_password(req.password),
+                otp=otp,
+                otp_expiry=otp_expiry,
+                is_verified=False,
+            )
+            db.add(new_user)
+
         db.commit()
-        db.refresh(new_user)
-        logger.info(f"New user registered: {email}")
-        return {"message": "User created", "dev_otp": otp}
+        logger.info(f"New user registered, verification OTP delivered to inbox: {email}")
+
+        res = {
+            "message": f"Verification code sent to {email}. Please check your Gmail inbox.",
+            "email": email,
+        }
+        if settings.api_reload:
+            res["dev_otp"] = otp
+        return res
 
     except HTTPException:
+        db.rollback()
         raise
     except Exception as e:
         db.rollback()
         logger.error(f"Error during signup: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Error creating user")
+        raise HTTPException(status_code=500, detail="Error creating user account.")
+    finally:
+        db.close()
+
+
+class ResendOTPRequest(BaseModel):
+    """Request body for /resend-otp"""
+    email: str
+
+
+@app.post("/resend-otp")
+def resend_otp(req: ResendOTPRequest) -> dict:
+    """Resend a fresh 6-digit verification code to the user's Gmail"""
+    email = (req.email or "").strip().lower()
+    if not email or not GMAIL_REGEX.match(email):
+        raise HTTPException(status_code=400, detail="Only valid @gmail.com addresses are allowed.")
+
+    # ── Live verification directly with Google MX servers ───────
+    exists, err_msg = check_gmail_exists(email)
+    if not exists:
+        raise HTTPException(status_code=400, detail=err_msg)
+
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.email == email).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="Account not found. Please sign up first.")
+        if user.is_verified:
+            raise HTTPException(status_code=400, detail="This account is already verified. Please sign in.")
+
+        otp = str(random.randint(100000, 999999))
+        email_sent = send_otp_email(email, otp)
+        if not email_sent:
+            raise HTTPException(
+                status_code=400,
+                detail="Could not deliver verification email. Please ensure this Gmail address exists and is active.",
+            )
+
+        user.otp = otp
+        user.otp_expiry = datetime.utcnow() + timedelta(minutes=10)
+        db.commit()
+
+        logger.info(f"Verification OTP resent to: {email}")
+        return {"message": f"A new verification code was sent to {email}."}
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error during resend OTP: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Error resending verification code.")
     finally:
         db.close()
 
@@ -1083,28 +1177,31 @@ class VerifyOTPRequest(BaseModel):
 @app.post("/verify-otp")
 def verify_otp(req: VerifyOTPRequest) -> dict:
     """Verify OTP for email confirmation"""
+    email = (req.email or "").strip().lower()
+    otp = (req.otp or "").strip()
+
     db = SessionLocal()
     try:
-        user = db.query(User).filter(User.email == req.email).first()
+        user = db.query(User).filter(User.email == email).first()
         if not user:
-            raise HTTPException(status_code=404, detail="User not found")
-        if user.otp != req.otp:
-            raise HTTPException(status_code=400, detail="Invalid OTP")
+            raise HTTPException(status_code=404, detail="User not found.")
+        if user.otp != otp:
+            raise HTTPException(status_code=400, detail="Invalid verification code. Please check your Gmail.")
         if not user.otp_expiry or datetime.utcnow() > user.otp_expiry:
-            raise HTTPException(status_code=400, detail="OTP expired")
+            raise HTTPException(status_code=400, detail="Verification code has expired. Please request a new one.")
 
         user.is_verified = True
         user.otp         = None
         user.otp_expiry  = None
         db.commit()
-        logger.info(f"User verified: {req.email}")
-        return {"message": "Email verified successfully"}
+        logger.info(f"User verified: {email}")
+        return {"message": "Email verified successfully!"}
 
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error during OTP verification: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Error verifying OTP")
+        raise HTTPException(status_code=500, detail="Error verifying code.")
     finally:
         db.close()
 
@@ -1169,6 +1266,184 @@ def logout() -> dict:
     The client must discard its access_token on receipt of this response.
     """
     return {"message": "Logged out successfully"}
+
+
+# ═══════════════ GOOGLE OAUTH2 ════════════════════════════════
+
+from fastapi.responses import RedirectResponse
+import urllib.parse
+
+GOOGLE_AUTH_URL   = "https://accounts.google.com/o/oauth2/v2/auth"
+GOOGLE_TOKEN_URL  = "https://oauth2.googleapis.com/token"
+GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
+GOOGLE_SCOPES     = "openid email profile"
+
+
+@app.get("/auth/google")
+def google_auth_redirect():
+    """
+    Step 1 — Redirect the browser to Google's OAuth consent screen.
+    Called by the frontend when the user clicks "Sign in with Google".
+    """
+    if not settings.google_client_id:
+        raise HTTPException(
+            status_code=503,
+            detail="Google OAuth is not configured. Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to .env"
+        )
+
+    redirect_uri = f"{settings.frontend_url.rstrip('/')}/auth/callback".replace(
+        "localhost:3000", "localhost:8000"
+    )
+    # The redirect_uri must point to OUR backend callback, not the frontend
+    backend_redirect_uri = f"http://localhost:8000/auth/google/callback"
+
+    params = {
+        "client_id":     settings.google_client_id,
+        "redirect_uri":  backend_redirect_uri,
+        "response_type": "code",
+        "scope":         GOOGLE_SCOPES,
+        "access_type":   "offline",
+        "prompt":        "select_account",  # always show account picker
+    }
+    url = f"{GOOGLE_AUTH_URL}?{urllib.parse.urlencode(params)}"
+    logger.info("Redirecting to Google OAuth consent screen")
+    return RedirectResponse(url=url)
+
+
+@app.get("/auth/google/callback")
+async def google_auth_callback(code: Optional[str] = Query(None), error: Optional[str] = Query(None)):
+    """
+    Step 2 — Google redirects back here with an authorization code.
+    We exchange the code for an access token, fetch the user's profile,
+    upsert a User row, issue our own JWT, and redirect to the frontend.
+    """
+    frontend_base = settings.frontend_url.rstrip("/")
+
+    if error:
+        logger.warning(f"Google OAuth error: {error}")
+        return RedirectResponse(url=f"{frontend_base}/login?error=google_denied")
+
+    if not code:
+        logger.warning("Google OAuth callback called without code")
+        return RedirectResponse(url=f"{frontend_base}/login?error=missing_code")
+
+    backend_redirect_uri = "http://localhost:8000/auth/google/callback"
+
+    # ── Exchange code for tokens ───────────────────────────────
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            token_resp = await client.post(
+                GOOGLE_TOKEN_URL,
+                data={
+                    "code":          code,
+                    "client_id":     settings.google_client_id,
+                    "client_secret": settings.google_client_secret,
+                    "redirect_uri":  backend_redirect_uri,
+                    "grant_type":    "authorization_code",
+                },
+                headers={"Accept": "application/json"},
+            )
+            token_data = token_resp.json()
+
+        if "error" in token_data:
+            logger.error(f"Google token exchange failed: {token_data}")
+            return RedirectResponse(url=f"{frontend_base}/login?error=token_exchange_failed")
+
+        google_access_token = token_data.get("access_token")
+
+        # ── Fetch user profile ─────────────────────────────────
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            userinfo_resp = await client.get(
+                GOOGLE_USERINFO_URL,
+                headers={"Authorization": f"Bearer {google_access_token}"},
+            )
+            userinfo = userinfo_resp.json()
+
+    except Exception as exc:
+        logger.error(f"Google OAuth network error: {exc}", exc_info=True)
+        return RedirectResponse(url=f"{frontend_base}/login?error=network_error")
+
+    google_id  = userinfo.get("sub")
+    email      = (userinfo.get("email") or "").lower()
+    name       = userinfo.get("name")
+    avatar_url = userinfo.get("picture")
+
+    if not google_id or not email:
+        logger.error(f"Google returned incomplete userinfo: {userinfo}")
+        return RedirectResponse(url=f"{frontend_base}/login?error=incomplete_profile")
+
+    # ── Upsert user in database ───────────────────────────────
+    db = SessionLocal()
+    try:
+        # Try to find by google_id first, then by email
+        user = db.query(User).filter(User.google_id == google_id).first()
+        if not user:
+            user = db.query(User).filter(User.email == email).first()
+
+        if user:
+            # Existing user — update Google fields if this is their first Google login
+            if not user.google_id:
+                user.google_id     = google_id
+                user.auth_provider = "google"
+            if avatar_url:
+                user.avatar_url = avatar_url
+            if name and not user.name:
+                user.name = name
+            user.is_verified  = True  # Google accounts are pre-verified
+            user.last_login   = datetime.utcnow()
+            db.commit()
+            logger.info(f"Existing user signed in via Google: {email}")
+        else:
+            # New user — create account (no password needed)
+            user = User(
+                email=email,
+                password=None,
+                google_id=google_id,
+                auth_provider="google",
+                avatar_url=avatar_url,
+                name=name,
+                is_verified=True,
+                last_login=datetime.utcnow(),
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+            logger.info(f"New Google user created: {email}")
+
+        # Issue our own JWT
+        import json as _json
+        access_token = create_access_token(data={"sub": str(user.id)})
+
+        # Build profile payload for frontend
+        profile_json = ""
+        if user.name:
+            profile = {
+                "name":            user.name,
+                "profession":      user.profession,
+                "industry":        user.industry,
+                "goal":            user.goal,
+                "experienceLevel": user.experience_level,
+                "weaknesses":      _json.loads(user.weaknesses) if user.weaknesses else [],
+            }
+            profile_json = urllib.parse.quote(_json.dumps(profile))
+
+        # Redirect to frontend with token in URL (frontend picks it up and stores in localStorage)
+        redirect_url = (
+            f"{frontend_base}/auth/callback"
+            f"?token={access_token}"
+            f"&email={urllib.parse.quote(email)}"
+            f"&avatar={urllib.parse.quote(avatar_url or '')}"
+            + (f"&profile={profile_json}" if profile_json else "")
+        )
+        return RedirectResponse(url=redirect_url)
+
+    except Exception as exc:
+        db.rollback()
+        logger.error(f"Google OAuth DB error: {exc}", exc_info=True)
+        return RedirectResponse(url=f"{frontend_base}/login?error=db_error")
+    finally:
+        db.close()
+
 
 
 # ═══════════════ USER PROFILE ═════════════════════════════
@@ -1268,7 +1543,7 @@ def chat(request: Request, req: ChatRequest) -> dict:
             api_key=settings.gemini_api_key,
             system_prompt=req.system_prompt or None,
         )
-        logger.info(f"Chat response — emotion: {result.get('emotion')}, llm: {bool(settings.gemini_api_key)}")
+        logger.info(f"Chat response -- emotion: {result.get('emotion')}, llm: {bool(settings.gemini_api_key)}")
         return result
     except Exception as e:
         logger.error(f"Error generating chat response: {str(e)}", exc_info=True)

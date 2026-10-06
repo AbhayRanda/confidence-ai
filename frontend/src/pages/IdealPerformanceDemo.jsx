@@ -24,7 +24,7 @@ import { VRMAvatar } from '../components/ai-character/VRMAvatar';
 import { CHARACTER_STATES } from '../components/ai-character/CharacterAnimations';
 import './IdealPerformanceDemo.css';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 const DEFAULT_VRM_URL = '/avatar1.vrm';
 
 // ── Ideal target values the demo avatar "achieves" ───────────

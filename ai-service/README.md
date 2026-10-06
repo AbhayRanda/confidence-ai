@@ -1,3 +1,13 @@
+---
+title: Confidence Ai Backend
+emoji: 🚀
+colorFrom: indigo
+colorTo: purple
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # Confidence AI - Backend Service
 
 AI-powered confidence analysis system using video analysis and speech recognition.

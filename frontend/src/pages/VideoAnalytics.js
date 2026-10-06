@@ -6,10 +6,9 @@ import {
 } from "chart.js";
 import { Bar } from "react-chartjs-2";
 import "./VideoAnalytics.css";
+import { API_BASE_URL } from "../utils/api";
 
 ChartJS.register(LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend, BarElement);
-
-const API_BASE_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
 
 function VideoAnalytics() {
   const { id } = useParams();
@@ -166,12 +165,41 @@ function VideoAnalytics() {
         {/* Video Player */}
         {videoData.video_path && (
           <div className="va-card">
-            <h2 className="va-card-title">
-              <span>📹</span> Video Playback
-            </h2>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
+              <h2 className="va-card-title" style={{ margin: 0 }}>
+                <span>📹</span> Video Playback
+              </h2>
+              <a
+                href={`${API_BASE_URL}/uploads/${videoData.video_path.replace(/\.webm$/i, '.mp4')}`}
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  fontSize: "12px",
+                  color: "var(--accent-light, #a78bfa)",
+                  textDecoration: "none",
+                  fontWeight: 600,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "4px"
+                }}
+              >
+                Open Video ↗
+              </a>
+            </div>
             <div className="va-video-wrapper">
-              <video controls className="va-video-player">
-                <source src={`${API_BASE_URL}/uploads/${videoData.video_path}`} />
+              <video
+                controls
+                playsInline
+                webkit-playsinline="true"
+                preload="auto"
+                className="va-video-player"
+                src={`${API_BASE_URL}/uploads/${videoData.video_path.replace(/\.webm$/i, '.mp4')}#t=0.001`}
+              >
+                <source
+                  src={`${API_BASE_URL}/uploads/${videoData.video_path.replace(/\.webm$/i, '.mp4')}#t=0.001`}
+                  type="video/mp4"
+                />
+                Your browser does not support this video format.
               </video>
             </div>
           </div>

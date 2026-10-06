@@ -28,6 +28,7 @@ class Settings(BaseSettings):
 
     # AI / LLM
     gemini_api_key: str = ""  # Optional — falls back to rule-based engine if empty
+    gemini_model: str = "gemini-3.5-flash-lite"  # Preferred model (500 RPM, 15 concurrency)
     elevenlabs_api_key: str = ""  # Optional — for high-quality TTS
     
     # Analysis Thresholds
@@ -55,9 +56,21 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60
 
+    # Google OAuth2
+    google_client_id: str = ""      # From Google Cloud Console
+    google_client_secret: str = "" # From Google Cloud Console
+    frontend_url: str = "http://localhost:3000"  # Where to redirect after OAuth
+
+    # SMTP Email Configuration (for OTP verification emails)
+    smtp_host: str = "smtp.gmail.com"
+    smtp_port: int = 587
+    smtp_user: str = ""           # Sender Gmail (e.g. yourname@gmail.com)
+    smtp_password: str = ""       # 16-character Google App Password
+    smtp_from_name: str = "ConfidenceAI"
+
     # Rate Limiting  (slowapi — per authenticated user)
     rate_limit_analyze: str = "5/hour"    # Video analysis  — heavy endpoint
-    rate_limit_chat: str    = "60/minute" # Chat/stream     — lightweight
+    rate_limit_chat: str    = "15/minute" # Chat/stream     — aligned with Gemini free tier 15 RPM
     
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -66,7 +79,6 @@ class Settings(BaseSettings):
     )
 
 
-@lru_cache()
 def get_settings() -> Settings:
-    """Get cached settings instance"""
+    """Get settings instance (always reads latest .env)"""
     return Settings()

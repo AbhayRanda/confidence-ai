@@ -9,6 +9,7 @@ import PageLoader from "./components/PageLoader";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import VerifyOTP from "./pages/VerifyOTP";
+import GoogleCallback from "./pages/GoogleCallback";
 import { UserOnboardingModal } from "./components/UserOnboardingModal";
 import { useUserProfile } from "./hooks/useUserProfile";
 import { ThemeProvider } from "./context/ThemeContext";
@@ -22,7 +23,7 @@ const Resources     = lazy(() => import("./pages/Resources"));
 const VideoAnalytics = lazy(() => import("./pages/VideoAnalytics"));
 const LiveAvatarChat = lazy(() => import("./pages/LiveAvatarChat"));
 
-const PUBLIC_ROUTES = ["/login", "/signup", "/verify"];
+const PUBLIC_ROUTES = ["/login", "/signup", "/verify", "/auth/callback"];
 
 // ── Inner shell (needs router context for useNavigate) ────────
 function AppShell() {
@@ -54,10 +55,11 @@ function AppShell() {
   if (isPublic) {
     return (
       <Routes>
-        <Route path="/login"  element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/verify" element={<VerifyOTP />} />
-        <Route path="*"       element={<Navigate to="/login" replace />} />
+        <Route path="/login"         element={<Login />} />
+        <Route path="/signup"        element={<Signup />} />
+        <Route path="/verify"        element={<VerifyOTP />} />
+        <Route path="/auth/callback" element={<GoogleCallback />} />
+        <Route path="*"              element={<Navigate to="/login" replace />} />
       </Routes>
     );
   }

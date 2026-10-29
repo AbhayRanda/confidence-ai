@@ -6,12 +6,12 @@ import cv2
 # no compiled DLLs (avoids Windows AppControl blocks on numba / ctranslate2).
 from moviepy import VideoFileClip
 try:
-    from mediapipe.python.solutions import pose as mp_pose
-except Exception as _err1:
+    import mediapipe as mp
+    mp_pose = getattr(mp.solutions, "pose", None)
+except Exception:
     try:
-        import mediapipe as mp
-        mp_pose = getattr(mp.solutions, "pose", None)
-    except Exception as _err2:
+        from mediapipe.python.solutions import pose as mp_pose
+    except Exception:
         mp_pose = None
 
 from typing import Any, Callable, Dict, List, Optional

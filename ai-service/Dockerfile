@@ -35,7 +35,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
 # Verify MediaPipe loads properly in build
-RUN python -c "from mediapipe.python.solutions import pose as mp_pose; p = mp_pose.Pose(); p.close(); print('MediaPipe pose: OK')"
+RUN python -c "import mediapipe as mp; print('MediaPipe version:', mp.__version__); p = mp.solutions.pose.Pose(); p.close(); print('MediaPipe pose: OK')"
 
 # Copy application source files
 COPY . .

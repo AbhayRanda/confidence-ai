@@ -15,11 +15,13 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # Install Linux system dependencies:
 # - ffmpeg: required by MoviePy for audio extraction
 # - libgl1 & libglib2.0-0: required by OpenCV headless
+# - libgomp1: required by MediaPipe (OpenMP)
 # - curl: for healthchecks
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     libgl1 \
     libglib2.0-0 \
+    libgomp1 \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
@@ -31,6 +33,9 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
+
+# Verify MediaPipe loads properly in build
+RUN python -c "from mediapipe.python.solutions import pose as mp_pose; p = mp_pose.Pose(); p.close(); print('MediaPipe pose: OK')"
 
 # Copy application source files
 COPY . .

@@ -7,11 +7,11 @@ import cv2
 from moviepy import VideoFileClip
 try:
     from mediapipe.python.solutions import pose as mp_pose
-except ImportError:
+except Exception as _err1:
     try:
         import mediapipe as mp
         mp_pose = getattr(mp.solutions, "pose", None)
-    except Exception:
+    except Exception as _err2:
         mp_pose = None
 
 from typing import Any, Callable, Dict, List, Optional
@@ -35,8 +35,10 @@ class VideoAnalyzer:
         
         # Initialize MediaPipe Pose
         self.mp_pose: Any = mp_pose
-        
-        logger.info("VideoAnalyzer initialized (cloud transcription mode)")
+        if self.mp_pose is not None:
+            logger.info("VideoAnalyzer initialized (MediaPipe pose enabled, cloud transcription mode)")
+        else:
+            logger.warning("VideoAnalyzer: MediaPipe pose is unavailable; using Haar-cascade visual fallback heuristics")
 
     # ------------------------------------------------------------------
     # Pure-Python audio transcription (no native DLLs)
@@ -171,6 +173,8 @@ class VideoAnalyzer:
                 "movement_stabilizer": []
             }
             
+            prev_gray = None
+
             while True:
                 ret, frame = cap.read()
                 if not ret:
@@ -296,6 +300,41 @@ class VideoAnalyzer:
                     metrics["prev_left_wrist"] = left_wrist
                     metrics["prev_right_wrist"] = right_wrist
                     metrics["prev_head_center"] = (head_center_x, head_center_y)
+                elif len(faces) > 0:
+                    # Robust fallback heuristics when pose landmarks are not detected in frame
+                    frame_height, frame_width = frame.shape[:2]
+                    fx, fy, fw, fh = faces[0]
+                    face_cx = (fx + fw / 2.0) / frame_width
+                    face_cy = (fy + fh / 2.0) / frame_height
+                    
+                    # Eye contact fallback from face centrality
+                    nose_h_dist = abs(face_cx - 0.5)
+                    nose_v_dist = abs(face_cy - 0.45)
+                    if nose_h_dist < 0.10 and nose_v_dist < 0.12:
+                        metrics["eye_contact_frames"] += 1.0
+                    elif nose_h_dist < 0.22 and nose_v_dist < 0.22:
+                        metrics["eye_contact_frames"] += 0.7
+                    else:
+                        metrics["eye_contact_frames"] += 0.3
+                        
+                    # Face straightness fallback: aspect ratio of face bounding box
+                    aspect = float(fw) / max(1, fh)
+                    if 0.80 <= aspect <= 1.25:
+                        metrics["straight_face_frames"] += 1
+                        
+                    # Posture fallback: face in healthy upper-center region and expected scale
+                    face_ratio = (fw * fh) / float(frame_width * frame_height)
+                    if 0.04 <= face_ratio <= 0.40 and 0.08 <= face_cy <= 0.65:
+                        metrics["good_posture_frames"] += 1
+                        
+                    # Motion/gesture fallback via frame differencing
+                    if prev_gray is not None:
+                        diff = cv2.absdiff(gray, prev_gray)
+                        motion_val = float((diff > 25).sum()) / float(frame_width * frame_height)
+                        if 0.015 < motion_val < 0.25:
+                            metrics["hand_movement_frames"] += 1
+
+                prev_gray = gray
             
             # Convert to percentages
             total = metrics["total_frames"] or 1
@@ -645,6 +684,23 @@ class VideoAnalyzer:
                             elif face_ratio > 0.35:
                                 frame_quality_score -= 10
                                 issues.append("Face too large - move away from camera")
+                    elif len(faces) > 0:
+                        (x, y, w, h) = faces[0]
+                        frame_height, frame_width = frame.shape[:2]
+                        face_cx = (x + w / 2.0) / frame_width
+                        face_cy = (y + h / 2.0) / frame_height
+                        nose_h_dist = abs(face_cx - 0.5)
+                        nose_v_dist = abs(face_cy - 0.45)
+                        if nose_h_dist > 0.18 or nose_v_dist > 0.22:
+                            frame_quality_score -= 12
+                            issues.append("Poor eye contact - face off-center")
+                        face_ratio = (w * h) / (frame_width * frame_height)
+                        if face_ratio < 0.04:
+                            frame_quality_score -= 10
+                            issues.append("Face too small - move closer to camera")
+                        elif face_ratio > 0.45:
+                            frame_quality_score -= 10
+                            issues.append("Face too large - move away from camera")
                 
                 time_seconds = frame_number / fps
                 frame_quality_score = max(0, frame_quality_score)

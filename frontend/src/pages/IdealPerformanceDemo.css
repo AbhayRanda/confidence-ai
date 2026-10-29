@@ -1,6 +1,6 @@
 /* ============================================================
    IdealPerformanceDemo.css
-   Premium styles for the AI Ideal Performance Demo feature
+   Modern, theme-adaptive styling matching Confidence AI
    ============================================================ */
 
 /* ── Overlay / Modal ──────────────────────────────────────── */
@@ -8,12 +8,12 @@
   position: fixed;
   inset: 0;
   z-index: 9000;
-  background: rgba(4, 2, 14, 0.92);
-  backdrop-filter: blur(18px) saturate(1.4);
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(12px) saturate(1.2);
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: ipd-fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: ipd-fadeIn 0.28s cubic-bezier(0.16, 1, 0.3, 1);
   padding: 20px;
 }
 
@@ -21,7 +21,6 @@
   from {
     opacity: 0;
   }
-
   to {
     opacity: 1;
   }
@@ -30,27 +29,24 @@
 .ipd-modal {
   position: relative;
   width: 100%;
-  max-width: 1200px;
-  height: 86vh;
-  max-height: 820px;
+  max-width: 1220px;
+  height: 88vh;
+  max-height: 860px;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(145deg, #0e0b1e 0%, #120c24 50%, #0a0718 100%);
-  border: 1px solid rgba(168, 130, 255, 0.18);
-  border-radius: 24px;
+  background: var(--bg-surface, #ffffff);
+  border: 1px solid var(--border-light, rgba(0, 0, 0, 0.08));
+  border-radius: var(--radius-xl, 24px);
   overflow: hidden;
-  box-shadow: 0 0 0 1px rgba(168, 130, 255, 0.06),
-    0 40px 120px rgba(0, 0, 0, 0.85),
-    0 0 80px rgba(130, 90, 255, 0.08) inset;
-  animation: ipd-slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 24px 72px -12px rgba(15, 23, 42, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  animation: ipd-slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes ipd-slideUp {
   from {
     opacity: 0;
-    transform: translateY(32px) scale(0.97);
+    transform: translateY(28px) scale(0.98);
   }
-
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -62,9 +58,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18px 28px 16px;
-  border-bottom: 1px solid rgba(168, 130, 255, 0.1);
-  background: linear-gradient(90deg, rgba(120, 80, 255, 0.06) 0%, transparent 60%);
+  padding: 16px 28px;
+  border-bottom: 1px solid var(--border-light, rgba(0, 0, 0, 0.06));
+  background: var(--bg-surface, #ffffff);
   flex-shrink: 0;
   gap: 16px;
 }
@@ -80,12 +76,12 @@
   align-items: center;
   gap: 8px;
   padding: 6px 14px;
-  background: linear-gradient(135deg, rgba(130, 90, 255, 0.22), rgba(80, 170, 255, 0.12));
-  border: 1px solid rgba(130, 90, 255, 0.3);
+  background: var(--badge-bg, rgba(13, 148, 136, 0.12));
+  border: 1px solid var(--border, rgba(13, 148, 136, 0.22));
   border-radius: 999px;
   font-size: 11.5px;
   font-weight: 700;
-  color: #c8a8ff;
+  color: var(--accent, #0d9488);
   letter-spacing: 0.5px;
   text-transform: uppercase;
 }
@@ -94,21 +90,18 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #a875ff;
-  box-shadow: 0 0 8px #a875ff;
+  background: var(--accent, #0d9488);
+  box-shadow: 0 0 8px var(--accent-glow, rgba(13, 148, 136, 0.4));
   animation: ipd-pulse 2s ease-in-out infinite;
 }
 
 @keyframes ipd-pulse {
-
-  0%,
-  100% {
+  0%, 100% {
     opacity: 1;
     transform: scale(1);
   }
-
   50% {
-    opacity: 0.6;
+    opacity: 0.5;
     transform: scale(0.85);
   }
 }
@@ -116,13 +109,13 @@
 .ipd-title {
   font-size: 18px;
   font-weight: 800;
-  color: #f0eaff;
+  color: var(--text-primary, #0f172a);
   letter-spacing: -0.4px;
 }
 
 .ipd-subtitle {
   font-size: 12.5px;
-  color: rgba(200, 180, 255, 0.5);
+  color: var(--text-secondary, #64748b);
   margin-top: 2px;
 }
 
@@ -136,37 +129,39 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.6);
+  border: 1px solid var(--border-light, rgba(0, 0, 0, 0.08));
+  background: var(--bg-elevated, #f1f5f9);
+  color: var(--text-secondary, #64748b);
   font-size: 18px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
+  transition: all var(--transition, 0.2s);
 }
 
 .ipd-close-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
-  border-color: rgba(255, 255, 255, 0.25);
+  background: var(--bg-hover, #e2e8f0);
+  color: var(--text-primary, #0f172a);
+  border-color: var(--border, rgba(0, 0, 0, 0.15));
 }
 
 /* ── Body layout (stage left + panel right) ──────────────── */
 .ipd-body {
   display: grid;
-  grid-template-columns: 1fr 340px;
+  grid-template-columns: 1fr 370px;
   flex: 1;
   overflow: hidden;
+  min-height: 0;
 }
 
 /* ── 3D Stage ─────────────────────────────────────────────── */
 .ipd-stage {
   position: relative;
   overflow: hidden;
-  background: radial-gradient(ellipse 70% 60% at 50% 40%, rgba(100, 60, 200, 0.12) 0%, transparent 65%),
-    linear-gradient(180deg, #080614 0%, #060412 100%);
+  background: radial-gradient(ellipse 70% 60% at 50% 45%, var(--accent-010, rgba(13, 148, 136, 0.08)) 0%, transparent 70%),
+    linear-gradient(180deg, var(--bg-base, #f8fafc) 0%, var(--bg-elevated, #f1f5f9) 100%);
+  border-right: 1px solid var(--border-light, rgba(0, 0, 0, 0.06));
 }
 
 /* Ambient grid floor */
@@ -174,10 +169,10 @@
   content: '';
   position: absolute;
   inset: 0;
-  background-image: linear-gradient(rgba(130, 90, 255, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(130, 90, 255, 0.04) 1px, transparent 1px);
-  background-size: 40px 40px;
-  mask-image: linear-gradient(to bottom, transparent 0%, black 40%, black 80%, transparent 100%);
+  background-image: linear-gradient(var(--border-light, rgba(0, 0, 0, 0.04)) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border-light, rgba(0, 0, 0, 0.04)) 1px, transparent 1px);
+  background-size: 36px 36px;
+  mask-image: linear-gradient(to bottom, transparent 0%, black 30%, black 80%, transparent 100%);
   pointer-events: none;
 }
 
@@ -187,9 +182,9 @@
   top: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: 300px;
-  height: 500px;
-  background: radial-gradient(ellipse at 50% 0%, rgba(150, 100, 255, 0.12) 0%, transparent 70%);
+  width: 320px;
+  height: 520px;
+  background: radial-gradient(ellipse at 50% 0%, var(--glass-highlight, rgba(255, 255, 255, 0.9)) 0%, transparent 70%);
   pointer-events: none;
   z-index: 1;
 }
@@ -225,18 +220,18 @@
   z-index: 10;
 }
 
-/* ── Phase 3: Stage Director Toolbar (Camera Presets & Telemetry) ── */
+/* ── Stage Director Toolbar ── */
 .ipd-stage-toolbar {
   position: absolute;
-  top: 12px;
+  top: 16px;
   left: 0;
   right: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-wrap: wrap;
-  gap: 6px;
-  padding: 0 14px;
+  gap: 8px;
+  padding: 0 16px;
   z-index: 20;
   pointer-events: auto;
 }
@@ -246,23 +241,23 @@
   align-items: center;
   gap: 4px;
   padding: 4px 6px;
-  background: rgba(8, 5, 24, 0.82);
-  border: 1px solid rgba(140, 100, 255, 0.28);
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--border-light, rgba(0, 0, 0, 0.08));
   border-radius: 999px;
   backdrop-filter: blur(14px);
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.05));
 }
 
 .ipd-camera-btn {
   background: transparent;
   border: 1px solid transparent;
-  color: rgba(220, 210, 255, 0.75);
-  font-size: 10.5px;
+  color: var(--text-secondary, #64748b);
+  font-size: 11px;
   font-weight: 600;
-  padding: 4px 9px;
+  padding: 4px 10px;
   border-radius: 999px;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all var(--transition, 0.2s);
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -270,15 +265,15 @@
 }
 
 .ipd-camera-btn:hover {
-  color: #fff;
-  background: rgba(140, 100, 255, 0.15);
+  color: var(--text-primary, #0f172a);
+  background: var(--bg-hover, #f1f5f9);
 }
 
 .ipd-camera-btn--active {
-  background: linear-gradient(135deg, rgba(168, 85, 247, 0.35), rgba(59, 130, 246, 0.25));
-  border: 1px solid rgba(168, 85, 247, 0.55);
-  color: #fff;
-  box-shadow: 0 0 12px rgba(168, 85, 247, 0.35);
+  background: var(--accent, #0d9488);
+  border: 1px solid var(--accent, #0d9488);
+  color: #ffffff;
+  box-shadow: 0 2px 8px var(--accent-glow, rgba(13, 148, 136, 0.3));
 }
 
 .ipd-camera-icon {
@@ -286,48 +281,47 @@
 }
 
 .ipd-camera-label {
-  font-size: 10.5px;
+  font-size: 11px;
   letter-spacing: 0.3px;
 }
 
-/* ── Phase 4: Studio Lighting Presets ── */
+/* ── Studio Lighting Presets ── */
 .ipd-lighting-presets {
   display: inline-flex;
-  background: rgba(8, 5, 24, 0.85);
-  border: 1px solid rgba(140, 100, 255, 0.28);
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--border-light, rgba(0, 0, 0, 0.08));
   border-radius: 999px;
   padding: 3px;
   gap: 2px;
   backdrop-filter: blur(14px);
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.05));
 }
 
 .ipd-lighting-btn {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 9px;
+  padding: 4px 10px;
   border: none;
   border-radius: 999px;
   background: transparent;
-  color: rgba(200, 180, 255, 0.65);
-  font-size: 10.5px;
-  font-weight: 700;
+  color: var(--text-secondary, #64748b);
+  font-size: 11px;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--transition, 0.2s);
   white-space: nowrap;
 }
 
 .ipd-lighting-btn:hover {
-  color: #ede8ff;
-  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary, #0f172a);
+  background: var(--bg-hover, #f1f5f9);
 }
 
 .ipd-lighting-btn--active {
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.35), rgba(56, 189, 248, 0.25));
-  border: 1px solid rgba(245, 158, 11, 0.55);
-  color: #fff;
-  box-shadow: 0 0 12px rgba(245, 158, 11, 0.35);
+  background: var(--accent-gradient, linear-gradient(135deg, #0d9488 0%, #06b6d4 100%));
+  color: #ffffff;
+  box-shadow: 0 2px 8px var(--accent-glow, rgba(13, 148, 136, 0.25));
 }
 
 .ipd-lighting-icon {
@@ -335,146 +329,83 @@
 }
 
 .ipd-lighting-label {
-  font-size: 10px;
-  letter-spacing: 0.3px;
-}
-
-/* ── Phase 4: Audience Tracking Toggle Button ── */
-.ipd-audience-toggle-btn {
-  pointer-events: auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 11px;
-  background: rgba(8, 5, 24, 0.82);
-  border: 1px solid rgba(140, 100, 255, 0.28);
-  border-radius: 999px;
-  color: #c4b5fd;
-  font-size: 10.5px;
-  font-weight: 700;
-  cursor: pointer;
-  backdrop-filter: blur(14px);
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4);
-  white-space: nowrap;
-}
-
-.ipd-audience-toggle-btn:hover {
-  border-color: rgba(140, 100, 255, 0.55);
-  color: #ede8ff;
-}
-
-.ipd-audience-toggle-btn--active {
-  background: rgba(56, 189, 248, 0.22);
-  border-color: rgba(56, 189, 248, 0.6);
-  color: #7dd3fc;
-  box-shadow: 0 0 14px rgba(56, 189, 248, 0.35);
-}
-
-.ipd-audience-icon {
-  font-size: 12px;
-}
-
-.ipd-audience-label {
   font-size: 10.5px;
   letter-spacing: 0.3px;
 }
 
-/* ── Phase 4: Teleprompter Toggle Button ── */
-.ipd-prompter-toggle-btn {
-  pointer-events: auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 11px;
-  background: rgba(8, 5, 24, 0.82);
-  border: 1px solid rgba(140, 100, 255, 0.28);
-  border-radius: 999px;
-  color: #c4b5fd;
-  font-size: 10.5px;
-  font-weight: 700;
-  cursor: pointer;
-  backdrop-filter: blur(14px);
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4);
-  white-space: nowrap;
-}
-
-.ipd-prompter-toggle-btn:hover {
-  border-color: rgba(140, 100, 255, 0.55);
-  color: #ede8ff;
-}
-
-.ipd-prompter-toggle-btn--active {
-  background: rgba(168, 85, 247, 0.22);
-  border-color: rgba(168, 85, 247, 0.55);
-  color: #e9d5ff;
-  box-shadow: 0 0 14px rgba(168, 85, 247, 0.3);
-}
-
-.ipd-prompter-icon {
-  font-size: 11px;
-}
-
-.ipd-prompter-label {
-  font-size: 10.5px;
-  letter-spacing: 0.3px;
-}
-
+/* ── Audience Tracking & Teleprompter Toggles ── */
+.ipd-audience-toggle-btn,
+.ipd-prompter-toggle-btn,
 .ipd-telemetry-toggle-btn {
   pointer-events: auto;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 11px;
-  background: rgba(8, 5, 24, 0.82);
-  border: 1px solid rgba(140, 100, 255, 0.28);
+  padding: 5px 12px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--border-light, rgba(0, 0, 0, 0.08));
   border-radius: 999px;
-  color: #c4b5fd;
-  font-size: 10.5px;
-  font-weight: 700;
+  color: var(--text-secondary, #64748b);
+  font-size: 11px;
+  font-weight: 600;
   cursor: pointer;
   backdrop-filter: blur(14px);
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4);
+  transition: all var(--transition, 0.2s);
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.05));
   white-space: nowrap;
 }
 
+.ipd-audience-toggle-btn:hover,
+.ipd-prompter-toggle-btn:hover,
 .ipd-telemetry-toggle-btn:hover {
-  border-color: rgba(140, 100, 255, 0.55);
-  color: #ede8ff;
+  border-color: var(--border, rgba(0, 0, 0, 0.15));
+  color: var(--text-primary, #0f172a);
+}
+
+.ipd-audience-toggle-btn--active {
+  background: var(--badge-bg, rgba(13, 148, 136, 0.14));
+  border-color: var(--accent, #0d9488);
+  color: var(--accent, #0d9488);
+  box-shadow: 0 0 10px var(--accent-glow, rgba(13, 148, 136, 0.2));
+}
+
+.ipd-prompter-toggle-btn--active {
+  background: var(--badge-bg, rgba(13, 148, 136, 0.14));
+  border-color: var(--accent, #0d9488);
+  color: var(--accent, #0d9488);
+  box-shadow: 0 0 10px var(--accent-glow, rgba(13, 148, 136, 0.2));
 }
 
 .ipd-telemetry-toggle-btn--active {
-  background: rgba(34, 197, 94, 0.18);
-  border-color: rgba(34, 197, 94, 0.55);
-  color: #86efac;
-  box-shadow: 0 0 14px rgba(34, 197, 94, 0.3);
+  background: rgba(34, 197, 94, 0.14);
+  border-color: #22c55e;
+  color: #16a34a;
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.2);
 }
 
 .ipd-telemetry-dot {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #4ade80;
-  box-shadow: 0 0 8px #4ade80;
+  background: #16a34a;
+  box-shadow: 0 0 6px #16a34a;
   animation: ipd-pulse 1.8s infinite;
 }
 
-/* ── Phase 4: Broadcast Stage Teleprompter Karaoke Bar ── */
+/* ── Broadcast Stage Teleprompter Karaoke Bar ── */
 .ipd-prompter-hud {
   position: absolute;
   bottom: 96px;
   left: 50%;
   transform: translateX(-50%);
   width: 90%;
-  max-width: 540px;
-  background: rgba(7, 5, 18, 0.92);
-  border: 1px solid rgba(56, 189, 248, 0.35);
-  border-radius: 14px;
-  padding: 10px 16px;
+  max-width: 560px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--border, rgba(13, 148, 136, 0.25));
+  border-radius: 16px;
+  padding: 12px 18px;
   backdrop-filter: blur(16px);
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.7), 0 0 20px rgba(56, 189, 248, 0.12);
+  box-shadow: 0 12px 36px rgba(15, 23, 42, 0.1), 0 0 0 1px rgba(13, 148, 136, 0.08);
   z-index: 20;
   pointer-events: auto;
   animation: ipd-popIn 0.2s ease-out;
@@ -484,9 +415,9 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 7px;
-  padding-bottom: 5px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border-light, rgba(0, 0, 0, 0.06));
 }
 
 .ipd-prompter-header-left {
@@ -500,16 +431,16 @@
   height: 6px;
   border-radius: 50%;
   background: #ef4444;
-  box-shadow: 0 0 8px #ef4444;
+  box-shadow: 0 0 6px #ef4444;
   animation: ipd-pulse 1.4s infinite;
 }
 
 .ipd-prompter-title {
-  font-size: 9.5px;
+  font-size: 10px;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.8px;
-  color: #38bdf8;
+  color: var(--accent, #0d9488);
 }
 
 .ipd-prompter-header-right {
@@ -519,51 +450,50 @@
 }
 
 .ipd-prompter-tag {
-  font-size: 9px;
+  font-size: 9.5px;
   font-weight: 700;
-  padding: 2px 7px;
+  padding: 2px 8px;
   border-radius: 999px;
   letter-spacing: 0.4px;
 }
 
 .ipd-prompter-tag--cadence {
-  background: rgba(168, 85, 247, 0.2);
-  border: 1px solid rgba(168, 85, 247, 0.4);
-  color: #d8b4fe;
+  background: var(--badge-bg, rgba(13, 148, 136, 0.12));
+  border: 1px solid var(--border, rgba(13, 148, 136, 0.2));
+  color: var(--accent, #0d9488);
 }
 
 .ipd-prompter-tag--pace {
-  background: rgba(56, 189, 248, 0.16);
-  border: 1px solid rgba(56, 189, 248, 0.35);
-  color: #bae6fd;
+  background: rgba(14, 165, 233, 0.12);
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  color: #0284c7;
 }
 
 .ipd-prompter-content {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 5px 6px;
-  font-size: 13.5px;
-  line-height: 1.45;
+  gap: 5px 7px;
+  font-size: 14px;
+  line-height: 1.5;
   font-family: inherit;
 }
 
 .ipd-prompter-word {
   display: inline-block;
-  padding: 2px 5px;
+  padding: 2px 6px;
   border-radius: 6px;
-  color: rgba(230, 220, 255, 0.75);
+  color: var(--text-secondary, #475569);
   transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .ipd-prompter-word--active {
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.35), rgba(56, 189, 248, 0.3));
-  border: 1px solid rgba(34, 197, 94, 0.65);
+  background: var(--accent, #0d9488);
+  border: 1px solid var(--accent, #0d9488);
   color: #ffffff;
   font-weight: 800;
-  transform: scale(1.08);
-  box-shadow: 0 0 12px rgba(34, 197, 94, 0.45);
-  text-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+  transform: scale(1.06);
+  box-shadow: 0 2px 10px var(--accent-glow, rgba(13, 148, 136, 0.3));
 }
 
 /* ── Live Presenter Telemetry Overlay Card ── */
@@ -574,14 +504,14 @@
   transform: translateX(-50%);
   width: 94%;
   max-width: 580px;
-  background: rgba(6, 4, 18, 0.94);
-  border: 1px solid rgba(168, 85, 247, 0.4);
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid var(--border, rgba(13, 148, 136, 0.25));
   border-radius: 16px;
   padding: 14px 18px;
   backdrop-filter: blur(20px);
   z-index: 25;
   pointer-events: auto;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.75), 0 0 24px rgba(168, 85, 247, 0.12);
+  box-shadow: 0 16px 44px rgba(15, 23, 42, 0.12);
   animation: ipd-popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -590,7 +520,7 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 10px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--border-light, rgba(0, 0, 0, 0.06));
   padding-bottom: 7px;
 }
 
@@ -599,7 +529,7 @@
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.6px;
-  color: #c084fc;
+  color: var(--accent, #0d9488);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -608,16 +538,16 @@
 .ipd-telemetry-close {
   background: none;
   border: none;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--text-muted, #94a3b8);
   cursor: pointer;
-  font-size: 13px;
+  font-size: 14px;
   padding: 2px 6px;
   border-radius: 4px;
   transition: color 0.15s;
 }
 
 .ipd-telemetry-close:hover {
-  color: #fff;
+  color: var(--text-primary, #0f172a);
 }
 
 .ipd-telemetry-grid {
@@ -636,7 +566,7 @@
   font-size: 9.5px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: rgba(200, 190, 240, 0.55);
+  color: var(--text-muted, #94a3b8);
   font-weight: 700;
 }
 
@@ -645,21 +575,23 @@
   font-weight: 700;
   line-height: 1.35;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: var(--text-primary, #0f172a);
 }
 
 /* Score ring (top-left) */
 .ipd-score-ring-wrap {
   position: absolute;
-  top: 20px;
-  left: 20px;
+  top: 18px;
+  left: 18px;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 16px;
-  background: rgba(6, 4, 20, 0.75);
-  border: 1px solid rgba(130, 90, 255, 0.2);
+  padding: 8px 14px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--border-light, rgba(0, 0, 0, 0.08));
   border-radius: 14px;
   backdrop-filter: blur(12px);
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.05));
 }
 
 .ipd-score-ring {
@@ -678,52 +610,54 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 800;
-  color: #c8aaff;
+  color: var(--accent, #0d9488);
 }
 
 .ipd-score-ring-label {
   font-size: 11px;
-  color: rgba(200, 180, 255, 0.55);
+  color: var(--text-muted, #94a3b8);
   margin-top: 1px;
 }
 
 .ipd-score-ring-title {
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 700;
-  color: #ede8ff;
+  color: var(--text-primary, #0f172a);
 }
 
 /* Metric chips (top-right) */
 .ipd-metric-chips {
   position: absolute;
-  top: 20px;
-  right: 20px;
+  top: 18px;
+  right: 18px;
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: 6px;
 }
 
 .ipd-chip {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 12px 6px 8px;
-  background: rgba(6, 4, 20, 0.75);
-  border: 1px solid rgba(130, 90, 255, 0.15);
+  padding: 5px 12px 5px 8px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--border-light, rgba(0, 0, 0, 0.08));
   border-radius: 999px;
   backdrop-filter: blur(8px);
   font-size: 12px;
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.05));
 }
 
 .ipd-chip-icon {
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .ipd-chip-label {
-  color: rgba(200, 180, 255, 0.6);
+  color: var(--text-secondary, #64748b);
   font-size: 11px;
+  font-weight: 600;
 }
 
 .ipd-chip-val {
@@ -735,17 +669,18 @@
 /* Speech bubble (bottom center) */
 .ipd-speech-bubble {
   position: absolute;
-  bottom: 22px;
+  bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
-  max-width: 500px;
+  max-width: 520px;
   width: 90%;
-  background: rgba(8, 5, 22, 0.88);
-  border: 1px solid rgba(130, 90, 255, 0.25);
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--border, rgba(13, 148, 136, 0.25));
   border-radius: 16px;
   padding: 14px 18px;
   backdrop-filter: blur(14px);
   text-align: center;
+  box-shadow: 0 10px 32px rgba(15, 23, 42, 0.08);
 }
 
 .ipd-speech-header-row {
@@ -761,7 +696,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.8px;
-  color: #c4b5fd;
+  color: var(--accent, #0d9488);
   margin-bottom: 0;
   display: flex;
   align-items: center;
@@ -773,9 +708,9 @@
   font-weight: 700;
   padding: 2px 8px;
   border-radius: 999px;
-  background: rgba(168, 85, 247, 0.2);
-  border: 1px solid rgba(168, 85, 247, 0.4);
-  color: #e9d5ff;
+  background: var(--badge-bg, rgba(13, 148, 136, 0.12));
+  border: 1px solid var(--border, rgba(13, 148, 136, 0.2));
+  color: var(--accent, #0d9488);
   letter-spacing: 0.4px;
   white-space: nowrap;
 }
@@ -785,9 +720,9 @@
   font-weight: 700;
   padding: 2px 8px;
   border-radius: 999px;
-  background: rgba(56, 189, 248, 0.18);
-  border: 1px solid rgba(56, 189, 248, 0.45);
-  color: #bae6fd;
+  background: rgba(14, 165, 233, 0.12);
+  border: 1px solid rgba(14, 165, 233, 0.25);
+  color: #0284c7;
   letter-spacing: 0.4px;
   white-space: nowrap;
   display: inline-flex;
@@ -797,7 +732,7 @@
 }
 
 .ipd-word-active {
-  color: #38bdf8;
+  color: #0284c7;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -808,7 +743,6 @@
     transform: scale(0.92);
     opacity: 0.6;
   }
-
   to {
     transform: scale(1);
     opacity: 1;
@@ -816,8 +750,8 @@
 }
 
 .ipd-speech-text {
-  font-size: 14px;
-  color: rgba(220, 210, 255, 0.9);
+  font-size: 14.5px;
+  color: var(--text-primary, #0f172a);
   line-height: 1.6;
   font-style: italic;
 }
@@ -826,19 +760,16 @@
   display: inline-block;
   width: 2px;
   height: 14px;
-  background: #a875ff;
+  background: var(--accent, #0d9488);
   margin-left: 3px;
   vertical-align: middle;
   animation: ipd-blink 1s step-end infinite;
 }
 
 @keyframes ipd-blink {
-
-  0%,
-  100% {
+  0%, 100% {
     opacity: 1;
   }
-
   50% {
     opacity: 0;
   }
@@ -847,62 +778,44 @@
 /* Playing indicator (bottom left) */
 .ipd-play-indicator {
   position: absolute;
-  bottom: 22px;
+  bottom: 20px;
   left: 20px;
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
-  color: rgba(200, 180, 255, 0.65);
+  font-size: 11.5px;
+  color: var(--text-secondary, #64748b);
+  background: rgba(255, 255, 255, 0.88);
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border-light, rgba(0, 0, 0, 0.08));
 }
 
 .ipd-play-bars {
   display: flex;
   align-items: flex-end;
   gap: 3px;
-  height: 18px;
+  height: 16px;
 }
 
 .ipd-play-bar {
   width: 3px;
-  background: #a875ff;
+  background: var(--accent, #0d9488);
   border-radius: 2px;
   animation: ipd-bar 1.2s ease-in-out infinite;
 }
 
-.ipd-play-bar:nth-child(1) {
-  animation-delay: 0s;
-  height: 8px;
-}
-
-.ipd-play-bar:nth-child(2) {
-  animation-delay: 0.15s;
-  height: 14px;
-}
-
-.ipd-play-bar:nth-child(3) {
-  animation-delay: 0.3s;
-  height: 10px;
-}
-
-.ipd-play-bar:nth-child(4) {
-  animation-delay: 0.45s;
-  height: 16px;
-}
-
-.ipd-play-bar:nth-child(5) {
-  animation-delay: 0.6s;
-  height: 8px;
-}
+.ipd-play-bar:nth-child(1) { animation-delay: 0s; height: 6px; }
+.ipd-play-bar:nth-child(2) { animation-delay: 0.15s; height: 12px; }
+.ipd-play-bar:nth-child(3) { animation-delay: 0.3s; height: 8px; }
+.ipd-play-bar:nth-child(4) { animation-delay: 0.45s; height: 14px; }
+.ipd-play-bar:nth-child(5) { animation-delay: 0.6s; height: 7px; }
 
 @keyframes ipd-bar {
-
-  0%,
-  100% {
+  0%, 100% {
     transform: scaleY(0.4);
     opacity: 0.5;
   }
-
   50% {
     transform: scaleY(1);
     opacity: 1;
@@ -917,18 +830,18 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 20px;
+  gap: 16px;
   z-index: 20;
-  background: linear-gradient(180deg, #080614 0%, #060412 100%);
+  background: var(--bg-surface, #ffffff);
 }
 
 .ipd-stage-loading-ring {
-  width: 60px;
-  height: 60px;
-  border: 3px solid rgba(168, 130, 255, 0.15);
-  border-top-color: #a875ff;
+  width: 52px;
+  height: 52px;
+  border: 3px solid var(--border-light, rgba(0, 0, 0, 0.08));
+  border-top-color: var(--accent, #0d9488);
   border-radius: 50%;
-  animation: ipd-spin 1s linear infinite;
+  animation: ipd-spin 0.9s linear infinite;
 }
 
 @keyframes ipd-spin {
@@ -938,22 +851,22 @@
 }
 
 .ipd-stage-loading-text {
-  font-size: 14px;
-  color: rgba(200, 180, 255, 0.55);
+  font-size: 13.5px;
+  color: var(--text-secondary, #64748b);
   font-weight: 500;
 }
 
 .ipd-load-bar-track {
-  width: 200px;
-  height: 3px;
-  background: rgba(130, 90, 255, 0.12);
+  width: 180px;
+  height: 4px;
+  background: var(--bg-elevated, #f1f5f9);
   border-radius: 999px;
   overflow: hidden;
 }
 
 .ipd-load-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, #7b5cf5, #a875ff, #60b0ff);
+  background: var(--accent-gradient, linear-gradient(90deg, #0d9488, #06b6d4));
   border-radius: 999px;
   transition: width 0.4s ease;
 }
@@ -962,8 +875,8 @@
 .ipd-panel {
   display: flex;
   flex-direction: column;
-  border-left: 1px solid rgba(168, 130, 255, 0.08);
-  background: linear-gradient(180deg, rgba(15, 10, 30, 0.6), rgba(8, 5, 20, 0.8));
+  border-left: 1px solid var(--border-light, rgba(0, 0, 0, 0.06));
+  background: var(--bg-surface, #ffffff);
   overflow-y: auto;
   overflow-x: hidden;
 }
@@ -977,21 +890,21 @@
 }
 
 .ipd-panel::-webkit-scrollbar-thumb {
-  background: rgba(130, 90, 255, 0.2);
+  background: var(--border-light, rgba(0, 0, 0, 0.1));
   border-radius: 4px;
 }
 
 .ipd-section {
-  padding: 20px 22px;
-  border-bottom: 1px solid rgba(130, 90, 255, 0.07);
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--border-light, rgba(0, 0, 0, 0.06));
 }
 
 .ipd-section-title {
   font-size: 11px;
-  font-weight: 700;
-  color: rgba(180, 150, 255, 0.5);
+  font-weight: 800;
+  color: var(--text-muted, #94a3b8);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.8px;
   margin-bottom: 12px;
   display: flex;
   align-items: center;
@@ -1002,16 +915,16 @@
   content: '';
   flex: 1;
   height: 1px;
-  background: rgba(130, 90, 255, 0.1);
+  background: var(--border-light, rgba(0, 0, 0, 0.06));
 }
 
 /* ── Improvement list ─────────────────────────────────────── */
 .ipd-improvement-item {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
+  gap: 12px;
   padding: 10px 0;
-  border-bottom: 1px solid rgba(130, 90, 255, 0.06);
+  border-bottom: 1px solid var(--border-light, rgba(0, 0, 0, 0.04));
 }
 
 .ipd-improvement-item:last-child {
@@ -1019,8 +932,8 @@
 }
 
 .ipd-improvement-icon {
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -1039,19 +952,19 @@
 }
 
 .ipd-improvement-icon--bad {
-  background: rgba(239, 68, 68, 0.10);
+  background: rgba(239, 68, 68, 0.1);
 }
 
 .ipd-improvement-label {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: rgba(220, 210, 255, 0.85);
-  line-height: 1;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary, #0f172a);
+  line-height: 1.2;
 }
 
 .ipd-improvement-desc {
   font-size: 11.5px;
-  color: rgba(200, 180, 255, 0.45);
+  color: var(--text-secondary, #64748b);
   margin-top: 4px;
   line-height: 1.4;
 }
@@ -1065,8 +978,8 @@
 
 .ipd-improvement-bar-bg {
   flex: 1;
-  height: 4px;
-  background: rgba(130, 90, 255, 0.1);
+  height: 5px;
+  background: var(--bg-elevated, #f1f5f9);
   border-radius: 999px;
   overflow: hidden;
 }
@@ -1080,7 +993,7 @@
 .ipd-improvement-pct {
   font-size: 11px;
   font-weight: 700;
-  color: rgba(200, 180, 255, 0.7);
+  color: var(--text-secondary, #64748b);
   min-width: 30px;
   text-align: right;
 }
@@ -1088,14 +1001,14 @@
 /* ── Script display ───────────────────────────────────────── */
 .ipd-section--script {
   position: relative;
-  min-height: 220px;
+  min-height: 200px;
 }
 
 .ipd-section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   gap: 8px;
 }
 
@@ -1107,12 +1020,12 @@
   display: inline-flex;
   align-items: center;
   padding: 2px 8px;
-  background: rgba(130, 90, 255, 0.15);
-  border: 1px solid rgba(130, 90, 255, 0.3);
+  background: var(--bg-elevated, #f1f5f9);
+  border: 1px solid var(--border-light, rgba(0, 0, 0, 0.08));
   border-radius: 999px;
   font-size: 11px;
   font-weight: 700;
-  color: #c4b5fd;
+  color: var(--text-secondary, #64748b);
   letter-spacing: 0.3px;
 }
 
@@ -1121,12 +1034,12 @@
   align-items: center;
   gap: 5px;
   padding: 3px 9px;
-  background: linear-gradient(135deg, rgba(168, 85, 247, 0.22), rgba(59, 130, 246, 0.15));
-  border: 1px solid rgba(168, 85, 247, 0.35);
+  background: var(--badge-bg, rgba(13, 148, 136, 0.12));
+  border: 1px solid var(--border, rgba(13, 148, 136, 0.2));
   border-radius: 999px;
   font-size: 11px;
   font-weight: 600;
-  color: #d8b4fe;
+  color: var(--accent, #0d9488);
   letter-spacing: 0.3px;
   white-space: nowrap;
 }
@@ -1137,11 +1050,10 @@
 
 .ipd-script-tabs {
   display: flex;
-  gap: 6px;
+  gap: 4px;
   margin-bottom: 12px;
   padding: 3px;
-  background: rgba(13, 8, 30, 0.7);
-  border: 1px solid rgba(130, 90, 255, 0.15);
+  background: var(--bg-elevated, #f1f5f9);
   border-radius: 10px;
 }
 
@@ -1151,11 +1063,11 @@
   background: transparent;
   border: none;
   border-radius: 7px;
-  color: rgba(200, 185, 255, 0.6);
+  color: var(--text-secondary, #64748b);
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--transition, 0.2s);
   white-space: nowrap;
   display: flex;
   align-items: center;
@@ -1164,24 +1076,22 @@
 }
 
 .ipd-script-tab:hover {
-  color: #ede9fe;
-  background: rgba(130, 90, 255, 0.1);
+  color: var(--text-primary, #0f172a);
 }
 
 .ipd-script-tab.active {
-  color: #fff;
-  background: linear-gradient(135deg, rgba(124, 58, 237, 0.45), rgba(147, 51, 234, 0.35));
-  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.25);
-  border: 1px solid rgba(168, 85, 247, 0.35);
+  color: var(--accent, #0d9488);
+  background: var(--bg-surface, #ffffff);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
 }
 
 .ipd-script-box {
-  background: rgba(10, 6, 25, 0.6);
-  border: 1px solid rgba(130, 90, 255, 0.12);
+  background: var(--bg-base, #f8fafc);
+  border: 1px solid var(--border-light, rgba(0, 0, 0, 0.08));
   border-radius: 12px;
   padding: 14px 16px;
   font-size: 13px;
-  color: rgba(210, 195, 255, 0.75);
+  color: var(--text-secondary, #334155);
   line-height: 1.7;
   max-height: 175px;
   overflow-y: auto;
@@ -1189,8 +1099,8 @@
 }
 
 .ipd-script-box span:hover {
-  background-color: rgba(168, 130, 255, 0.35) !important;
-  color: #fff !important;
+  background-color: var(--badge-bg, rgba(13, 148, 136, 0.16)) !important;
+  color: var(--accent, #0d9488) !important;
 }
 
 .ipd-script-box::-webkit-scrollbar {
@@ -1198,7 +1108,7 @@
 }
 
 .ipd-script-box::-webkit-scrollbar-thumb {
-  background: rgba(130, 90, 255, 0.2);
+  background: var(--border-light, rgba(0, 0, 0, 0.12));
   border-radius: 3px;
 }
 
@@ -1217,25 +1127,25 @@
 }
 
 .ipd-compare-box::-webkit-scrollbar-thumb {
-  background: rgba(130, 90, 255, 0.2);
+  background: var(--border-light, rgba(0, 0, 0, 0.12));
   border-radius: 3px;
 }
 
 .ipd-compare-col {
   padding: 10px 12px;
   border-radius: 10px;
-  background: rgba(10, 6, 25, 0.6);
-  border: 1px solid rgba(130, 90, 255, 0.12);
+  background: var(--bg-base, #f8fafc);
+  border: 1px solid var(--border-light, rgba(0, 0, 0, 0.08));
 }
 
 .ipd-compare-col--before {
-  border-left: 3px solid #f87171;
-  background: rgba(239, 68, 68, 0.05);
+  border-left: 3px solid #ef4444;
+  background: rgba(239, 68, 68, 0.04);
 }
 
 .ipd-compare-col--after {
-  border-left: 3px solid #34d399;
-  background: rgba(52, 211, 153, 0.05);
+  border-left: 3px solid #22c55e;
+  background: rgba(34, 197, 94, 0.04);
 }
 
 .ipd-compare-heading {
@@ -1255,37 +1165,37 @@
 }
 
 .ipd-compare-pill--before {
-  background: rgba(239, 68, 68, 0.15);
-  color: #fca5a5;
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+  border: 1px solid rgba(239, 68, 68, 0.25);
 }
 
 .ipd-compare-pill--after {
-  background: rgba(52, 211, 153, 0.15);
-  color: #86efac;
-  border: 1px solid rgba(52, 211, 153, 0.3);
+  background: rgba(34, 197, 94, 0.12);
+  color: #16a34a;
+  border: 1px solid rgba(34, 197, 94, 0.25);
 }
 
 .ipd-compare-sub {
   font-size: 10.5px;
-  color: rgba(200, 185, 255, 0.5);
+  color: var(--text-muted, #94a3b8);
 }
 
 .ipd-compare-text {
-  font-size: 12px;
+  font-size: 12.5px;
   line-height: 1.6;
-  color: rgba(220, 210, 255, 0.8);
+  color: var(--text-secondary, #475569);
 }
 
 .ipd-compare-text--after {
-  color: #ede9fe;
+  color: var(--text-primary, #0f172a);
   font-weight: 500;
 }
 
 /* Original transcript view */
 .ipd-original-box {
-  background: rgba(10, 6, 25, 0.6);
-  border: 1px solid rgba(130, 90, 255, 0.12);
+  background: var(--bg-base, #f8fafc);
+  border: 1px solid var(--border-light, rgba(0, 0, 0, 0.08));
   border-radius: 12px;
   padding: 12px 14px;
   max-height: 175px;
@@ -1297,7 +1207,7 @@
 }
 
 .ipd-original-box::-webkit-scrollbar-thumb {
-  background: rgba(130, 90, 255, 0.2);
+  background: var(--border-light, rgba(0, 0, 0, 0.12));
   border-radius: 3px;
 }
 
@@ -1307,22 +1217,22 @@
   justify-content: space-between;
   padding-bottom: 8px;
   margin-bottom: 8px;
-  border-bottom: 1px solid rgba(130, 90, 255, 0.1);
+  border-bottom: 1px solid var(--border-light, rgba(0, 0, 0, 0.06));
   font-size: 11px;
-  color: rgba(200, 185, 255, 0.65);
+  color: var(--text-secondary, #64748b);
 }
 
 .ipd-orig-text {
   font-size: 12.5px;
   line-height: 1.65;
-  color: rgba(220, 210, 255, 0.8);
+  color: var(--text-secondary, #475569);
 }
 
 /* Highlighted filler words */
 .ipd-filler-mark {
-  background: rgba(239, 68, 68, 0.22);
-  color: #fca5a5;
-  border: 1px solid rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.15);
+  color: #dc2626;
+  border: 1px solid rgba(239, 68, 68, 0.25);
   border-radius: 4px;
   padding: 0 4px;
   font-weight: 600;
@@ -1330,16 +1240,16 @@
   text-decoration-color: rgba(239, 68, 68, 0.7);
 }
 
-
 /* ── Playback controls ────────────────────────────────────── */
 .ipd-controls {
   padding: 16px 22px 20px;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  border-top: 1px solid rgba(130, 90, 255, 0.08);
+  border-top: 1px solid var(--border-light, rgba(0, 0, 0, 0.06));
   margin-top: auto;
   flex-shrink: 0;
+  background: var(--bg-surface, #ffffff);
 }
 
 .ipd-btn-row {
@@ -1353,21 +1263,20 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 12px 16px;
-  background: linear-gradient(135deg, #7b5cf5, #9b6aff);
+  padding: 12px 18px;
+  background: var(--accent-gradient, linear-gradient(135deg, #0d9488 0%, #06b6d4 100%));
   border: none;
-  border-radius: 12px;
-  color: #fff;
+  border-radius: var(--radius-md, 12px);
+  color: #ffffff;
   font-size: 13.5px;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 4px 20px rgba(120, 80, 255, 0.3);
+  transition: all var(--transition, 0.2s);
+  box-shadow: 0 4px 16px var(--accent-glow, rgba(13, 148, 136, 0.3));
 }
 
 .ipd-btn-play:hover {
-  background: linear-gradient(135deg, #8a6aff, #aa7aff);
-  box-shadow: 0 6px 28px rgba(120, 80, 255, 0.45);
+  box-shadow: 0 6px 22px var(--accent-glow, rgba(13, 148, 136, 0.4));
   transform: translateY(-1px);
 }
 
@@ -1384,22 +1293,22 @@
 .ipd-btn-secondary {
   width: 44px;
   height: 44px;
-  border-radius: 12px;
-  border: 1px solid rgba(130, 90, 255, 0.22);
-  background: rgba(130, 90, 255, 0.08);
-  color: rgba(200, 180, 255, 0.7);
+  border-radius: var(--radius-md, 12px);
+  border: 1px solid var(--border-light, rgba(0, 0, 0, 0.08));
+  background: var(--bg-elevated, #f1f5f9);
+  color: var(--text-secondary, #64748b);
   font-size: 16px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
+  transition: all var(--transition, 0.2s);
 }
 
 .ipd-btn-secondary:hover {
-  background: rgba(130, 90, 255, 0.16);
-  border-color: rgba(130, 90, 255, 0.35);
-  color: #fff;
+  background: var(--bg-hover, #e2e8f0);
+  border-color: var(--border, rgba(0, 0, 0, 0.15));
+  color: var(--text-primary, #0f172a);
 }
 
 .ipd-btn-secondary:disabled {
@@ -1414,8 +1323,8 @@
   justify-content: space-between;
   gap: 10px;
   padding: 8px 12px;
-  background: rgba(130, 90, 255, 0.06);
-  border: 1px solid rgba(130, 90, 255, 0.16);
+  background: var(--bg-base, #f8fafc);
+  border: 1px solid var(--border-light, rgba(0, 0, 0, 0.08));
   border-radius: 10px;
 }
 
@@ -1424,7 +1333,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: rgba(200, 185, 255, 0.7);
+  color: var(--text-secondary, #64748b);
   white-space: nowrap;
 }
 
@@ -1435,9 +1344,9 @@
 }
 
 .ipd-voice-select {
-  background: rgba(18, 12, 38, 0.85);
-  border: 1px solid rgba(130, 90, 255, 0.3);
-  color: #e9d5ff;
+  background: var(--bg-surface, #ffffff);
+  border: 1px solid var(--border-light, rgba(0, 0, 0, 0.12));
+  color: var(--text-primary, #0f172a);
   font-size: 11.5px;
   font-weight: 600;
   border-radius: 8px;
@@ -1446,12 +1355,11 @@
   outline: none;
   max-width: 200px;
   text-overflow: ellipsis;
-  transition: all 0.2s;
+  transition: all var(--transition, 0.2s);
 }
 
 .ipd-voice-select:hover {
-  border-color: rgba(168, 85, 247, 0.6);
-  box-shadow: 0 0 10px rgba(168, 85, 247, 0.2);
+  border-color: var(--accent, #0d9488);
 }
 
 .ipd-voice-badge {
@@ -1460,7 +1368,7 @@
   gap: 6px;
   font-size: 12px;
   font-weight: 600;
-  color: #ede9fe;
+  color: var(--text-primary, #0f172a);
 }
 
 .ipd-voice-badge-name {
@@ -1471,9 +1379,9 @@
 }
 
 .ipd-voice-badge-tag {
-  background: rgba(34, 197, 94, 0.15);
-  color: #4ade80;
-  border: 1px solid rgba(34, 197, 94, 0.3);
+  background: rgba(34, 197, 94, 0.12);
+  color: #16a34a;
+  border: 1px solid rgba(34, 197, 94, 0.25);
   font-size: 9.5px;
   font-weight: 700;
   padding: 1px 6px;
@@ -1490,8 +1398,8 @@
 
 .ipd-speed-label {
   font-size: 11px;
-  color: rgba(180, 160, 255, 0.5);
-  font-weight: 600;
+  color: var(--text-muted, #94a3b8);
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   white-space: nowrap;
@@ -1505,25 +1413,29 @@
 .ipd-speed-btn {
   padding: 4px 10px;
   border-radius: 6px;
-  border: 1px solid rgba(130, 90, 255, 0.15);
-  background: transparent;
-  color: rgba(180, 160, 255, 0.5);
+  border: 1px solid var(--border-light, rgba(0, 0, 0, 0.08));
+  background: var(--bg-base, #f8fafc);
+  color: var(--text-secondary, #64748b);
   font-size: 11.5px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--transition, 0.15s);
 }
 
-.ipd-speed-btn.active,
 .ipd-speed-btn:hover {
-  background: rgba(130, 90, 255, 0.15);
-  border-color: rgba(130, 90, 255, 0.3);
-  color: #c8a8ff;
+  background: var(--bg-hover, #f1f5f9);
+  color: var(--text-primary, #0f172a);
+}
+
+.ipd-speed-btn.active {
+  background: var(--accent, #0d9488);
+  border-color: var(--accent, #0d9488);
+  color: #ffffff;
 }
 
 .ipd-progress-track {
-  height: 4px;
-  background: rgba(130, 90, 255, 0.1);
+  height: 5px;
+  background: var(--bg-elevated, #f1f5f9);
   border-radius: 999px;
   overflow: hidden;
   cursor: pointer;
@@ -1531,7 +1443,7 @@
 
 .ipd-progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #7b5cf5, #a875ff);
+  background: var(--accent-gradient, linear-gradient(90deg, #0d9488, #06b6d4));
   border-radius: 999px;
   transition: width 0.3s linear;
 }
@@ -1544,14 +1456,14 @@
   justify-content: center;
   gap: 10px;
   padding: 13px 18px;
-  background: linear-gradient(135deg, rgba(120, 80, 255, 0.15), rgba(80, 130, 255, 0.10));
-  border: 1px solid rgba(130, 90, 255, 0.28);
-  border-radius: 12px;
-  color: #c0a0ff;
+  background: linear-gradient(135deg, var(--badge-bg, rgba(13, 148, 136, 0.08)), rgba(14, 165, 233, 0.08));
+  border: 1px solid var(--border, rgba(13, 148, 136, 0.22));
+  border-radius: var(--radius-md, 12px);
+  color: var(--accent, #0d9488);
   font-size: 13.5px;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.25s;
+  transition: all var(--transition, 0.2s);
   position: relative;
   overflow: hidden;
   text-align: left;
@@ -1561,7 +1473,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, rgba(130, 90, 255, 0.18), rgba(80, 160, 255, 0.12));
+  background: linear-gradient(135deg, var(--badge-bg, rgba(13, 148, 136, 0.14)), rgba(14, 165, 233, 0.12));
   opacity: 0;
   transition: opacity 0.25s;
 }
@@ -1571,15 +1483,13 @@
 }
 
 .ipd-trigger-btn:hover {
-  border-color: rgba(130, 90, 255, 0.5);
-  color: #d4b8ff;
-  box-shadow: 0 4px 24px rgba(120, 80, 255, 0.2);
+  border-color: var(--accent, #0d9488);
+  box-shadow: 0 4px 20px var(--accent-glow, rgba(13, 148, 136, 0.18));
   transform: translateY(-1px);
 }
 
 .ipd-trigger-btn-icon {
   font-size: 20px;
-  filter: drop-shadow(0 0 6px rgba(168, 130, 255, 0.6));
   flex-shrink: 0;
   position: relative;
   z-index: 1;
@@ -1597,18 +1507,18 @@
 .ipd-trigger-btn-main {
   font-size: 13.5px;
   font-weight: 700;
-  color: #c8a8ff;
+  color: var(--text-primary, #0f172a);
 }
 
 .ipd-trigger-btn-sub {
-  font-size: 11px;
-  color: rgba(180, 150, 255, 0.5);
+  font-size: 11.5px;
+  color: var(--text-secondary, #64748b);
   font-weight: 500;
 }
 
 .ipd-trigger-btn-arrow {
   font-size: 16px;
-  color: rgba(180, 150, 255, 0.5);
+  color: var(--accent, #0d9488);
   transition: transform 0.2s;
   position: relative;
   z-index: 1;
@@ -1623,37 +1533,37 @@
   position: fixed;
   inset: 0;
   z-index: 8999;
-  background: rgba(4, 2, 14, 0.88);
+  background: rgba(15, 23, 42, 0.5);
   backdrop-filter: blur(12px);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 24px;
+  gap: 22px;
   animation: ipd-fadeIn 0.3s ease;
 }
 
 .ipd-generating-orb {
   position: relative;
-  width: 100px;
-  height: 100px;
+  width: 90px;
+  height: 90px;
 }
 
 .ipd-generating-ring {
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  border: 2px solid rgba(168, 130, 255, 0.15);
-  border-top-color: #a875ff;
+  border: 2px solid var(--border-light, rgba(0, 0, 0, 0.08));
+  border-top-color: var(--accent, #0d9488);
   animation: ipd-spin 1.2s linear infinite;
 }
 
 .ipd-generating-ring2 {
   position: absolute;
-  inset: 12px;
+  inset: 10px;
   border-radius: 50%;
-  border: 2px solid rgba(80, 160, 255, 0.1);
-  border-top-color: #60a0ff;
+  border: 2px solid var(--border-light, rgba(0, 0, 0, 0.06));
+  border-top-color: #06b6d4;
   animation: ipd-spin 0.85s linear infinite reverse;
 }
 
@@ -1663,20 +1573,20 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 32px;
-  filter: drop-shadow(0 0 12px rgba(168, 130, 255, 0.6));
+  font-size: 30px;
 }
 
 .ipd-generating-title {
   font-size: 20px;
   font-weight: 800;
-  color: #ede8ff;
+  color: #ffffff;
   letter-spacing: -0.3px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .ipd-generating-sub {
-  font-size: 14px;
-  color: rgba(200, 180, 255, 0.45);
+  font-size: 13.5px;
+  color: rgba(255, 255, 255, 0.8);
   text-align: center;
   max-width: 360px;
   line-height: 1.5;
@@ -1686,62 +1596,268 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  width: 320px;
+  width: 330px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--border-light, rgba(0, 0, 0, 0.08));
+  border-radius: 16px;
+  padding: 16px 20px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
 }
 
 .ipd-gen-step {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 13px;
-  color: rgba(200, 180, 255, 0.4);
-  transition: color 0.4s;
+  font-size: 12.5px;
+  color: var(--text-muted, #94a3b8);
+  transition: color 0.3s;
 }
 
 .ipd-gen-step.active {
-  color: rgba(200, 180, 255, 0.9);
+  color: var(--text-primary, #0f172a);
+  font-weight: 600;
 }
 
 .ipd-gen-step.done {
-  color: rgba(100, 220, 130, 0.8);
+  color: #16a34a;
+  font-weight: 500;
 }
 
 .ipd-gen-step-dot {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
-  background: rgba(130, 90, 255, 0.3);
+  background: var(--border-light, rgba(0, 0, 0, 0.15));
   flex-shrink: 0;
-  transition: all 0.4s;
+  transition: all 0.3s;
 }
 
 .ipd-gen-step.active .ipd-gen-step-dot {
-  background: #a875ff;
-  box-shadow: 0 0 8px #a875ff;
+  background: var(--accent, #0d9488);
+  box-shadow: 0 0 6px var(--accent, #0d9488);
   animation: ipd-pulse 1s ease-in-out infinite;
 }
 
 .ipd-gen-step.done .ipd-gen-step-dot {
-  background: #4ade80;
+  background: #16a34a;
   box-shadow: none;
+}
+
+/* ── DUEL MODE ARENA (Side-by-side comparison) ───────────── */
+.ipd-body--duel {
+  grid-template-columns: 1fr;
+}
+
+.ipd-duel-arena {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg-base, #f8fafc);
+}
+
+.ipd-duel-stats {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 10px 16px;
+  background: var(--bg-surface, #ffffff);
+  border-bottom: 1px solid var(--border-light, rgba(0, 0, 0, 0.06));
+  flex-wrap: wrap;
+}
+
+.ipd-duel-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.ipd-duel-stat-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted, #94a3b8);
+  font-weight: 700;
+}
+
+.ipd-duel-stat-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.ipd-duel-stat-val--user {
+  color: var(--text-primary, #0f172a);
+}
+
+.ipd-duel-stat-val--user.losing {
+  color: #dc2626;
+}
+
+.ipd-duel-stat-sep {
+  font-size: 10px;
+  color: var(--text-muted, #94a3b8);
+}
+
+.ipd-duel-stat-val--ai {
+  color: #16a34a;
+}
+
+.ipd-duel-screens {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--bg-base, #f8fafc);
+}
+
+.ipd-duel-screen {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.ipd-duel-screen-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.85);
+  border-bottom: 1px solid var(--border-light, rgba(0, 0, 0, 0.06));
+  z-index: 5;
+}
+
+.ipd-duel-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.ipd-duel-badge--user {
+  background: var(--bg-elevated, #f1f5f9);
+  color: var(--text-primary, #0f172a);
+}
+
+.ipd-duel-badge--ai {
+  background: var(--badge-bg, rgba(13, 148, 136, 0.12));
+  color: var(--accent, #0d9488);
+}
+
+.ipd-duel-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #000;
+}
+
+.ipd-duel-avatar-wrap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(ellipse 70% 60% at 50% 45%, var(--accent-010, rgba(13, 148, 136, 0.08)) 0%, transparent 70%),
+    linear-gradient(180deg, var(--bg-base, #f8fafc) 0%, var(--bg-elevated, #f1f5f9) 100%);
+}
+
+.ipd-duel-screen-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.85);
+  border-top: 1px solid var(--border-light, rgba(0, 0, 0, 0.06));
+  z-index: 5;
+}
+
+.ipd-duel-pill {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+.ipd-duel-pill--bad {
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+}
+
+.ipd-duel-pill--warn {
+  background: rgba(245, 158, 11, 0.12);
+  color: #d97706;
+}
+
+.ipd-duel-pill--good {
+  background: rgba(34, 197, 94, 0.12);
+  color: #16a34a;
+}
+
+.ipd-duel-pill--neutral {
+  background: var(--bg-elevated, #f1f5f9);
+  color: var(--text-secondary, #64748b);
+}
+
+.ipd-duel-vs {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  background: var(--bg-surface, #ffffff);
+  border-left: 1px solid var(--border-light, rgba(0, 0, 0, 0.06));
+  border-right: 1px solid var(--border-light, rgba(0, 0, 0, 0.06));
+}
+
+.ipd-duel-vs-line {
+  flex: 1;
+  width: 1px;
+  background: var(--border-light, rgba(0, 0, 0, 0.08));
+}
+
+.ipd-duel-vs-badge {
+  font-size: 11px;
+  font-weight: 900;
+  color: var(--text-muted, #94a3b8);
+  padding: 8px 0;
+}
+
+.ipd-duel-speech-bubble {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 86%;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--border, rgba(13, 148, 136, 0.25));
+  border-radius: 12px;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  color: var(--text-primary, #0f172a);
+  text-align: center;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 }
 
 /* ── Responsive ───────────────────────────────────────────── */
 @media (max-width: 900px) {
   .ipd-body {
     grid-template-columns: 1fr;
-    grid-template-rows: 60vh auto;
+    grid-template-rows: 55vh auto;
   }
 
   .ipd-panel {
     border-left: none;
-    border-top: 1px solid rgba(168, 130, 255, 0.08);
+    border-top: 1px solid var(--border-light, rgba(0, 0, 0, 0.06));
   }
 }
 
 @media (max-width: 768px) {
   .ipd-stage-toolbar {
-    top: 72px;
+    top: 68px;
     flex-wrap: wrap;
     justify-content: center;
     gap: 6px;
@@ -1752,7 +1868,7 @@
   }
 
   .ipd-prompter-hud {
-    bottom: 110px;
+    bottom: 100px;
     width: 94%;
     padding: 8px 12px;
   }
@@ -1769,7 +1885,7 @@
   }
 
   .ipd-header {
-    padding: 14px 18px;
+    padding: 12px 18px;
   }
 
   .ipd-title {
@@ -1777,6 +1893,6 @@
   }
 
   .ipd-body {
-    grid-template-rows: 50vh auto;
+    grid-template-rows: 48vh auto;
   }
 }

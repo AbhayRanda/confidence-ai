@@ -57,9 +57,9 @@ function ScoreRing({ score, size = 48 }) {
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
       <circle cx={size/2} cy={size/2} r={r} fill="none"
-        stroke="rgba(130,90,255,0.1)" strokeWidth={3} />
+        stroke="var(--border-light, rgba(0, 0, 0, 0.08))" strokeWidth={3} />
       <circle cx={size/2} cy={size/2} r={r} fill="none"
-        stroke="#a875ff" strokeWidth={3}
+        stroke="var(--accent, #0d9488)" strokeWidth={3}
         strokeDasharray={`${dash} ${circ}`}
         strokeLinecap="round"
         style={{ transition: 'stroke-dasharray 1.4s cubic-bezier(0.16,1,0.3,1)' }}
@@ -1304,7 +1304,7 @@ export function IdealPerformanceDemo({ analysisData, videoBlob, onClose }) {
                           <span style={{ color: metricColor(imp.actual), fontSize: 10 }}>
                             {imp.actual.toFixed(0)}
                           </span>
-                          <span style={{ color: 'rgba(180,160,255,0.3)', margin: '0 3px' }}>→</span>
+                          <span style={{ color: 'var(--text-muted, #94a3b8)', margin: '0 3px' }}>→</span>
                           <span style={{ color: metricColor(imp.ideal) }}>
                             {imp.ideal}%
                           </span>
@@ -1375,13 +1375,13 @@ export function IdealPerformanceDemo({ analysisData, videoBlob, onClose }) {
                       style={{
                         cursor: 'pointer',
                         color: i === sentenceIdx && playing
-                          ? '#e9d5ff'
+                          ? 'var(--accent, #0d9488)'
                           : i < sentenceIdx
-                          ? '#86efac'
-                          : 'rgba(216, 200, 255, 0.65)',
+                          ? '#16a34a'
+                          : 'var(--text-secondary, #64748b)',
                         fontWeight: i === sentenceIdx ? 700 : 400,
                         backgroundColor: i === sentenceIdx
-                          ? 'rgba(168, 130, 255, 0.22)'
+                          ? 'var(--badge-bg, rgba(13, 148, 136, 0.14))'
                           : 'transparent',
                         borderRadius: 4,
                         padding: '2px 4px',

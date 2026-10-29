@@ -60,6 +60,7 @@ class Settings(BaseSettings):
     google_client_id: str = ""      # From Google Cloud Console
     google_client_secret: str = "" # From Google Cloud Console
     frontend_url: str = "http://localhost:3000"  # Where to redirect after OAuth
+    backend_url: str = "http://localhost:8000"   # This server's public URL (used for OAuth callback)
 
     # SMTP Email Configuration (for OTP verification emails)
     smtp_host: str = "smtp.gmail.com"

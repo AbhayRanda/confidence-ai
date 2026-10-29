@@ -1,0 +1,11 @@
+{
+  "dependencies": {
+    "chart.js": "^4.5.1",
+    "react-chartjs-2": "^5.3.1",
+    "react-circular-progressbar": "^2.2.0",
+    "react-gauge-chart": "^0.5.1",
+    "react-parallax-tilt": "^1.7.319",
+    "react-router-dom": "^7.13.0",
+    "react-spinners": "^0.17.0"
+  }
+}

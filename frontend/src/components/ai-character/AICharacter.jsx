@@ -1,0 +1,571 @@
+/**
+ * AICharacter.jsx
+ * ─────────────────────────────────────────────────────────────
+ * Top-level AI Character component.
+ * Drop-in integration for any page in the application.
+ *
+ * Props:
+ *   state        {string}   — CHARACTER_STATES value
+ *   isSpeaking   {boolean}  — auto-switches to TALKING state
+ *   analysisData {object}   — { score, weakestMetric, weakestValue }
+ *   speech       {object}   — useSpeech() return value (Step 7/8)
+ *                             if provided: auto syncs voice↔state + lip amplitude
+ *   showDevPanel {boolean}  — show state control panel (dev only)
+ *   onReady      {function} — called when character finishes loading
+ *   onCharacterClick {function}
+ *   className    {string}
+ *   style        {object}
+ *
+ * Step 7: Accepts `speech` prop to auto-sync mic/TTS → character states
+ * Step 8: Forwards audio amplitude to CharacterScene for lip sync
+ * Step 9: Built-in preset picker UI (3 colour swatches)
+ *
+ * Simple usage:
+ *   <AICharacter state="talking" isSpeaking={true} />
+ *
+ * Full usage:
+ *   <AICharacter
+ *     state={character.state}
+ *     speech={speech}
+ *     analysisData={{ score: 82, weakestMetric: 'Smile', weakestValue: 34 }}
+ *   />
+ * ─────────────────────────────────────────────────────────────
+ */
+
+import React, { useState, useCallback, useEffect, Suspense } from 'react';
+import { CHARACTER_STATES, STATE_CONFIG, CHARACTER_PRESETS } from './CharacterAnimations';
+import { CharacterFallback } from './CharacterFallback';
+import './AICharacter.css';
+
+// Lazy-load the heavy 3D scene to keep initial bundle small
+const CharacterScene = React.lazy(() =>
+  import('./CharacterScene').then((m) => ({ default: m.CharacterScene || m.default }))
+);
+
+// Lazy-load the VRM avatar (heavier — only loads when user switches to it)
+const VRMAvatar = React.lazy(() =>
+  import('./VRMAvatar').then((m) => ({ default: m.VRMAvatar || m.default }))
+);
+
+// Lazy-load the realistic RPM (Ready Player Me) humanoid avatar — new default
+const RPMAvatar = React.lazy(() =>
+  import('./RPMAvatar').then((m) => ({ default: m.RPMAvatar || m.default }))
+);
+
+// Path to the VRM model file served from /public
+const VRM_URL = '/avatar.vrm';
+
+// Ready Player Me professional female coach — loaded live from CDN
+// Swap this URL to any RPM avatar: https://models.readyplayer.me/<ID>.glb
+const RPM_URL = 'https://models.readyplayer.me/638df693d72bffc6fa17943c.glb?morphTargets=ARKit,Oculus%20Visemes&textureSizeLimit=1024';
+
+// ── WebGL detection ───────────────────────────────────────────
+function isWebGLAvailable() {
+  try {
+    const canvas = document.createElement('canvas');
+    return !!(
+      window.WebGLRenderingContext &&
+      (canvas.getContext('webgl') || canvas.getContext('experimental-webgl'))
+    );
+  } catch {
+    return false;
+  }
+}
+
+// ── Dev control panel ─────────────────────────────────────────
+function DevPanel({ currentState, onStateChange }) {
+  const states = Object.values(CHARACTER_STATES);
+  return (
+    <div className="aic-dev-panel" aria-label="Character State Dev Controls">
+      <div className="aic-dev-title">
+        <span className="aic-dev-dot" />
+        Character State
+      </div>
+      <div className="aic-dev-buttons">
+        {states.map((s) => (
+          <button
+            key={s}
+            className={`aic-dev-btn${currentState === s ? ' aic-dev-btn--active' : ''}`}
+            onClick={() => onStateChange(s)}
+            title={STATE_CONFIG[s]?.description || s}
+          >
+            {STATE_CONFIG[s]?.label || s}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── State-aware message icon map ──────────────────────────────
+const STATE_ICONS = {
+  [CHARACTER_STATES.IDLE]:        '💬',
+  [CHARACTER_STATES.LISTENING]:   '👂',
+  [CHARACTER_STATES.THINKING]:    '🤔',
+  [CHARACTER_STATES.ANALYZING]:   '📊',
+  [CHARACTER_STATES.TALKING]:     '🎤',
+  [CHARACTER_STATES.HAPPY]:       '🎉',
+  [CHARACTER_STATES.GREETING]:    '👋',
+  [CHARACTER_STATES.GESTURE]:     '☝️',
+  [CHARACTER_STATES.ENCOURAGING]: '💪',
+};
+
+// ── Step 9: Preset picker ─────────────────────────────────────
+function PresetPicker({ currentPreset, onChange }) {
+  return (
+    <div className="aic-preset-picker" aria-label="Character appearance presets">
+      <span className="aic-preset-label">Style</span>
+      {CHARACTER_PRESETS.map((p) => (
+        <button
+          key={p.id}
+          className={`aic-preset-btn${currentPreset === p.id ? ' aic-preset-btn--active' : ''}`}
+          style={{ '--preset-color': p.color }}
+          onClick={() => onChange(p.id)}
+          title={p.name}
+          aria-label={`${p.name} preset`}
+        />
+      ))}
+      {/* Show active preset name */}
+      <span className="aic-preset-active-name">
+        {CHARACTER_PRESETS.find(p => p.id === currentPreset)?.name || ''}
+      </span>
+    </div>
+  );
+}
+
+// ── State color map (used for glow ring) ──────────────────────
+const STATE_COLORS = {
+  [CHARACTER_STATES.IDLE]:        '#50587a',
+  [CHARACTER_STATES.LISTENING]:   '#22c55e',
+  [CHARACTER_STATES.THINKING]:    '#f59e0b',
+  [CHARACTER_STATES.ANALYZING]:   '#5b8def',
+  [CHARACTER_STATES.TALKING]:     '#7c5cfc',
+  [CHARACTER_STATES.HAPPY]:       '#22c55e',
+  [CHARACTER_STATES.GREETING]:    '#5b8def',
+  [CHARACTER_STATES.GESTURE]:     '#a78bfa',
+  [CHARACTER_STATES.ENCOURAGING]: '#22c55e',
+};
+
+// ── Mentor messages per state ─────────────────────────────────
+const STATE_MESSAGES = {
+  [CHARACTER_STATES.IDLE]: [
+    "I'm here to help you grow.",
+    'Ready when you are!',
+    "Let's build your confidence together.",
+  ],
+  [CHARACTER_STATES.LISTENING]: [
+    "I'm listening… go ahead.",
+    "I've got your full attention.",
+    "Speak naturally — I'm here with you.",
+  ],
+  [CHARACTER_STATES.THINKING]: [
+    'Analyzing your performance…',
+    'Processing what I observed…',
+    'Give me a moment to reflect on this…',
+  ],
+  [CHARACTER_STATES.ANALYZING]: [
+    'Scanning your session data…',
+    'Running confidence analysis…',
+    'Crunching the numbers — almost there!',
+  ],
+  [CHARACTER_STATES.TALKING]: [
+    "Here's my feedback for you.",
+    'Let me share what I noticed.',
+    'I have some thoughts for you.',
+  ],
+  [CHARACTER_STATES.HAPPY]: [
+    'Excellent work today! 🎉',
+    "Brilliant session — you're on fire!",
+    'That was outstanding. Keep it up! 🚀',
+  ],
+  [CHARACTER_STATES.GREETING]: [
+    'Welcome back! Ready to practice?',
+    "Great to see you! Let's do this.",
+    "Hello! I'm excited to coach you today.",
+  ],
+  [CHARACTER_STATES.GESTURE]: [
+    'Let me explain this for you.',
+    "Here's something important to work on.",
+    'Focus on this — it will make a big difference.',
+  ],
+  [CHARACTER_STATES.ENCOURAGING]: [
+    "Keep going — you're improving!",
+    'Every session counts. You got this!',
+    'Progress over perfection. I believe in you! 💪',
+  ],
+};
+
+/**
+ * Build a score-personalised message when analysisData is available.
+ * Falls back to generic state messages when not.
+ */
+function resolveMessage(state, analysisData) {
+  if (analysisData && (
+    state === CHARACTER_STATES.TALKING ||
+    state === CHARACTER_STATES.HAPPY   ||
+    state === CHARACTER_STATES.ENCOURAGING ||
+    state === CHARACTER_STATES.GESTURE
+  )) {
+    const { score, weakestMetric, weakestValue } = analysisData;
+    if (score >= 70) {
+      return `Confidence score ${score.toFixed(1)}/100 — excellent! Your ${weakestMetric || 'performance'} was great!`;
+    } else if (score >= 40) {
+      return weakestMetric
+        ? `Score ${score.toFixed(1)}/100. Focus on improving your ${weakestMetric} (${Math.round(weakestValue || 0)}%) for next time.`
+        : `Score ${score.toFixed(1)}/100. Good effort — keep practicing!`;
+    } else {
+      return weakestMetric
+        ? `Score ${score.toFixed(1)}/100. Let's especially work on ${weakestMetric} — it's at ${Math.round(weakestValue || 0)}%.`
+        : `Score ${score.toFixed(1)}/100. Don't worry — every session teaches you something!`;
+    }
+  }
+
+  // Default: random message for the state
+  const pool = STATE_MESSAGES[state] || STATE_MESSAGES[CHARACTER_STATES.IDLE];
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+// ── Status indicator ──────────────────────────────────────────
+function StatusBadge({ state }) {
+  const cfg   = STATE_CONFIG[state] || STATE_CONFIG[CHARACTER_STATES.IDLE];
+  const color = STATE_COLORS[state] || '#50587a';
+  return (
+    <div className="aic-status-badge" style={{ borderColor: `${color}40` }}>
+      <span className="aic-status-dot" style={{ background: color }} />
+      <span className="aic-status-label" style={{ color }}>{cfg.label}</span>
+    </div>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────
+export function AICharacter({
+  state: externalState,
+  isSpeaking: externalSpeaking,
+  analysisData,
+  speech,              // Step 7: useSpeech() return value
+  showDevPanel = false,
+  onReady,
+  className = '',
+  style = {},
+  onCharacterClick,
+}) {
+  const [internalState, setInternalState] = useState(CHARACTER_STATES.IDLE);
+  const [webGLAvail]  = useState(() => isWebGLAvailable());
+  const [loadStatus, setLoadStatus]       = useState(webGLAvail ? 'loading' : 'unavailable');
+  const [hasError, setHasError]           = useState(false);
+  const [message, setMessage]             = useState(
+    STATE_MESSAGES[CHARACTER_STATES.IDLE][0]
+  );
+
+  // Step 9: Preset — persisted in localStorage
+  const [preset, setPreset] = useState(() => {
+    try {
+      const saved = localStorage.getItem('aic_preset');
+      return saved !== null ? parseInt(saved, 10) : 0;
+    } catch { return 0; }
+  });
+
+  // Avatar mode: 0 = abstract, 1 = VRM (local, works offline), 2 = RPM (realistic CDN, needs internet)
+  // Default is 1 = VRM because it works without internet. Switch to 2 for realistic human coach
+  // when you have an active internet connection.
+  const [avatarMode, setAvatarMode] = useState(() => {
+    try { return parseInt(localStorage.getItem('aic_avatar_mode') || '1', 10); } catch { return 1; }
+  });
+
+  const cycleAvatarMode = useCallback(() => {
+    setAvatarMode((m) => {
+      const next = (m + 1) % 3;
+      try { localStorage.setItem('aic_avatar_mode', String(next)); } catch {}
+      return next;
+    });
+  }, []);
+
+  // Derived booleans from avatarMode
+  const useVRM = avatarMode === 1;  // VRM anime avatar
+  const useRPM = avatarMode === 2;  // Realistic RPM humanoid (default)
+
+  const handlePresetChange = useCallback((id) => {
+    setPreset(id);
+    try { localStorage.setItem('aic_preset', String(id)); } catch { /* noop */ }
+  }, []);
+
+  // Resolve effective state (external prop wins over internal)
+  const effectiveState = externalState !== undefined ? externalState : internalState;
+  const glowColor      = STATE_COLORS[effectiveState] || '#50587a';
+
+  // Step 7: Auto-sync speech states → character states
+  useEffect(() => {
+    if (!speech) return;
+    if (speech.isListening) {
+      setInternalState(CHARACTER_STATES.LISTENING);
+    } else if (speech.isSpeaking) {
+      setInternalState(CHARACTER_STATES.TALKING);
+    }
+  }, [speech?.isListening, speech?.isSpeaking]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // External isSpeaking prop → auto state (kept for backward compat)
+  useEffect(() => {
+    if (speech) return; // speech prop takes priority
+    if (externalSpeaking === true) {
+      setInternalState(CHARACTER_STATES.TALKING);
+    } else if (externalSpeaking === false && effectiveState === CHARACTER_STATES.TALKING) {
+      setInternalState(CHARACTER_STATES.ENCOURAGING);
+      const t = setTimeout(() => setInternalState(CHARACTER_STATES.IDLE), 1800);
+      return () => clearTimeout(t);
+    }
+  }, [externalSpeaking]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Update message when state or analysisData changes
+  useEffect(() => {
+    const newMsg = resolveMessage(effectiveState, analysisData);
+    const t = setTimeout(() => setMessage(newMsg), 200);
+    return () => clearTimeout(t);
+  }, [effectiveState, analysisData]);
+
+  // Auto-greeting on mount
+  useEffect(() => {
+    if (!webGLAvail) return;
+    const t = setTimeout(() => {
+      setInternalState(CHARACTER_STATES.GREETING);
+      setTimeout(() => setInternalState(CHARACTER_STATES.IDLE), 2500);
+    }, 1200);
+    return () => clearTimeout(t);
+  }, [webGLAvail]);
+
+  const handleReady = useCallback(() => {
+    setLoadStatus('ready');
+    onReady && onReady();
+  }, [onReady]);
+
+  const handleError = useCallback(() => {
+    setHasError(true);
+    setLoadStatus('error');
+  }, []);
+
+  const handleClick = useCallback(() => {
+    // Click interaction: brief greeting
+    setInternalState(CHARACTER_STATES.GREETING);
+    setTimeout(() => setInternalState(CHARACTER_STATES.IDLE), 2000);
+    onCharacterClick && onCharacterClick();
+  }, [onCharacterClick]);
+
+  // Step 8: Pick the right amplitude source for lip sync
+  // • While listening  → mic amplitude (real)
+  // • While speaking   → TTS amplitude (simulated)
+  // • Otherwise        → 0
+  const audioAmplitude = (() => {
+    if (!speech) return 0;
+    if (speech.isListening) return speech.micAmplitude || 0;
+    if (speech.isSpeaking)  return speech.ttsAmplitude || 0;
+    return 0;
+  })();
+
+  // ── Render ────────────────────────────────────────────────
+  if (!webGLAvail || hasError) {
+    return (
+      <div className={`aic-root ${className}`} style={style}>
+        <CharacterFallback reason={hasError ? 'error' : 'unavailable'} />
+      </div>
+    );
+  }
+
+  return (
+    <div className={`aic-root ${className}`} style={style}>
+      {/* Canvas area */}
+      <div
+        className="aic-canvas-wrap"
+        onClick={handleClick}
+        role="button"
+        tabIndex={0}
+        aria-label="AI Mentor — click to interact"
+        onKeyDown={(e) => e.key === 'Enter' && handleClick()}
+        style={{
+          '--glow-color':      glowColor,
+          '--glow-color-soft': `${glowColor}30`,
+          '--ring-speed': [
+            CHARACTER_STATES.TALKING, CHARACTER_STATES.HAPPY,
+            CHARACTER_STATES.GREETING, CHARACTER_STATES.ENCOURAGING,
+          ].includes(effectiveState) ? '1.2s' : '2.4s',
+        }}
+      >
+        {/* State-driven glow ring */}
+        <div className="aic-glow-ring" aria-hidden="true" />
+
+        {/* Corner brackets (top-left via class, top-right via ::after, bottom via inner divs) */}
+        <div className="aic-corner-tl" aria-hidden="true" />
+        <div className="aic-corner-bl" aria-hidden="true" />
+        <div className="aic-corner-br" aria-hidden="true" />
+
+        {/* Loading overlay */}
+        {loadStatus === 'loading' && (
+          <div className="aic-loading-overlay">
+            <CharacterFallback reason="loading" />
+          </div>
+        )}
+
+        {/* 3D Scene — Step 8: audioAmplitude, Step 9: preset */}
+        <Suspense fallback={null}>
+          <ErrorBoundaryWrapper onError={handleError}>
+            {useVRM ? (
+              <VRMAvatar
+                vrmUrl={VRM_URL}
+                state={effectiveState}
+                ttsAmplitude={audioAmplitude}
+                isSpeaking={speech?.isSpeaking || false}
+                currentSpeechText={speech?.transcript || ''}
+                activeWord={speech?.activeWord || ''}
+                onReady={handleReady}
+                style={{ opacity: loadStatus === 'ready' ? 1 : 0, transition: 'opacity 0.6s ease', width: '100%', height: '100%' }}
+              />
+            ) : useRPM ? (
+              // Realistic Ready Player Me humanoid coach — default avatar
+              // Note: requires internet to fetch model from RPM CDN.
+              // On network failure, auto-falls back to VRM anime avatar.
+              <RPMAvatar
+                glbUrl={RPM_URL}
+                state={effectiveState}
+                isSpeaking={speech?.isSpeaking || false}
+                isListening={speech?.isListening || false}
+                ttsAmplitude={audioAmplitude}
+                onSwitchAvatar={cycleAvatarMode}
+                onReady={handleReady}
+                onError={() => {
+                  // Auto-fallback to VRM if RPM CDN is unreachable
+                  setAvatarMode(1);
+                  try { localStorage.setItem('aic_avatar_mode', '1'); } catch {}
+                }}
+                style={{ opacity: loadStatus === 'ready' ? 1 : 0, transition: 'opacity 0.6s ease', width: '100%', height: '100%' }}
+              />
+            ) : (
+              <CharacterScene
+                state={effectiveState}
+                onReady={handleReady}
+                audioAmplitude={audioAmplitude}
+                preset={preset}
+                style={{ opacity: loadStatus === 'ready' ? 1 : 0, transition: 'opacity 0.6s ease' }}
+              />
+            )}
+          </ErrorBoundaryWrapper>
+        </Suspense>
+
+        {/* Avatar mode toggle button — cycles: Abstract → VRM Anime → Realistic Coach */}
+        <button
+          id="aic-avatar-toggle"
+          onClick={(e) => { e.stopPropagation(); cycleAvatarMode(); }}
+          title={`Switch avatar (current: ${avatarMode === 0 ? 'Abstract' : avatarMode === 1 ? 'VRM Anime' : 'Realistic Human'})`}
+          aria-label="Cycle avatar mode"
+          style={{
+            position: 'absolute', bottom: 10, right: 10,
+            background: avatarMode === 2
+              ? 'rgba(16,185,129,0.85)'
+              : avatarMode === 1
+              ? 'rgba(124,92,252,0.85)'
+              : 'rgba(30,30,60,0.75)',
+            border: avatarMode === 2
+              ? '1px solid rgba(52,211,153,0.7)'
+              : '1px solid rgba(124,92,252,0.5)',
+            borderRadius: 8, padding: '4px 10px',
+            color: '#fff', fontSize: 11, fontWeight: 600,
+            cursor: 'pointer', backdropFilter: 'blur(8px)',
+            transition: 'all 0.2s ease', zIndex: 20,
+            letterSpacing: '0.03em',
+            pointerEvents: 'all',
+          }}
+        >
+          {avatarMode === 0 ? '🤖 Abstract' : avatarMode === 1 ? '🧑 VRM Anime' : '🧑‍💼 Realistic Coach'}
+        </button>
+      </div>{/* /aic-canvas-wrap */}
+
+      {/* ── Avatar Switcher Bar — OUTSIDE canvas so clicks always register ── */}
+      <div style={{
+        display: 'flex',
+        gap: 8,
+        justifyContent: 'center',
+        marginTop: -4,
+        flexWrap: 'wrap',
+      }}>
+        {[0, 1, 2].map((mode) => (
+          <button
+            key={mode}
+            id={`aic-mode-btn-${mode}`}
+            onClick={() => {
+              setAvatarMode(mode);
+              try { localStorage.setItem('aic_avatar_mode', String(mode)); } catch {}
+            }}
+            style={{
+              padding: '6px 16px',
+              borderRadius: 20,
+              border: avatarMode === mode
+                ? '2px solid rgba(124,92,252,0.9)'
+                : '2px solid rgba(100,100,140,0.35)',
+              background: avatarMode === mode
+                ? 'rgba(124,92,252,0.2)'
+                : 'rgba(20,20,40,0.5)',
+              color: avatarMode === mode ? '#c4b5fd' : '#8888aa',
+              fontSize: 12,
+              fontWeight: avatarMode === mode ? 700 : 500,
+              cursor: 'pointer',
+              backdropFilter: 'blur(8px)',
+              transition: 'all 0.2s ease',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {mode === 0 ? '🤖 Abstract' : mode === 1 ? '🧑 VRM Anime' : '🧑‍💼 Realistic Coach'}
+          </button>
+        ))}
+      </div>
+
+      {/* Status badge */}
+      <StatusBadge state={effectiveState} />
+
+
+      {/* Step 9: Preset picker */}
+      <PresetPicker currentPreset={preset} onChange={handlePresetChange} />
+
+      {/* Mentor message bubble — state-aware icon + thinking dots */}
+      <div className="aic-message-bubble" key={effectiveState}>
+        <span className="aic-message-icon">
+          {STATE_ICONS[effectiveState] || '💬'}
+        </span>
+        <span className="aic-message-text">
+          {message}
+          {(effectiveState === CHARACTER_STATES.THINKING ||
+            effectiveState === CHARACTER_STATES.ANALYZING) && (
+            <span className="aic-thinking-dots" aria-hidden="true">
+              <span /><span /><span />
+            </span>
+          )}
+        </span>
+      </div>
+
+      {/* Dev panel */}
+      {showDevPanel && (
+        <DevPanel
+          currentState={effectiveState}
+          onStateChange={(s) => setInternalState(s)}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── Simple error boundary wrapper ─────────────────────────────
+class ErrorBoundaryWrapper extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(err) {
+    console.error('[AICharacter] 3D render error:', err);
+    this.props.onError && this.props.onError();
+  }
+  render() {
+    if (this.state.hasError) return null;
+    return this.props.children;
+  }
+}
+
+export default AICharacter;

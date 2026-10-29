@@ -1,0 +1,386 @@
+/**
+ * GLBAvatar.css
+ * Styling for the GLB 3D Avatar (Asuna) component.
+ */
+
+.glb-avatar-root {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 16px;
+  background: radial-gradient(circle at 50% 35%, #18152e 0%, #0c0a1a 70%, #07060f 100%);
+  user-select: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.glb-avatar-canvas {
+  width: 100% !important;
+  height: 100% !important;
+  outline: none;
+  display: block;
+}
+
+/* Ambient glow accent */
+.glb-avatar-ambient {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 40%, rgba(236, 72, 153, 0.08) 0%, transparent 65%);
+  z-index: 1;
+}
+
+/* Top Director Overlay Controls */
+.glb-director-bar {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  z-index: 20;
+  pointer-events: auto;
+}
+
+.glb-badge-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: rgba(15, 13, 29, 0.75);
+  border: 1px solid rgba(236, 72, 153, 0.35);
+  border-radius: 20px;
+  backdrop-filter: blur(10px);
+  font-size: 11px;
+  font-weight: 600;
+  color: #fbcfe8;
+  letter-spacing: 0.02em;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+
+.glb-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ec4899;
+  box-shadow: 0 0 8px #ec4899;
+  animation: glbPulseDot 1.8s ease-in-out infinite;
+}
+
+@keyframes glbPulseDot {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.3); opacity: 0.6; }
+}
+
+.glb-camera-group {
+  display: flex;
+  gap: 4px;
+  background: rgba(15, 13, 29, 0.75);
+  padding: 3px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+.glb-cam-btn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.glb-cam-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.glb-cam-btn--active {
+  background: rgba(236, 72, 153, 0.85) !important;
+  color: #ffffff !important;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(236, 72, 153, 0.4);
+}
+
+/* Bottom Animation Bar */
+.glb-anim-bar {
+  position: absolute;
+  bottom: 12px;
+  left: 10px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 6px 8px;
+  background: rgba(15, 13, 29, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  backdrop-filter: blur(12px);
+  z-index: 20;
+  scrollbar-width: none;
+}
+
+.glb-anim-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.glb-anim-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  margin-right: 4px;
+  white-space: nowrap;
+}
+
+.glb-anim-pill {
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 9px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+}
+
+.glb-anim-pill:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  border-color: rgba(236, 72, 153, 0.4);
+}
+
+.glb-anim-pill--active {
+  background: linear-gradient(135deg, #ec4899, #be185d) !important;
+  color: #ffffff !important;
+  border-color: #f472b6 !important;
+  font-weight: 600;
+  box-shadow: 0 2px 10px rgba(236, 72, 153, 0.45);
+}
+
+/* Loading & Error Overlays */
+.glb-loading-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 40%, #1a1630 0%, #0a0815 100%);
+  z-index: 30;
+  gap: 14px;
+  color: #ffffff;
+}
+
+.glb-spinner {
+  width: 44px;
+  height: 44px;
+  border: 3px solid rgba(236, 72, 153, 0.2);
+  border-top-color: #ec4899;
+  border-radius: 50%;
+  animation: glbSpin 0.9s cubic-bezier(0.5, 0.1, 0.5, 0.9) infinite;
+}
+
+@keyframes glbSpin {
+  to { transform: rotate(360deg); }
+}
+
+.glb-loading-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fbcfe8;
+  letter-spacing: 0.02em;
+}
+
+.glb-loading-sub {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+/* Speech Wave Indicator */
+.glb-speech-wave {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 12px;
+  margin-left: 4px;
+}
+
+.glb-wave-bar {
+  width: 2.5px;
+  height: 100%;
+  background: #ec4899;
+  border-radius: 2px;
+  animation: glbWave 0.8s ease-in-out infinite alternate;
+}
+
+.glb-wave-bar:nth-child(2) { animation-delay: 0.2s; }
+.glb-wave-bar:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes glbWave {
+  0% { transform: scaleY(0.3); }
+  100% { transform: scaleY(1.0); }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   COMING SOON / LOCKED OVERLAY
+   ═══════════════════════════════════════════════════════════ */
+
+.glb-locked-backdrop {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: radial-gradient(circle at 50% 35%, rgba(18, 14, 38, 0.72) 0%, rgba(9, 7, 20, 0.88) 100%);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  z-index: 40;
+  animation: glbFadeIn 0.35s ease;
+  pointer-events: auto;
+}
+
+@keyframes glbFadeIn {
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.glb-locked-card {
+  max-width: 310px;
+  width: 100%;
+  background: rgba(22, 18, 42, 0.86);
+  border: 1px solid rgba(236, 72, 153, 0.35);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65), 0 0 35px rgba(236, 72, 153, 0.18);
+  border-radius: 20px;
+  padding: 22px 18px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.glb-locked-glow-accent {
+  position: absolute;
+  top: -35px;
+  width: 130px;
+  height: 70px;
+  background: radial-gradient(circle, rgba(236, 72, 153, 0.5) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.glb-locked-icon-badge {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.28) 0%, rgba(139, 92, 246, 0.18) 100%);
+  border: 1px solid rgba(236, 72, 153, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  box-shadow: 0 4px 18px rgba(236, 72, 153, 0.35);
+  position: relative;
+}
+
+.glb-lock-svg {
+  width: 22px;
+  height: 22px;
+  color: #fbcfe8;
+}
+
+.glb-locked-status-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  background: rgba(236, 72, 153, 0.16);
+  border: 1px solid rgba(236, 72, 153, 0.45);
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #f472b6;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+}
+
+.glb-locked-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 6px 0;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+
+.glb-locked-desc {
+  font-size: 11.5px;
+  line-height: 1.48;
+  color: rgba(255, 255, 255, 0.65);
+  margin: 0 0 14px 0;
+}
+
+.glb-locked-features {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 5px;
+  margin-bottom: 16px;
+  width: 100%;
+}
+
+.glb-feature-chip {
+  font-size: 10px;
+  padding: 2.5px 7.5px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 7px;
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 500;
+}
+
+.glb-switch-back-btn {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px 14px;
+  background: linear-gradient(135deg, #ec4899 0%, #db2777 50%, #9333ea 100%);
+  border: none;
+  border-radius: 11px;
+  color: #ffffff;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(236, 72, 153, 0.35);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glb-switch-back-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(236, 72, 153, 0.5);
+  filter: brightness(1.08);
+}
+
+.glb-switch-back-btn:active {
+  transform: translateY(0);
+}
+

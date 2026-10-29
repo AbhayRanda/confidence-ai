@@ -1313,7 +1313,7 @@ def google_auth_redirect():
         )
 
     # The redirect_uri must point to OUR backend callback, not the frontend
-    backend_redirect_uri = f"{settings.frontend_url.rstrip('/').replace('http://localhost:3000', 'http://localhost:8000').replace('https://confidence-ai.netlify.app', 'https://confidence-ai-1.onrender.com')}/auth/google/callback"
+    backend_redirect_uri = f"{settings.backend_url.rstrip('/')}/auth/google/callback"
 
     params = {
         "client_id":     settings.google_client_id,
@@ -1345,7 +1345,7 @@ async def google_auth_callback(code: Optional[str] = Query(None), error: Optiona
         logger.warning("Google OAuth callback called without code")
         return RedirectResponse(url=f"{frontend_base}/login?error=missing_code")
 
-    backend_redirect_uri = f"{settings.frontend_url.rstrip('/').replace('http://localhost:3000', 'http://localhost:8000').replace('https://confidence-ai.netlify.app', 'https://confidence-ai-1.onrender.com')}/auth/google/callback"
+    backend_redirect_uri = f"{settings.backend_url.rstrip('/')}/auth/google/callback"
 
     # ── Exchange code for tokens ───────────────────────────────
     try:

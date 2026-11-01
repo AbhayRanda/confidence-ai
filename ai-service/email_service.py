@@ -134,20 +134,26 @@ The ConfidenceAI Team
     msg.attach(MIMEText(text_body, "plain", "utf-8"))
     msg.attach(MIMEText(html_body, "html", "utf-8"))
 
-    try:
-        if smtp_port == 465:
-            with smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=12.0) as server:
-                server.login(smtp_user, smtp_password)
-                server.sendmail(smtp_user, [to_email], msg.as_string())
-        else:
-            with smtplib.SMTP(smtp_host, smtp_port, timeout=12.0) as server:
-                server.starttls()
-                server.login(smtp_user, smtp_password)
-                server.sendmail(smtp_user, [to_email], msg.as_string())
+    # Try primary port (587 STARTTLS or 465 SSL), and fall back to the other if blocked
+    ports_to_try = [smtp_port, 465 if smtp_port != 465 else 587]
 
-        logger.info(f"[Email Service] Verification OTP email delivered to {to_email}")
-        return True
+    for port in ports_to_try:
+        try:
+            if port == 465:
+                with smtplib.SMTP_SSL(smtp_host, port, timeout=10.0) as server:
+                    server.login(smtp_user, smtp_password)
+                    server.sendmail(smtp_user, [to_email], msg.as_string())
+            else:
+                with smtplib.SMTP(smtp_host, port, timeout=10.0) as server:
+                    server.starttls()
+                    server.login(smtp_user, smtp_password)
+                    server.sendmail(smtp_user, [to_email], msg.as_string())
 
-    except Exception as e:
-        logger.error(f"[Email Service] Failed sending OTP email to {to_email}: {e}", exc_info=True)
-        return False
+            logger.info(f"[Email Service] Verification OTP email delivered to {to_email} via port {port}")
+            return True
+
+        except Exception as e:
+            logger.warning(f"[Email Service] Failed sending OTP via port {port}: {e}")
+
+    logger.error(f"[Email Service] All SMTP ports failed sending OTP email to {to_email}")
+    return False

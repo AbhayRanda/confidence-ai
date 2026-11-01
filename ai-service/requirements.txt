@@ -6,6 +6,7 @@ moviepy
 imageio
 imageio-ffmpeg
 sqlalchemy
+psycopg2-binary
 python-multipart
 python-dotenv
 pydantic

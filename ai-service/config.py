@@ -79,6 +79,27 @@ class Settings(BaseSettings):
         extra="ignore"
     )
 
+    def model_post_init(self, __context):
+        import os
+        is_render = "RENDER" in os.environ or "RENDER_EXTERNAL_URL" in os.environ
+
+        # If database_url is sqlite but backend_url was accidentally set to a postgres connection string
+        if self.database_url.startswith("sqlite") and self.backend_url.startswith(("postgres://", "postgresql://")):
+            self.database_url = self.backend_url
+            self.backend_url = os.environ.get("RENDER_EXTERNAL_URL", "https://confidence-ai-1.onrender.com")
+
+        # If backend_url was mistakenly set to postgres connection string
+        if self.backend_url.startswith(("postgres://", "postgresql://")):
+            self.backend_url = os.environ.get("RENDER_EXTERNAL_URL", "https://confidence-ai-1.onrender.com")
+
+        # If on Render and backend_url is still default localhost
+        if is_render and ("localhost" in self.backend_url or "127.0.0.1" in self.backend_url):
+            self.backend_url = os.environ.get("RENDER_EXTERNAL_URL", "https://confidence-ai-1.onrender.com")
+
+        # If on Render and frontend_url is still default localhost
+        if is_render and ("localhost" in self.frontend_url or "127.0.0.1" in self.frontend_url):
+            self.frontend_url = "https://confidence-ai.netlify.app"
+
 
 def get_settings() -> Settings:
     """Get settings instance (always reads latest .env)"""

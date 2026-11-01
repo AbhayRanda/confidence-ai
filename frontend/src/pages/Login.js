@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useSearchParams, useNavigate, Link } from "react-router-dom";
+import { useSearchParams, useNavigate, useLocation, Link } from "react-router-dom";
 import "./Auth.css";
 import { API_BASE_URL } from "../utils/api";
 
@@ -21,14 +21,19 @@ const ERROR_MESSAGES = {
 function Login() {
   const [searchParams]          = useSearchParams();
   const navigate                = useNavigate();
-  const [email, setEmail]       = useState("");
+  const location                = useLocation();
+  const [email, setEmail]       = useState(location.state?.email || "");
   const [password, setPassword] = useState("");
   const [loading, setLoading]   = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError]       = useState("");
+  const [success, setSuccess]   = useState("");
 
-  // Show error from OAuth callback (e.g. ?error=google_denied)
+  // Show error from OAuth callback or success on account created
   useEffect(() => {
+    if (searchParams.get("verified")) {
+      setSuccess("Account created successfully! Please enter your password to sign in.");
+    }
     const oauthError = searchParams.get("error");
     if (oauthError) {
       setError(ERROR_MESSAGES[oauthError] || "Authentication failed. Please try again.");
@@ -135,6 +140,23 @@ function Login() {
 
           <h2 className="auth-form-title">Welcome back</h2>
           <p className="auth-form-sub">Sign in to continue your journey</p>
+
+          {success && (
+            <div className="auth-success" style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "10px 14px",
+              background: "rgba(34, 197, 94, 0.12)",
+              border: "1px solid rgba(34, 197, 94, 0.3)",
+              borderRadius: "10px",
+              color: "#16a34a",
+              fontSize: "13px",
+              marginBottom: "16px"
+            }}>
+              <span>✓ {success}</span>
+            </div>
+          )}
 
           {error && (
             <div className="auth-error">

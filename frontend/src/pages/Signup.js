@@ -47,8 +47,12 @@ function Signup() {
       });
       const data = await response.json();
       if (response.ok) {
-        setSignupDone(true);
-        setTimeout(() => navigate("/verify", { state: { email: cleanEmail } }), 2200);
+        if (data.auto_verified) {
+          navigate("/login?verified=true", { state: { email: cleanEmail } });
+        } else {
+          setSignupDone(true);
+          setTimeout(() => navigate("/verify", { state: { email: cleanEmail } }), 2200);
+        }
       } else {
         setError(data.detail || "Signup failed. Please check your Gmail address and try again.");
       }

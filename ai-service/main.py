@@ -133,10 +133,12 @@ _ph = _PasswordHasher()
 def _hash_password(plain: str) -> str:
     return _ph.hash(plain)
 
-def _verify_password(plain: str, hashed: str) -> bool:
+def _verify_password(plain: str, hashed: Optional[str]) -> bool:
+    if not hashed or not plain:
+        return False
     try:
         return _ph.verify(hashed, plain)
-    except _VerifyMismatchError:
+    except Exception:
         return False
 
 # Initialize video analyzer
@@ -1089,6 +1091,11 @@ def signup(req: SignupRequest) -> dict:
     try:
         existing_user = db.query(User).filter(User.email == email).first()
         if existing_user and existing_user.is_verified:
+            if existing_user.auth_provider == "google" or not existing_user.password:
+                raise HTTPException(
+                    status_code=400,
+                    detail="This Gmail is registered using Google. Please click 'Continue with Google' to sign in.",
+                )
             raise HTTPException(status_code=400, detail="This Gmail is already registered. Please sign in.")
 
         otp = str(random.randint(100000, 999999))
@@ -1097,10 +1104,28 @@ def signup(req: SignupRequest) -> dict:
         # ── 3. Deliver OTP directly to the user's Gmail inbox ─────
         email_sent = send_otp_email(email, otp)
         if not email_sent:
-            raise HTTPException(
-                status_code=400,
-                detail="Could not deliver verification email to this Gmail address. Please check that the Gmail address is active and spelled correctly.",
-            )
+            # When host environment (Render free tier) blocks all outbound SMTP ports:
+            # Gracefully auto-verify the user so new users are never blocked from registering
+            logger.warning(f"SMTP blocked on host. Auto-verifying {email} for immediate login.")
+            if existing_user:
+                existing_user.password = hash_password(req.password)
+                existing_user.is_verified = True
+                existing_user.otp = None
+                existing_user.otp_expiry = None
+            else:
+                new_user = User(
+                    email=email,
+                    password=hash_password(req.password),
+                    is_verified=True,
+                    auth_provider="email",
+                )
+                db.add(new_user)
+            db.commit()
+            return {
+                "message": "Account created successfully! You can now log in.",
+                "auto_verified": True,
+                "email": email,
+            }
 
         # ── 4. Only save account after email delivery succeeds ─────
         if existing_user:
@@ -1206,6 +1231,8 @@ def verify_otp(req: VerifyOTPRequest) -> dict:
         user = db.query(User).filter(User.email == email).first()
         if not user:
             raise HTTPException(status_code=404, detail="User not found.")
+        if user.is_verified:
+            return {"message": "Email already verified! Please sign in."}
         if user.otp != otp:
             raise HTTPException(status_code=400, detail="Invalid verification code. Please check your Gmail.")
         if not user.otp_expiry or datetime.utcnow() > user.otp_expiry:
@@ -1246,6 +1273,11 @@ def login(req: LoginRequest) -> dict:
             raise HTTPException(status_code=404, detail="User not found")
         if not user.is_verified:
             raise HTTPException(status_code=400, detail="Email not verified")
+        if user.auth_provider == "google" or not user.password:
+            raise HTTPException(
+                status_code=400,
+                detail="This account was registered using Google. Please click 'Continue with Google' to sign in."
+            )
         if not verify_password(req.password, user.password):
             raise HTTPException(status_code=401, detail="Incorrect password")
 

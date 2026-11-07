@@ -156,8 +156,12 @@ export function getAvailableFemaleVoices() {
   const voices = window.speechSynthesis.getVoices() || [];
   if (!voices.length) return [];
 
+  // Prioritize English voices for natural pronunciation
+  const enVoices = voices.filter(v => (v.lang || '').toLowerCase().startsWith('en'));
+  const candidatePool = enVoices.length > 0 ? enVoices : voices;
+
   // Filter out any voice explicitly matching male keywords
-  const nonMale = voices.filter(v => {
+  const nonMale = candidatePool.filter(v => {
     const n = (v.name || '').toLowerCase();
     return !MALE_VOICE_NAMES.some(m => n.includes(m));
   });
@@ -168,14 +172,9 @@ export function getAvailableFemaleVoices() {
     return FEMALE_VOICE_PRIORITIES.some(f => n.includes(f));
   });
 
-  if (females.length > 0) {
-    const en = females.filter(v => (v.lang || '').toLowerCase().startsWith('en'));
-    return en.length > 0 ? en : females;
-  }
-
-  // Fallback: non-male English voices
-  const enNonMale = nonMale.filter(v => (v.lang || '').toLowerCase().startsWith('en'));
-  return enNonMale.length > 0 ? enNonMale : nonMale;
+  if (females.length > 0) return females;
+  if (nonMale.length > 0) return nonMale;
+  return candidatePool;
 }
 
 export function pickBestFemaleVoice() {
@@ -188,9 +187,9 @@ export function pickBestFemaleVoice() {
     return null;
   }
 
-  // Prioritize top natural female voices
+  // Prioritize top natural female voices in English
   for (const pri of FEMALE_VOICE_PRIORITIES) {
-    const found = list.find(v => (v.name || '').toLowerCase().includes(pri));
+    const found = list.find(v => (v.name || '').toLowerCase().includes(pri) && (v.lang || '').toLowerCase().startsWith('en'));
     if (found) return found;
   }
   return list[0];
@@ -975,7 +974,7 @@ export function IdealPerformanceDemo({ analysisData, videoBlob, onClose }) {
               {/* Top stage toolbar: Director Camera, Studio Lighting, Audience Tracking, Prompter & Telemetry */}
               <div className="ipd-stage-toolbar">
                 {/* Director Camera Presets */}
-                <div className="ipd-camera-presets" role="group" aria-label="Camera Shot Angle">
+                <div className="ipd-camera-presets ipd-camera-presets--angles" role="group" aria-label="Camera Shot Angle">
                   {Object.values(CAMERA_PRESETS).map(preset => (
                     <button
                       key={preset.id}
@@ -991,7 +990,7 @@ export function IdealPerformanceDemo({ analysisData, videoBlob, onClose }) {
                 </div>
 
                 {/* Avatar Model Switcher */}
-                <div className="ipd-camera-presets" role="group" aria-label="Avatar Model Style">
+                <div className="ipd-camera-presets ipd-camera-presets--avatars" role="group" aria-label="Avatar Model Style">
                   <button
                     type="button"
                     className={`ipd-camera-btn ${avatarMode === 'avatar1' ? 'ipd-camera-btn--active' : ''}`}

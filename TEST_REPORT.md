@@ -44,3 +44,4 @@
 - **Code Splitting**: Lazy loading implemented across all major routes (`Dashboard`, `AIDashboard`, `Resources`, `VideoAnalytics`, `LiveAvatarChat`, `Settings`, `Progress`, `Practice`).
 - **Initial Load Chunk**: Reduced initial JS payload by code-splitting heavy Three.js and Chart.js modules into asynchronous on-demand chunks.
 - **Visual Stability**: Zero cumulative layout shift achieved using `SkeletonCard` and `SkeletonStat` placeholders during asynchronous data fetching.
+

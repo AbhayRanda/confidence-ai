@@ -48,3 +48,4 @@ All notable changes, architectural enhancements, security hardening, and newly i
 - MediaPipe computer vision landmark tracking (gaze, posture, smile, hands).
 - Whisper speech transcription and filler word cadence counting.
 - Neon.tech PostgreSQL persistence.
+

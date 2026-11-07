@@ -17,6 +17,7 @@ function VideoAnalytics() {
   const [allVideos, setAllVideos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [videoError, setVideoError] = useState(false);
 
   const fetchVideoData = useCallback(async () => {
     setLoading(true);
@@ -194,20 +195,40 @@ function VideoAnalytics() {
               </a>
             </div>
             <div className="va-video-wrapper">
-              <video
-                controls
-                playsInline
-                webkit-playsinline="true"
-                preload="auto"
-                className="va-video-player"
-                src={`${API_BASE_URL}/uploads/${videoData.video_path.replace(/\.webm$/i, '.mp4')}#t=0.001`}
-              >
-                <source
+              {videoError ? (
+                <div style={{
+                  padding: "36px 20px",
+                  textAlign: "center",
+                  background: "rgba(255, 255, 255, 0.03)",
+                  borderRadius: "12px",
+                  border: "1px dashed rgba(255, 255, 255, 0.15)",
+                }}>
+                  <div style={{ fontSize: "28px", marginBottom: "8px" }}>📁</div>
+                  <p style={{ margin: "0 0 6px", fontWeight: 600, color: "var(--text-primary)" }}>
+                    Video Recording Expired from Ephemeral Storage
+                  </p>
+                  <p style={{ margin: 0, fontSize: "12px", color: "var(--text-muted)" }}>
+                    All computed confidence scores, vocal metrics, and posture insights are fully preserved below.
+                  </p>
+                </div>
+              ) : (
+                <video
+                  controls
+                  playsInline
+                  webkit-playsinline="true"
+                  preload="auto"
+                  className="va-video-player"
+                  onError={() => setVideoError(true)}
                   src={`${API_BASE_URL}/uploads/${videoData.video_path.replace(/\.webm$/i, '.mp4')}#t=0.001`}
-                  type="video/mp4"
-                />
-                Your browser does not support this video format.
-              </video>
+                >
+                  <source
+                    src={`${API_BASE_URL}/uploads/${videoData.video_path.replace(/\.webm$/i, '.mp4')}#t=0.001`}
+                    type="video/mp4"
+                    onError={() => setVideoError(true)}
+                  />
+                  Your browser does not support this video format.
+                </video>
+              )}
             </div>
           </div>
         )}

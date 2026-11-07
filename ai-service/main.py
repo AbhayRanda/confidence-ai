@@ -945,21 +945,6 @@ def get_video_session(video_id: int, current_user: User = Depends(get_current_us
         if not r:
             raise HTTPException(status_code=404, detail="Video session not found")
 
-        import json as _json
-        suggestions_list = []
-        if r.suggestions:
-            try:
-                suggestions_list = _json.loads(r.suggestions) if isinstance(r.suggestions, str) else r.suggestions
-            except Exception:
-                suggestions_list = [r.suggestions]
-
-        timeline = []
-        if r.timeline_data:
-            try:
-                timeline = _json.loads(r.timeline_data) if isinstance(r.timeline_data, str) else r.timeline_data
-            except Exception:
-                timeline = []
-
         return {
             "id":                         r.id,
             "confidence_score":           r.confidence_score,
@@ -973,9 +958,6 @@ def get_video_session(video_id: int, current_user: User = Depends(get_current_us
             "words_per_minute":           r.words_per_minute,
             "hand_movement_percentage":   r.hand_movement_percentage,
             "video_path":                 r.video_path,
-            "speech_text":                r.speech_text,
-            "suggestions":                suggestions_list,
-            "timeline_data":              timeline,
             "created_at":                 r.created_at.isoformat() if r.created_at else None,
         }
     finally:

@@ -6,7 +6,7 @@ import {
 } from "chart.js";
 import { Bar } from "react-chartjs-2";
 import "./VideoAnalytics.css";
-import { API_BASE_URL } from "../utils/api";
+import { API_BASE_URL, apiJSON } from "../utils/api";
 
 ChartJS.register(LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend, BarElement);
 
@@ -18,21 +18,28 @@ function VideoAnalytics() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const fetchVideoData = useCallback(() => {
+  const fetchVideoData = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const token = localStorage.getItem("token");
-    fetch(`${API_BASE_URL}/dashboard`, { headers: { "Authorization": `Bearer ${token || ""}` } })
-      .then((r) => { if (!r.ok) throw new Error("Failed to fetch session data"); return r.json(); })
-      .then((data) => {
-        const videos = Array.isArray(data) ? data : [];
+    try {
+      // 1. Fetch single video directly from dedicated endpoint
+      const res = await apiJSON(`/video/${id}`);
+      if (res.ok && res.data) {
+        setVideoData(res.data);
+      } else {
+        // Fallback: search via dashboard list
+        const dashRes = await apiJSON("/dashboard");
+        const videos = Array.isArray(dashRes.data) ? dashRes.data : [];
         setAllVideos(videos);
-        const video = videos.find((v) => v.id === parseInt(id));
-        if (!video) throw new Error("Video session not found");
-        setVideoData(video);
-        setLoading(false);
-      })
-      .catch((err) => { setError(err.message); setLoading(false); });
+        const match = videos.find((v) => v.id === parseInt(id));
+        if (!match) throw new Error("Video session not found");
+        setVideoData(match);
+      }
+    } catch (err) {
+      setError(err.message || "Failed to load session");
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
 
   useEffect(() => { fetchVideoData(); }, [fetchVideoData]);

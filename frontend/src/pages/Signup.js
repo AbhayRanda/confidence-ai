@@ -22,10 +22,9 @@ function Signup() {
   const validateForm = () => {
     if (!email || !password || !confirmPassword) { setError("Please fill in all fields"); return false; }
     const cleanEmail = email.trim().toLowerCase();
-    // Google Gmail requirements: 6-30 chars, letters/numbers/dots, no consecutive dots
-    const gmailRegex = /^(?!.*\.\.)[a-zA-Z0-9][a-zA-Z0-9.]{4,28}[a-zA-Z0-9]@gmail\.com$/;
-    if (!gmailRegex.test(cleanEmail)) {
-      setError("Please enter a valid Gmail address (6–30 characters, e.g. yourname@gmail.com)");
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      setError("Please enter a valid email address");
       return false;
     }
     if (password.length < 6) { setError("Password must be at least 6 characters"); return false; }
@@ -54,7 +53,7 @@ function Signup() {
           setTimeout(() => navigate("/verify", { state: { email: cleanEmail } }), 2200);
         }
       } else {
-        setError(data.detail || "Signup failed. Please check your Gmail address and try again.");
+        setError(data.detail || "Signup failed. Please check your email address and try again.");
       }
     } catch {
       setError("Network error. Please try again.");
@@ -69,7 +68,7 @@ function Signup() {
         <div className="auth-otp-screen animate-fadeUp">
           <div className="auth-otp-box">
             <div className="auth-otp-icon">📬</div>
-            <div className="auth-otp-title">Check your Gmail!</div>
+            <div className="auth-otp-title">Check your inbox!</div>
             <p className="auth-otp-label">We sent a 6-digit verification code to:</p>
             <div style={{
               display: "inline-block",
@@ -84,7 +83,7 @@ function Signup() {
             }}>
               {email.trim().toLowerCase()}
             </div>
-            <p className="auth-otp-info">Check your inbox and spam folder. The code is only accessible from your Gmail.</p>
+            <p className="auth-otp-info">Check your inbox and spam folder for your activation code.</p>
             <button
               onClick={() => navigate("/verify", { state: { email: email.trim().toLowerCase() } })}
               className="auth-submit"

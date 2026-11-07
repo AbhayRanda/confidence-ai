@@ -43,9 +43,9 @@ function Login() {
   const handleEmailLogin = async (e) => {
     e.preventDefault();
     const cleanEmail = email.trim().toLowerCase();
-    const gmailRegex = /^(?!.*\.\.)[a-zA-Z0-9][a-zA-Z0-9.]{4,28}[a-zA-Z0-9]@gmail\.com$/;
-    if (!gmailRegex.test(cleanEmail)) {
-      setError("Please enter a valid Gmail address (e.g. yourname@gmail.com)");
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      setError("Please enter a valid email address");
       return;
     }
     setLoading(true);

@@ -8,7 +8,9 @@ import {
 } from "chart.js";
 import { Line, Radar } from "react-chartjs-2";
 import "./Dashboard.css";
-import { API_BASE_URL } from "../utils/api";
+import { API_BASE_URL, apiJSON, apiFetch } from "../utils/api";
+import ConfirmModal from "../components/ConfirmModal";
+import { SkeletonStat } from "../components/Skeleton";
 
 ChartJS.register(
   LineElement, PointElement, LinearScale,
@@ -165,24 +167,23 @@ function Dashboard() {
   const [lastUpdate, setLastUpdate] = useState(null);
   const [activeChart, setActiveChart] = useState("overview"); // "overview" | "metrics"
   const [activePreviewVideo, setActivePreviewVideo] = useState(null);
+  const [deleteTargetId, setDeleteTargetId] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const refreshRef = useRef(null);
 
   const fetchDashboard = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const token = localStorage.getItem("token");
-    const hdrs  = { "Authorization": `Bearer ${token || ""}` };
     try {
       const [dashRes, progRes, storRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/dashboard`, { headers: hdrs }),
-        fetch(`${API_BASE_URL}/progress`,  { headers: hdrs }),
-        fetch(`${API_BASE_URL}/storage`,   { headers: hdrs }),
+        apiJSON("/dashboard"),
+        apiJSON("/progress"),
+        apiJSON("/storage"),
       ]);
       if (!dashRes.ok) throw new Error("Failed to load sessions");
-      const dash = await dashRes.json();
-      setDataPoints(Array.isArray(dash) ? [...dash].reverse() : []);
-      if (progRes.ok) setProgressData(await progRes.json());
-      if (storRes.ok) setStorageInfo(await storRes.json());
+      setDataPoints(Array.isArray(dashRes.data) ? [...dashRes.data].reverse() : []);
+      if (progRes.ok && progRes.data) setProgressData(progRes.data);
+      if (storRes.ok && storRes.data) setStorageInfo(storRes.data);
       setLastUpdate(new Date().toLocaleTimeString());
     } catch (e) {
       setError(e.message || "Failed to load dashboard");
@@ -197,17 +198,25 @@ function Dashboard() {
     return () => clearInterval(refreshRef.current);
   }, [fetchDashboard]);
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Delete this session?")) return;
-    const token = localStorage.getItem("token");
+  const handleDelete = (id) => {
+    setDeleteTargetId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTargetId) return;
+    setIsDeleting(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/delete/${id}`, {
+      const res = await apiFetch(`/delete/${deleteTargetId}`, {
         method: "DELETE",
-        headers: { "Authorization": `Bearer ${token || ""}` },
       });
       if (!res.ok) throw new Error();
+      setDeleteTargetId(null);
       fetchDashboard();
-    } catch { setError("Failed to delete session."); }
+    } catch {
+      setError("Failed to delete session.");
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   // ── Derived values ────────────────────────────────────────────
@@ -384,24 +393,33 @@ function Dashboard() {
       )}
 
       {/* Stat cards */}
-      <div className="dash-stats-grid">
-        <StatCard label="Latest Score"   value={latest ? Number(latest.confidence_score).toFixed(1) : "—"}
-          color="#7c5cfc" delay={0}
-          icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>}
-        />
-        <StatCard label="Average Score"  value={average}
-          color="#5b8def" delay={0.05}
-          icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>}
-        />
-        <StatCard label="Personal Best"  value={best}
-          color="#22c55e" delay={0.1}
-          icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>}
-        />
-        <StatCard label="Total Sessions" value={dataPoints.length} sub={`${streak} this week`}
-          color="#f59e0b" delay={0.15}
-          icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>}
-        />
-      </div>
+      {loading && dataPoints.length === 0 ? (
+        <div className="dash-stats-grid">
+          <SkeletonStat />
+          <SkeletonStat />
+          <SkeletonStat />
+          <SkeletonStat />
+        </div>
+      ) : (
+        <div className="dash-stats-grid">
+          <StatCard label="Latest Score"   value={latest ? Number(latest.confidence_score).toFixed(1) : "—"}
+            color="#7c5cfc" delay={0}
+            icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>}
+          />
+          <StatCard label="Average Score"  value={average}
+            color="#5b8def" delay={0.05}
+            icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>}
+          />
+          <StatCard label="Personal Best"  value={best}
+            color="#22c55e" delay={0.1}
+            icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>}
+          />
+          <StatCard label="Total Sessions" value={dataPoints.length} sub={`${streak} this week`}
+            color="#f59e0b" delay={0.15}
+            icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>}
+          />
+        </div>
+      )}
 
       {/* Insights row */}
       {(biggestWin || biggestOpp) && (
@@ -751,6 +769,19 @@ function Dashboard() {
           </div>
         </div>
       )}
+
+      {/* Accessible Confirmation Modal for Deletion */}
+      <ConfirmModal
+        isOpen={Boolean(deleteTargetId)}
+        title="Delete Practice Session?"
+        message="This will permanently delete the video recording, timeline insights, and analysis metrics for this session. Your aggregate progress score will be recalculated."
+        confirmText="Yes, Delete Session"
+        cancelText="Keep Session"
+        danger={true}
+        loading={isDeleting}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTargetId(null)}
+      />
     </div>
   );
 }

@@ -1,0 +1,45 @@
+/* Skeleton.css — Premium Pulse Shimmer */
+
+.sk-placeholder {
+  background: linear-gradient(
+    90deg,
+    var(--bg-surface-2, rgba(255, 255, 255, 0.05)) 25%,
+    var(--border-subtle, rgba(255, 255, 255, 0.12)) 50%,
+    var(--bg-surface-2, rgba(255, 255, 255, 0.05)) 75%
+  );
+  background-size: 200% 100%;
+  animation: skShimmer 1.8s infinite ease-in-out;
+  display: inline-block;
+}
+
+@keyframes skShimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.sk-card {
+  background: var(--bg-surface, #121826);
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  border-radius: var(--radius-lg, 16px);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sk-card-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.sk-stat-box {
+  background: var(--bg-surface, #121826);
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  border-radius: var(--radius-md, 12px);
+  padding: 20px;
+}

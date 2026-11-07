@@ -8,6 +8,8 @@ import ThemeSwitcher from "./ThemeSwitcher";
 
 import { API_BASE_URL } from "../utils/api";
 
+import ConfirmModal from "./ConfirmModal";
+
 const NAV_ITEMS = [
   {
     to: "/dashboard",
@@ -20,8 +22,29 @@ const NAV_ITEMS = [
     ),
   },
   {
-    to: "/ai",
+    to: "/practice",
     label: "Practice",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <polygon points="10 8 16 12 10 16 10 8" />
+      </svg>
+    ),
+  },
+  {
+    to: "/progress",
+    label: "Analytics",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="18" y1="20" x2="18" y2="10" />
+        <line x1="12" y1="20" x2="12" y2="4" />
+        <line x1="6" y1="20" x2="6" y2="14" />
+      </svg>
+    ),
+  },
+  {
+    to: "/ai",
+    label: "Studio Upload",
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
@@ -58,9 +81,11 @@ function Navbar() {
   const userInitial = user ? user.charAt(0).toUpperCase() : "U";
   const { profile } = useUserProfile();
   const [showEditProfile, setShowEditProfile] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const displayName = profile?.name || (user ? user.split('@')[0] : null);
 
   const handleLogout = async () => {
+    setShowLogoutModal(false);
     try {
       const token = localStorage.getItem("token");
       if (token) {
@@ -147,17 +172,27 @@ function Navbar() {
                 : 'Member'}
               </span>
             </div>
-            {/* Edit profile button */}
-            <button
-              className="navbar-edit-profile-btn"
-              onClick={() => setShowEditProfile(true)}
-              title="Edit Profile"
-            >
-              ✏️
-            </button>
+            {/* Settings & Profile buttons */}
+            <div style={{ display: "flex", gap: "4px" }}>
+              <Link
+                to="/settings"
+                className="navbar-edit-profile-btn"
+                title="Settings & Preferences"
+                style={{ textDecoration: "none" }}
+              >
+                ⚙️
+              </Link>
+              <button
+                className="navbar-edit-profile-btn"
+                onClick={() => setShowEditProfile(true)}
+                title="Quick Profile Setup"
+              >
+                ✏️
+              </button>
+            </div>
           </div>
         )}
-        <button onClick={handleLogout} className="navbar-logout">
+        <button onClick={() => setShowLogoutModal(true)} className="navbar-logout">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
             <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
@@ -170,6 +205,17 @@ function Navbar() {
       {showEditProfile && (
         <UserOnboardingModal onComplete={() => setShowEditProfile(false)} />
       )}
+
+      {/* Confirm Logout Modal */}
+      <ConfirmModal
+        isOpen={showLogoutModal}
+        title="Sign Out of Confidence AI?"
+        message="You will need to sign in again to access your practice history and private recordings."
+        confirmText="Sign Out"
+        cancelText="Stay Signed In"
+        onConfirm={handleLogout}
+        onCancel={() => setShowLogoutModal(false)}
+      />
     </aside>
   );
 }

@@ -12,10 +12,12 @@ def check_gmail_exists(email: str) -> tuple[bool, str]:
     Directly query Google's inbound MX server (gmail-smtp-in.l.google.com)
     to verify in real time whether this Gmail address actually exists in Google's database.
 
-    Returns (True, "OK") if the account exists.
+    Returns (True, "OK") if the account exists or is a non-gmail address.
     Returns (False, error_message) if Google confirms the account does NOT exist.
     """
     clean_email = (email or "").strip().lower()
+    if not clean_email.endswith("@gmail.com"):
+        return True, "OK"
     try:
         with smtplib.SMTP("gmail-smtp-in.l.google.com", 25, timeout=4.0) as s:
             s.helo("gmail.com")

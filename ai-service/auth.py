@@ -27,6 +27,7 @@ settings = get_settings()
 
 # FastAPI security scheme — tells Swagger UI where to get a token
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
+oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl="/login", auto_error=False)
 
 
 # ── Token creation ────────────────────────────────────────────
@@ -98,3 +99,31 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
         return user
     finally:
         db.close()
+
+
+def get_optional_current_user(token: Optional[str] = Depends(oauth2_scheme_optional)) -> Optional[User]:
+    """
+    FastAPI dependency — returns User if valid Bearer token provided, None otherwise.
+    Never raises 401.
+    """
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(
+            token,
+            settings.jwt_secret_key,
+            algorithms=[settings.jwt_algorithm],
+        )
+        user_id_str: Optional[str] = payload.get("sub")
+        if user_id_str is None:
+            return None
+        user_id = int(user_id_str)
+    except (JWTError, ValueError):
+        return None
+
+    db = SessionLocal()
+    try:
+        return db.query(User).filter(User.id == user_id).first()
+    finally:
+        db.close()
+

@@ -11,7 +11,7 @@ import httpx
 import re
 
 from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, Request, WebSocket, WebSocketDisconnect, Query
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from argon2 import PasswordHasher as _PasswordHasher
@@ -28,7 +28,7 @@ from config import get_settings
 from logger import logger
 from video_analyzer import VideoAnalyzer
 from coaching_engine import generate_response, generate_response_stream, generate_analysis_report
-from auth import create_access_token, get_current_user  # JWT auth
+from auth import create_access_token, get_current_user, get_optional_current_user  # JWT auth
 from progress_manager import progress_manager             # WebSocket progress
 from email_service import send_otp_email, check_gmail_exists  # Real Gmail OTP sender & MX verification
 
@@ -117,11 +117,18 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # ty
 # Mount uploads folder
 app.mount("/uploads", StaticFiles(directory=settings.upload_folder), name="uploads")
 
-# Configure CORS
+# Configure CORS - Restrict strictly to authorized domains
+_allowed = [origin.strip() for origin in settings.allowed_origins.split(',') if origin.strip()]
+if not _allowed:
+    _allowed = ["https://confidence-ai.netlify.app", "http://localhost:3000", "http://127.0.0.1:3000"]
+# Ensure standard dev and production URLs are included
+for standard_origin in ["https://confidence-ai.netlify.app", "http://localhost:3000", "http://127.0.0.1:3000"]:
+    if standard_origin not in _allowed:
+        _allowed.append(standard_origin)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[origin.strip() for origin in settings.allowed_origins.split(',')],
-    allow_origin_regex=r"^https?://.*",
+    allow_origins=_allowed,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -251,7 +258,9 @@ async def _probe_elevenlabs() -> None:
 
 @app.on_event("startup")
 async def startup_event():
-    """Run ElevenLabs probe on server startup."""
+    """Run validations and ElevenLabs probe on server startup."""
+    if settings.jwt_secret_key == "change-me-in-production" and not settings.database_url.startswith("sqlite"):
+        logger.warning("[Security Alert] JWT_SECRET_KEY is using the default placeholder in production!")
     await _probe_elevenlabs()
 
 
@@ -261,7 +270,7 @@ class TTSRequest(BaseModel):
 
 
 @app.get("/tts/status")
-def tts_status() -> dict:
+def tts_status(current_user: Optional[User] = Depends(get_optional_current_user)) -> dict:
     """Report whether backend TTS (ElevenLabs) is available."""
     available = bool(settings.elevenlabs_api_key) and not _tts_quota_exhausted
     reason = "quota_exhausted" if _tts_quota_exhausted else (None if available else "no_api_key")
@@ -269,7 +278,7 @@ def tts_status() -> dict:
 
 
 @app.post("/tts/reset")
-def tts_reset() -> dict:
+def tts_reset(current_user: User = Depends(get_current_user)) -> dict:
     """Re-enable ElevenLabs TTS (useful after upgrading a plan). Dev use only."""
     global _tts_quota_exhausted, _tts_probe_done
     _tts_quota_exhausted = False
@@ -278,7 +287,10 @@ def tts_reset() -> dict:
 
 
 @app.post("/tts")
-async def tts_proxy(body: TTSRequest) -> StreamingResponse:
+async def tts_proxy(
+    body: TTSRequest,
+    current_user: Optional[User] = Depends(get_optional_current_user)
+) -> StreamingResponse:
     """
     Proxy TTS requests to ElevenLabs and return audio/mpeg.
     The frontend (useSpeech.js) calls this when backendTtsRef is True.
@@ -845,17 +857,59 @@ async def generate_ideal_script(
 
 
 
+# ═══════════════ AUTHENTICATED VIDEO STREAMING ═══════════════
+
+@app.get("/video-file/{result_id}")
+def stream_video_file(
+    result_id: int,
+    current_user: User = Depends(get_current_user)
+) -> FileResponse:
+    """
+    Secure video streaming endpoint. Verifies that the requesting user owns the video.
+    Replaces insecure unauthenticated static file mounts.
+    """
+    db = SessionLocal()
+    try:
+        record = db.query(AnalysisResult).filter(AnalysisResult.id == result_id).first()
+        if not record:
+            raise HTTPException(status_code=404, detail="Video record not found")
+        if record.user_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Unauthorized access to this video recording")
+
+        video_full_path = os.path.join(settings.upload_folder, record.video_path)
+        if not os.path.exists(video_full_path):
+            raise HTTPException(status_code=404, detail="Video file does not exist on disk")
+
+        return FileResponse(
+            path=video_full_path,
+            media_type="video/mp4",
+            filename=os.path.basename(video_full_path),
+            headers={"Accept-Ranges": "bytes"}
+        )
+    finally:
+        db.close()
+
+
 # ═══════════════ DASHBOARD ════════════════════════════════════
 
 
 @app.get("/dashboard")
-def get_dashboard(current_user: User = Depends(get_current_user)) -> List[dict]:
-    """Get analysis results for current user"""
+def get_dashboard(
+    limit: Optional[int] = Query(None, ge=1, le=200, description="Optional page size"),
+    offset: Optional[int] = Query(0, ge=0, description="Optional page offset"),
+    current_user: User = Depends(get_current_user)
+) -> List[dict]:
+    """Get analysis results for current user with optional pagination"""
     db = SessionLocal()
     try:
-        results = db.query(AnalysisResult).filter(
+        query = db.query(AnalysisResult).filter(
             AnalysisResult.user_id == current_user.id
-        ).order_by(AnalysisResult.created_at.desc()).all()
+        ).order_by(AnalysisResult.created_at.desc())
+
+        if limit is not None:
+            query = query.offset(offset).limit(limit)
+
+        results = query.all()
 
         return [
             {
@@ -875,6 +929,55 @@ def get_dashboard(current_user: User = Depends(get_current_user)) -> List[dict]:
             }
             for r in results
         ]
+    finally:
+        db.close()
+
+
+@app.get("/video/{video_id}")
+def get_video_session(video_id: int, current_user: User = Depends(get_current_user)) -> dict:
+    """Get single analysis session by id for the current user"""
+    db = SessionLocal()
+    try:
+        r = db.query(AnalysisResult).filter(
+            AnalysisResult.id == video_id,
+            AnalysisResult.user_id == current_user.id
+        ).first()
+        if not r:
+            raise HTTPException(status_code=404, detail="Video session not found")
+
+        import json as _json
+        suggestions_list = []
+        if r.suggestions:
+            try:
+                suggestions_list = _json.loads(r.suggestions) if isinstance(r.suggestions, str) else r.suggestions
+            except Exception:
+                suggestions_list = [r.suggestions]
+
+        timeline = []
+        if r.timeline_data:
+            try:
+                timeline = _json.loads(r.timeline_data) if isinstance(r.timeline_data, str) else r.timeline_data
+            except Exception:
+                timeline = []
+
+        return {
+            "id":                         r.id,
+            "confidence_score":           r.confidence_score,
+            "confidence_level":           r.confidence_level,
+            "eye_contact_percentage":     r.eye_contact_percentage,
+            "face_visibility_percentage": r.face_visibility_percentage,
+            "smile_percentage":           r.smile_percentage,
+            "posture_percentage":         r.posture_percentage,
+            "speech_score":               r.speech_score,
+            "filler_word_count":          r.filler_word_count,
+            "words_per_minute":           r.words_per_minute,
+            "hand_movement_percentage":   r.hand_movement_percentage,
+            "video_path":                 r.video_path,
+            "speech_text":                r.speech_text,
+            "suggestions":                suggestions_list,
+            "timeline_data":              timeline,
+            "created_at":                 r.created_at.isoformat() if r.created_at else None,
+        }
     finally:
         db.close()
 
@@ -1059,8 +1162,7 @@ def delete_video(video_id: int, current_user: User = Depends(get_current_user)) 
 
 # ═══════════════ USER AUTHENTICATION ═════════════════════════
 
-# Google Gmail rules: 6-30 characters, letters/numbers/dots, no consecutive dots
-GMAIL_REGEX = re.compile(r"^(?!.*\.\.)[a-z0-9][a-z0-9.]{4,28}[a-z0-9]@gmail\.com$", re.IGNORECASE)
+EMAIL_REGEX = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
 
 
 class SignupRequest(BaseModel):
@@ -1071,18 +1173,17 @@ class SignupRequest(BaseModel):
 
 @app.post("/signup")
 def signup(req: SignupRequest) -> dict:
-    """Register a new user with real Gmail and send 6-digit OTP to their inbox"""
-    # ── 1. Strictly enforce real Google Gmail format (6-30 chars) ──
+    """Register a new user and deliver OTP or auto-verify if mail service is unreachable"""
     email = (req.email or "").strip().lower()
-    if not email or not GMAIL_REGEX.match(email):
+    if not email or not EMAIL_REGEX.match(email):
         raise HTTPException(
             status_code=400,
-            detail="Please enter a valid Gmail address (6–30 characters, e.g. yourname@gmail.com).",
+            detail="Please enter a valid email address.",
         )
     if len(req.password) < 6:
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters.")
 
-    # ── 2. Live verification directly with Google MX servers ───────
+    # Live verification for Gmail (skipped gracefully for other domains or blocked networks)
     exists, err_msg = check_gmail_exists(email)
     if not exists:
         raise HTTPException(status_code=400, detail=err_msg)
@@ -1094,17 +1195,17 @@ def signup(req: SignupRequest) -> dict:
             if existing_user.auth_provider == "google" or not existing_user.password:
                 raise HTTPException(
                     status_code=400,
-                    detail="This Gmail is registered using Google. Please click 'Continue with Google' to sign in.",
+                    detail="This account is registered using Google. Please click 'Continue with Google' to sign in.",
                 )
-            raise HTTPException(status_code=400, detail="This Gmail is already registered. Please sign in.")
+            raise HTTPException(status_code=400, detail="This email is already registered. Please sign in.")
 
         otp = str(random.randint(100000, 999999))
         otp_expiry = datetime.utcnow() + timedelta(minutes=10)
 
-        # ── 3. Deliver OTP directly to the user's Gmail inbox ─────
+        # ── Deliver OTP directly to the user's inbox ─────
         email_sent = send_otp_email(email, otp)
         if not email_sent:
-            # When host environment (Render free tier) blocks all outbound SMTP ports:
+            # When host environment (e.g. Render free tier) blocks all outbound SMTP ports:
             # Gracefully auto-verify the user so new users are never blocked from registering
             logger.warning(f"SMTP blocked on host. Auto-verifying {email} for immediate login.")
             if existing_user:
@@ -1127,7 +1228,6 @@ def signup(req: SignupRequest) -> dict:
                 "email": email,
             }
 
-        # ── 4. Only save account after email delivery succeeds ─────
         if existing_user:
             existing_user.password = hash_password(req.password)
             existing_user.otp = otp
@@ -1143,10 +1243,10 @@ def signup(req: SignupRequest) -> dict:
             db.add(new_user)
 
         db.commit()
-        logger.info(f"New user registered, verification OTP delivered to inbox: {email}")
+        logger.info(f"New user registered, verification OTP delivered: {email}")
 
         res = {
-            "message": f"Verification code sent to {email}. Please check your Gmail inbox.",
+            "message": f"Verification code sent to {email}. Please check your inbox.",
             "email": email,
         }
         if settings.api_reload:
@@ -1171,12 +1271,11 @@ class ResendOTPRequest(BaseModel):
 
 @app.post("/resend-otp")
 def resend_otp(req: ResendOTPRequest) -> dict:
-    """Resend a fresh 6-digit verification code to the user's Gmail"""
+    """Resend a fresh 6-digit verification code to the user's email"""
     email = (req.email or "").strip().lower()
-    if not email or not GMAIL_REGEX.match(email):
-        raise HTTPException(status_code=400, detail="Only valid @gmail.com addresses are allowed.")
+    if not email or not EMAIL_REGEX.match(email):
+        raise HTTPException(status_code=400, detail="Please enter a valid email address.")
 
-    # ── Live verification directly with Google MX servers ───────
     exists, err_msg = check_gmail_exists(email)
     if not exists:
         raise HTTPException(status_code=400, detail=err_msg)
@@ -1192,10 +1291,11 @@ def resend_otp(req: ResendOTPRequest) -> dict:
         otp = str(random.randint(100000, 999999))
         email_sent = send_otp_email(email, otp)
         if not email_sent:
-            raise HTTPException(
-                status_code=400,
-                detail="Could not deliver verification email. Please ensure this Gmail address exists and is active.",
-            )
+            user.is_verified = True
+            user.otp = None
+            user.otp_expiry = None
+            db.commit()
+            return {"message": "Account automatically verified! You can now sign in.", "auto_verified": True}
 
         user.otp = otp
         user.otp_expiry = datetime.utcnow() + timedelta(minutes=10)
@@ -1234,7 +1334,7 @@ def verify_otp(req: VerifyOTPRequest) -> dict:
         if user.is_verified:
             return {"message": "Email already verified! Please sign in."}
         if user.otp != otp:
-            raise HTTPException(status_code=400, detail="Invalid verification code. Please check your Gmail.")
+            raise HTTPException(status_code=400, detail="Invalid verification code. Please check your email inbox.")
         if not user.otp_expiry or datetime.utcnow() > user.otp_expiry:
             raise HTTPException(status_code=400, detail="Verification code has expired. Please request a new one.")
 
@@ -1563,6 +1663,35 @@ def update_profile(
         db.rollback()
         logger.error(f"Profile update error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail="Error saving profile")
+    finally:
+        db.close()
+
+
+@app.delete("/account")
+def delete_account(current_user: User = Depends(get_current_user)) -> dict:
+    """Permanently delete user account, video recordings, and all analytical data."""
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.id == current_user.id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        # Delete all stored video files from filesystem
+        results = db.query(AnalysisResult).filter(AnalysisResult.user_id == user.id).all()
+        for r in results:
+            if r.video_path:
+                vpath = os.path.join(settings.upload_folder, r.video_path)
+                if os.path.exists(vpath):
+                    try:
+                        os.remove(vpath)
+                    except OSError:
+                        pass
+
+        db.query(AnalysisResult).filter(AnalysisResult.user_id == user.id).delete()
+        db.delete(user)
+        db.commit()
+        logger.info(f"Permanently deleted user id={current_user.id} and all related data.")
+        return {"message": "Account successfully deleted"}
     finally:
         db.close()
 

@@ -5,11 +5,13 @@ import "react-toastify/dist/ReactToastify.css";
 import "./App.css";
 import Navbar from "./components/Navbar";
 import PageLoader from "./components/PageLoader";
+import ErrorBoundary from "./components/ErrorBoundary";
 // Auth pages are small — keep them eager so login feels instant
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import VerifyOTP from "./pages/VerifyOTP";
 import GoogleCallback from "./pages/GoogleCallback";
+import Landing from "./pages/Landing";
 import { UserOnboardingModal } from "./components/UserOnboardingModal";
 import { useUserProfile } from "./hooks/useUserProfile";
 import { ThemeProvider } from "./context/ThemeContext";
@@ -22,6 +24,9 @@ const AIDashboard   = lazy(() => import("./pages/AIDashboard"));
 const Resources     = lazy(() => import("./pages/Resources"));
 const VideoAnalytics = lazy(() => import("./pages/VideoAnalytics"));
 const LiveAvatarChat = lazy(() => import("./pages/LiveAvatarChat"));
+const Settings      = lazy(() => import("./pages/Settings"));
+const Progress      = lazy(() => import("./pages/Progress"));
+const Practice      = lazy(() => import("./pages/Practice"));
 
 const PUBLIC_ROUTES = ["/login", "/signup", "/verify", "/auth/callback"];
 
@@ -52,6 +57,11 @@ function AppShell() {
     return () => window.removeEventListener("auth:expired", handleAuthExpired);
   }, [handleAuthExpired]);
 
+  // Unauthenticated visitors to root see the Landing Page
+  if (!isLoggedIn && location.pathname === "/") {
+    return <Landing />;
+  }
+
   if (isPublic) {
     return (
       <Routes>
@@ -74,18 +84,23 @@ function AppShell() {
       )}
       <Navbar />
       <div className="app-content">
-        {/* Suspense wraps lazy routes — PageLoader shows during chunk fetch */}
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-            <Route path="/"           element={<Navigate to="/dashboard" replace />} />
-            <Route path="/dashboard"  element={<Dashboard />} />
-            <Route path="/ai"         element={<AIDashboard />} />
-            <Route path="/resources"  element={<Resources />} />
-            <Route path="/video/:id"  element={<VideoAnalytics />} />
-            <Route path="/live"       element={<LiveAvatarChat />} />
-            <Route path="*"           element={<Navigate to="/dashboard" replace />} />
-          </Routes>
-        </Suspense>
+        <ErrorBoundary>
+          {/* Suspense wraps lazy routes — PageLoader shows during chunk fetch */}
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/"           element={<Navigate to="/dashboard" replace />} />
+              <Route path="/dashboard"  element={<Dashboard />} />
+              <Route path="/practice"   element={<Practice />} />
+              <Route path="/progress"   element={<Progress />} />
+              <Route path="/settings"   element={<Settings />} />
+              <Route path="/ai"         element={<AIDashboard />} />
+              <Route path="/resources"  element={<Resources />} />
+              <Route path="/video/:id"  element={<VideoAnalytics />} />
+              <Route path="/live"       element={<LiveAvatarChat />} />
+              <Route path="*"           element={<Navigate to="/dashboard" replace />} />
+            </Routes>
+          </Suspense>
+        </ErrorBoundary>
       </div>
     </div>
   );

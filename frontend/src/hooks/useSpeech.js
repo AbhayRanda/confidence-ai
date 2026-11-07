@@ -89,9 +89,14 @@ const DEFAULT_VOICE_ID = 'EXAVITQu4vr4xnSDxMaL'; // Sarah — natural, expressiv
 async function speakViaBackend(text, onStart, onEnd, onSilentFallback, onDisableBackend) {
   try {
     onStart?.();
+    const token = localStorage.getItem('token');
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
     const res = await fetch(`${API_BASE}/tts`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({ text, voice_id: DEFAULT_VOICE_ID }),
     });
 
@@ -179,7 +184,10 @@ export function useSpeech({
 
   // Check backend TTS availability on mount
   useEffect(() => {
-    fetch(`${API_BASE}/tts/status`)
+    const token = localStorage.getItem('token');
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    fetch(`${API_BASE}/tts/status`, { headers })
       .then((r) => r.json())
       .then((data) => { backendTtsRef.current = !!data?.available; })
       .catch(() => { backendTtsRef.current = false; });

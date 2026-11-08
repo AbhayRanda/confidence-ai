@@ -1105,6 +1105,7 @@ export function VRMAvatar({
   onError: externalOnError,
   style,
   className,
+  paused = false,
 }) {
   const [vrm, setVrm] = useState(null);
   const [framing, setFraming] = useState(null);
@@ -1150,6 +1151,7 @@ export function VRMAvatar({
       )}
 
       <Canvas
+        frameloop={paused ? 'demand' : 'always'}
         style={{ width: '100%', height: '100%', position: 'relative', zIndex: 1 }}
         camera={{ position: [0, 1.6, 1.5], fov: 28 }}
         shadows="soft"

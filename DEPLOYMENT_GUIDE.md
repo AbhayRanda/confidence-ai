@@ -96,3 +96,4 @@ REACT_APP_WS_URL=wss://confidence-ai-1.onrender.com
 - [ ] Log in and navigate to the **Practice Studio** (`/practice`) and **Progress Analytics** (`/progress`).
 - [ ] Navigate to **Settings** (`/settings`), change the theme to Peak Emerald or Executive Gold, and verify instant theme adaptation.
 - [ ] Verify that video recordings stream through authenticated `/video-file/{id}` endpoints.
+

@@ -248,6 +248,7 @@ export function AICharacter({
   className = '',
   style = {},
   onCharacterClick,
+  paused = false,
 }) {
   const [internalState, setInternalState] = useState(CHARACTER_STATES.IDLE);
   const [webGLAvail]  = useState(() => isWebGLAvailable());
@@ -415,6 +416,7 @@ export function AICharacter({
                 currentSpeechText={speech?.transcript || ''}
                 activeWord={speech?.activeWord || ''}
                 onReady={handleReady}
+                paused={paused}
                 style={{ opacity: loadStatus === 'ready' ? 1 : 0, transition: 'opacity 0.6s ease', width: '100%', height: '100%' }}
               />
             ) : useRPM ? (
@@ -429,6 +431,7 @@ export function AICharacter({
                 ttsAmplitude={audioAmplitude}
                 onSwitchAvatar={cycleAvatarMode}
                 onReady={handleReady}
+                paused={paused}
                 onError={() => {
                   // Auto-fallback to VRM if RPM CDN is unreachable
                   setAvatarMode(1);
@@ -442,6 +445,7 @@ export function AICharacter({
                 onReady={handleReady}
                 audioAmplitude={audioAmplitude}
                 preset={preset}
+                paused={paused}
                 style={{ opacity: loadStatus === 'ready' ? 1 : 0, transition: 'opacity 0.6s ease' }}
               />
             )}

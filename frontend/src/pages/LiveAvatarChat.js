@@ -524,13 +524,46 @@ export default function LiveAvatarChat() {
         addEvent('⚠️', 'Camera blocked: requires HTTPS', 'cam-err');
         return;
       }
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
-        audio: false, // Audio handled by useSpeech
-      });
+
+      const isMobile = typeof navigator !== 'undefined' && (
+        /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ||
+        (typeof window !== 'undefined' && window.innerWidth < 768)
+      );
+
+      const mobileVideoConstraints = {
+        facingMode: 'user',
+        width: { ideal: 640, max: 1280 },
+        height: { ideal: 480, max: 720 },
+        frameRate: { ideal: 24, max: 30 },
+      };
+
+      const desktopVideoConstraints = {
+        facingMode: 'user',
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+      };
+
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: isMobile ? mobileVideoConstraints : desktopVideoConstraints,
+          audio: false, // Audio handled by useSpeech
+        });
+      } catch (err) {
+        console.warn('[LiveAvatarChat] Initial constraints failed, trying generic user-facing:', err);
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user' },
+          audio: false,
+        });
+      }
+
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        videoRef.current.muted = true;
+        videoRef.current.playsInline = true;
+        videoRef.current.setAttribute('playsinline', 'true');
+        videoRef.current.setAttribute('webkit-playsinline', 'true');
         videoRef.current.play().catch(e => console.warn('[LiveAvatarChat] Video play error:', e));
       }
       setCameraOn(true);
@@ -798,6 +831,7 @@ export default function LiveAvatarChat() {
             className="live-user-video"
             autoPlay
             playsInline
+            webkit-playsinline="true"
             muted
             onLoadedMetadata={(e) => {
               e.currentTarget.play().catch(err => console.warn('Autoplay error:', err));

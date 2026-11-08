@@ -306,22 +306,55 @@ function AIDashboard() {
         return;
       }
 
-      // Step 1: Request camera & mic with smart fallback for mobile phones
+      // Step 1: Detect mobile environment to adapt constraints & prevent camera glitch/freeze
+      const isMobileDevice = typeof navigator !== "undefined" && (
+        /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ||
+        (typeof window !== "undefined" && window.innerWidth < 768)
+      );
+
+      // Mobile front cameras operate natively in 4:3 / portrait (640x480) with hardware acceleration.
+      // Requesting 1280x720 16:9 on a mobile portrait sensor causes hardware cropping, stutter, and frame drops.
+      const mobileConstraints = {
+        video: {
+          facingMode: "user",
+          width: { ideal: 640, max: 1280 },
+          height: { ideal: 480, max: 720 },
+          frameRate: { ideal: 24, max: 30 },
+        },
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+        },
+      };
+
+      const desktopConstraints = {
+        video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: true,
+      };
+
       let stream;
       try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
-          audio: true,
-        });
+        stream = await navigator.mediaDevices.getUserMedia(isMobileDevice ? mobileConstraints : desktopConstraints);
       } catch (constraintErr) {
-        console.warn("[Camera] Retrying with generic mobile constraints:", constraintErr);
-        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        console.warn("[Camera] Primary constraints failed, retrying with flexible user-facing:", constraintErr);
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "user" },
+            audio: true,
+          });
+        } catch (fallbackErr) {
+          console.warn("[Camera] Generic user-facing failed, retrying with basic stream:", fallbackErr);
+          stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        }
       }
 
-      // Step 2: Attach stream and play muted (mandatory for mobile browsers to allow autoplay)
+      // Step 2: Attach stream and play muted (mandatory for mobile browsers to allow autoplay without stutter)
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         videoRef.current.muted = true;
+        videoRef.current.playsInline = true;
+        videoRef.current.setAttribute("playsinline", "true");
+        videoRef.current.setAttribute("webkit-playsinline", "true");
         try {
           await videoRef.current.play();
         } catch (playErr) {
@@ -329,33 +362,47 @@ function AIDashboard() {
         }
       }
 
-      // Step 3: Determine supported MIME type (safely handles iOS Safari & Android Chrome)
+      // Step 3: Determine supported MIME type
+      // CRITICAL: Avoid VP9 on mobile devices! VP9 software encoding causes 100% CPU spikes,
+      // thermal throttling, and camera glitching on phones. VP8 & H.264/AVC have dedicated hardware encoders.
       let recorderOptions = {};
       if (typeof MediaRecorder !== "undefined") {
-        if (MediaRecorder.isTypeSupported?.("video/webm;codecs=vp9")) {
-          recorderOptions = { mimeType: "video/webm;codecs=vp9" };
-        } else if (MediaRecorder.isTypeSupported?.("video/webm")) {
-          recorderOptions = { mimeType: "video/webm" };
-        } else if (MediaRecorder.isTypeSupported?.("video/mp4")) {
-          recorderOptions = { mimeType: "video/mp4" };
+        const preferredTypes = [
+          "video/webm;codecs=vp8,opus",
+          "video/webm;codecs=vp8",
+          "video/mp4;codecs=avc1.42E01E,mp4a.40.2",
+          "video/mp4;codecs=avc1",
+          "video/mp4",
+          "video/webm",
+          "video/webm;codecs=vp9",
+        ];
+        for (const type of preferredTypes) {
+          if (MediaRecorder.isTypeSupported?.(type)) {
+            recorderOptions = { mimeType: type };
+            break;
+          }
         }
       }
 
       const recorder = new MediaRecorder(stream, recorderOptions);
       let chunks = [];
-      recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+      recorder.ondataavailable = (e) => { if (e.data && e.data.size > 0) chunks.push(e.data); };
       recorder.onstop = () => {
         const blob = new Blob(chunks, { type: recorder.mimeType || "video/webm" });
         setRecordedBlob(blob);
         stream.getTracks().forEach((t) => t.stop());
-        videoRef.current.srcObject = null;
-        videoRef.current.src = URL.createObjectURL(blob);
+        if (videoRef.current) {
+          videoRef.current.srcObject = null;
+          videoRef.current.src = URL.createObjectURL(blob);
+          videoRef.current.load?.();
+        }
         clearInterval(timerRef.current);
         setRecording(false);
         character.onSessionEnd();
       };
 
-      recorder.start();
+      // Deliver 1000ms timeslices instead of buffering entire video in RAM (eliminates mobile memory lag)
+      recorder.start(1000);
       mediaRecorderRef.current = recorder;
       setRecording(true);
       setRecordingTime(0);
@@ -680,6 +727,7 @@ function AIDashboard() {
                 autoPlay
                 muted={recording}
                 playsInline
+                webkit-playsinline="true"
                 controls={!recording}
                 className="ai-video"
               />
@@ -849,6 +897,7 @@ function AIDashboard() {
               speech={speech}
               showDevPanel={showDevPanel}
               onCharacterClick={character.triggerGreeting}
+              paused={recording}
               style={{ flex: 1 }}
             />
           </div>

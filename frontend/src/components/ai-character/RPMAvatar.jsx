@@ -373,6 +373,7 @@ export function RPMAvatar({
   onError,
   className = '',
   style = {},
+  paused = false,
 }) {
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState(null);
@@ -488,6 +489,7 @@ export function RPMAvatar({
 
       {/* 3D Canvas */}
       <Canvas
+        frameloop={paused ? 'demand' : 'always'}
         className="glb-avatar-canvas"
         camera={{ position: [0, 1.5, 1.4], fov: 26 }}
         gl={{

@@ -47,6 +47,12 @@ const GESTURE_LABELS = {
   ILoveYou:    '🤟 I Love You',
 };
 
+// ── Mobile detection helper ──────────────────────────────────
+const isMobileDevice = typeof navigator !== 'undefined' && (
+  /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ||
+  (typeof window !== 'undefined' && window.innerWidth < 768)
+);
+
 // ── HUD drawing colors ───────────────────────────────────────
 const HUD_COLORS = {
   facePoint:  'rgba(124, 92, 252, 0.5)',
@@ -254,14 +260,16 @@ export function useLiveVision({ enabled = true, videoRef, canvasRef } = {}) {
     canvas.height = video.videoHeight || 480;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Face mesh landmarks
+    // Face mesh landmarks — sampled on mobile to prevent canvas GPU stall
     if (showFaceMesh && face?.landmarks) {
       ctx.fillStyle = HUD_COLORS.facePoint;
-      for (const lm of face.landmarks) {
+      const step = isMobileDevice ? 5 : 1;
+      for (let i = 0; i < face.landmarks.length; i += step) {
+        const lm = face.landmarks[i];
         const x = lm.x * canvas.width;
         const y = lm.y * canvas.height;
         ctx.beginPath();
-        ctx.arc(x, y, 1.2, 0, 2 * Math.PI);
+        ctx.arc(x, y, isMobileDevice ? 1.6 : 1.2, 0, 2 * Math.PI);
         ctx.fill();
       }
     }
@@ -327,8 +335,10 @@ export function useLiveVision({ enabled = true, videoRef, canvasRef } = {}) {
 
     const now = performance.now();
 
-    // Throttle to ~15 FPS for performance (every ~66ms)
-    if (now - lastFrameTimeRef.current < 60) {
+    // Adaptive throttle: ~10 FPS on mobile (100ms) to leave CPU/GPU headroom for camera & 3D avatar;
+    // ~16 FPS on desktop (60ms) for high fidelity
+    const throttleLimit = isMobileDevice ? 100 : 60;
+    if (now - lastFrameTimeRef.current < throttleLimit) {
       rafIdRef.current = requestAnimationFrame(processFrame);
       return;
     }
@@ -359,8 +369,9 @@ export function useLiveVision({ enabled = true, videoRef, canvasRef } = {}) {
         setGesture(gestureResult);
       }
 
-      // Run object detector (every 3rd frame to save perf)
-      if (objectDetectorRef.current && fpsCounterRef.current.frames % 3 === 0) {
+      // Run object detector (every 6th frame on mobile, every 3rd on desktop to save compute)
+      const objectInterval = isMobileDevice ? 6 : 3;
+      if (objectDetectorRef.current && fpsCounterRef.current.frames % objectInterval === 0) {
         const raw = objectDetectorRef.current.detectForVideo(video, now);
         const objects = parseObjectResult(raw);
         setDetectedObjects(objects);

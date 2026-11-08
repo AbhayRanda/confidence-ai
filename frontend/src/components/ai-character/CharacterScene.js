@@ -80,21 +80,21 @@ function CameraRig({ mousePosition }) {
 }
 
 // ── Portrait lighting — improved for humanoid skin realism ────
-function SceneLighting({ stateColor }) {
+function SceneLighting({ stateColor, isMobile = false }) {
   const color = stateColor || '#7c5cfc';
   return (
     <>
       {/* Soft ambient */}
       <ambientLight intensity={0.22} color="#b8b0e0" />
 
-      {/* Primary key light — warm front-left, portrait style */}
+      {/* Primary key light — warm front-left, portrait style (shadows disabled on mobile for GPU perf) */}
       <directionalLight
         position={[-2.2, 3.8, 2.5]}
         intensity={2.0}
         color="#f0e8ff"
-        castShadow
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
+        castShadow={!isMobile}
+        shadow-mapSize-width={isMobile ? 512 : 1024}
+        shadow-mapSize-height={isMobile ? 512 : 1024}
         shadow-camera-near={0.1}
         shadow-camera-far={25}
         shadow-camera-left={-2.5}
@@ -427,7 +427,7 @@ function InnerScene({ state, mousePosition, onReady, isMobile, audioAmplitude = 
   return (
     <>
       <CameraRig mousePosition={mousePosition} />
-      <SceneLighting stateColor={cssColor} />
+      <SceneLighting stateColor={cssColor} isMobile={isMobile} />
 
       {/* Studio environment — slightly warmer for skin specular */}
       <Environment preset="studio" />
@@ -488,6 +488,7 @@ export function CharacterScene({
   className,
   audioAmplitude = 0,
   preset,
+  paused = false,
 }) {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const canvasRef = useRef();
@@ -543,7 +544,8 @@ export function CharacterScene({
       onTouchEnd={handleTouchEnd}
     >
       <Canvas
-        shadows
+        frameloop={paused ? "demand" : "always"}
+        shadows={!isMobile}
         camera={{ position: [0, 0.55, 2.25], fov: 36, near: 0.1, far: 60 }}
         gl={{
           antialias:             !isLowEnd,

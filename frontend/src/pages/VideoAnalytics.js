@@ -18,28 +18,66 @@ function VideoAnalytics() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [videoError, setVideoError] = useState(false);
+  const [retrying, setRetrying] = useState(false);
 
-  const fetchVideoData = useCallback(async () => {
+  const fetchVideoData = useCallback(async (isRetry = false) => {
     setLoading(true);
     setError(null);
+    if (isRetry) setRetrying(true);
+
     try {
-      // 1. Fetch single video directly from dedicated endpoint
-      const res = await apiJSON(`/video/${id}`);
-      if (res.ok && res.data) {
-        setVideoData(res.data);
+      // Fetch single video and dashboard history in parallel
+      const [videoRes, dashRes] = await Promise.allSettled([
+        apiJSON(`/video/${id}`),
+        apiJSON("/dashboard"),
+      ]);
+
+      let loadedVideo = null;
+
+      // Extract dashboard videos for relative benchmarks
+      if (dashRes.status === "fulfilled" && dashRes.value?.ok && Array.isArray(dashRes.value.data)) {
+        setAllVideos(dashRes.value.data);
+        loadedVideo = dashRes.value.data.find((v) => v.id === parseInt(id)) || null;
+      }
+
+      // Dedicated single-video endpoint takes precedence for fresh metrics
+      if (videoRes.status === "fulfilled" && videoRes.value?.ok && videoRes.value.data) {
+        loadedVideo = videoRes.value.data;
+      }
+
+      if (loadedVideo) {
+        setVideoData(loadedVideo);
       } else {
-        // Fallback: search via dashboard list
-        const dashRes = await apiJSON("/dashboard");
-        const videos = Array.isArray(dashRes.data) ? dashRes.data : [];
-        setAllVideos(videos);
-        const match = videos.find((v) => v.id === parseInt(id));
-        if (!match) throw new Error("Video session not found");
-        setVideoData(match);
+        // If single video failed, check if it was a 404 or a network error
+        const singleErr = videoRes.status === "rejected" ? videoRes.reason : null;
+        const isNetworkErr = singleErr && (
+          singleErr.message?.includes("fetch") ||
+          singleErr.message?.includes("NetworkError") ||
+          singleErr.name === "TypeError"
+        );
+
+        if (isNetworkErr && !isRetry) {
+          // Render free instances sleep after 15 min; wait 2.5s and retry automatically
+          setRetrying(true);
+          await new Promise((r) => setTimeout(r, 2500));
+          return fetchVideoData(true);
+        }
+
+        if (videoRes.status === "fulfilled" && videoRes.value?.status === 404) {
+          throw new Error("Session not found in your account.");
+        }
+
+        throw new Error(
+          isNetworkErr
+            ? "Could not reach server. The cloud server may be waking up from sleep (Render free tier)."
+            : "Video session not found or belongs to another account."
+        );
       }
     } catch (err) {
       setError(err.message || "Failed to load session");
     } finally {
       setLoading(false);
+      setRetrying(false);
     }
   }, [id]);
 
@@ -50,7 +88,9 @@ function VideoAnalytics() {
       <div className="va-page">
         <div className="va-loading-container animate-fadeUp">
           <div className="va-spinner-ring" />
-          <p className="va-loading-text">Loading session analytics…</p>
+          <p className="va-loading-text">
+            {retrying ? "Connecting to server (waking up cloud service)…" : "Loading session analytics…"}
+          </p>
         </div>
       </div>
     );
@@ -69,9 +109,14 @@ function VideoAnalytics() {
           </div>
           <h3 className="va-error-title">Unable to Load Session</h3>
           <p className="va-error-msg">{error || "Session not found"}</p>
-          <button onClick={() => navigate("/dashboard")} className="va-nav-btn va-nav-btn--primary">
-            ← Back to Dashboard
-          </button>
+          <div style={{ display: "flex", gap: "10px", justifyContent: "center", marginTop: "16px", flexWrap: "wrap" }}>
+            <button onClick={() => fetchVideoData(true)} className="va-nav-btn va-nav-btn--primary">
+              🔄 Retry Connection
+            </button>
+            <button onClick={() => navigate("/dashboard")} className="va-nav-btn" style={{ background: "rgba(255,255,255,0.06)" }}>
+              ← Back to Dashboard
+            </button>
+          </div>
         </div>
       </div>
     );

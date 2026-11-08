@@ -139,3 +139,4 @@ Confidence AI is an AI-powered personality development, speech analysis, and moc
 3. **Protected Media Storage**: Videos are stored in an isolated filesystem directory and served strictly through authenticated endpoints (`/video-file/{id}`) verifying record ownership.
 4. **Rate Limiting**: Tiered IP and User-ID rate limiting via `slowapi` to prevent API abuse and denial of service.
 5. **CORS Hardening**: Strict origin whitelist matching production domains (`confidence-ai.netlify.app`, `localhost:3000`), disallowing arbitrary open origins.
+

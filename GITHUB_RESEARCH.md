@@ -358,3 +358,4 @@ Each repository is assessed across 9 key vectors:
 | **Speech Analytics** | Cloud Whisper + Fallback Web Speech + VAD heuristics | Sub-second transcription + deep filler word & speed analysis |
 | **Audio Synthesizer** | ElevenLabs Flash v2.5 + Web Speech API fallback | Studio-quality human voice coaching with zero-cost fallback |
 | **Toasts & Modals** | Lightweight accessible React modals & toasts | Clean, production SaaS polish without dependency lock-in |
+

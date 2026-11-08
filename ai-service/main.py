@@ -430,16 +430,17 @@ def _remux_to_mp4(webm_path: str) -> str:
         "-y",                           # overwrite output
         # Lenient input flags — handle truncated/broken EBML clusters
         "-fflags", "+genpts+igndts+discardcorrupt",
-        "-analyzeduration", "100M",     # scan more data for stream info
-        "-probesize",       "100M",
+        "-analyzeduration", "10M",      # fast probe (saves RAM & startup time on Render 0.1 vCPU)
+        "-probesize",       "10M",
         "-i", webm_path,                # input WebM
-        # Encode with H.264 (yuv420p) for 100% iOS Safari and universal mobile playback
+        # Ultrafast H.264 encode scaled to 720p max to fit within 512MB RAM and 0.1 vCPU
         "-c:v", "libx264",
         "-preset", "ultrafast",
-        "-crf", "23",
+        "-crf", "26",
+        "-vf", "scale='min(720,iw)':-2",
         "-pix_fmt", "yuv420p",
         "-c:a", "aac",                  # re-encode audio: webm opus → aac
-        "-b:a", "128k",
+        "-b:a", "96k",
         "-movflags", "+faststart",      # move moov atom to front of MP4 for instant mobile playback
         mp4_path,
     ]

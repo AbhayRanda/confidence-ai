@@ -215,6 +215,26 @@ function AIDashboard() {
   const [showIdealDemo, setShowIdealDemo]   = useState(false);
   const [lastResult, setLastResult]         = useState(null);
 
+  // Detect mobile device — Phone Camera button is only useful on phones/tablets
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof navigator !== "undefined" && (
+      /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ||
+      (typeof window !== "undefined" && window.innerWidth < 768)
+    )
+  );
+
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = Boolean(
+        (typeof navigator !== "undefined" && /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)) ||
+        (typeof window !== "undefined" && window.innerWidth < 768)
+      );
+      setIsMobile(mobile);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const timerRef         = useRef(null);
   const mediaRecorderRef = useRef(null);
   const videoRef         = useRef(null);
@@ -772,21 +792,24 @@ function AIDashboard() {
                     Live Cam
                   </button>
 
-                  <label className="ai-btn-phone-cam" id="phone-cam-label" title="Record directly with your phone's native camera app">
-                    <input
-                      type="file"
-                      accept="video/*"
-                      capture="user"
-                      onChange={handleFileSelect}
-                      style={{ display: "none" }}
-                      disabled={loading}
-                    />
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-                      <circle cx="12" cy="13" r="4"/>
-                    </svg>
-                    Phone Camera
-                  </label>
+                  {/* Phone Camera — only useful on mobile (native camera capture); hidden on desktop */}
+                  {isMobile && (
+                    <label className="ai-btn-phone-cam" id="phone-cam-label" title="Record directly with your phone's native camera app">
+                      <input
+                        type="file"
+                        accept="video/*"
+                        capture="user"
+                        onChange={handleFileSelect}
+                        style={{ display: "none" }}
+                        disabled={loading}
+                      />
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                        <circle cx="12" cy="13" r="4"/>
+                      </svg>
+                      Phone Camera
+                    </label>
+                  )}
 
                   <label className="ai-btn-upload" id="upload-label" title="Choose existing recorded video from storage">
                     <input

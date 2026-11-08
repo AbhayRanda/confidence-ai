@@ -288,6 +288,13 @@
   transform: translateY(-1px);
 }
 
+/* Hide phone camera upload button on laptop / desktop screens */
+@media (min-width: 769px) {
+  .ai-btn-phone-cam {
+    display: none !important;
+  }
+}
+
 .ai-btn-upload {
   display: flex;
   align-items: center;

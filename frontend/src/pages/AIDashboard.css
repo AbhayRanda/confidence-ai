@@ -264,6 +264,30 @@
   transform: translateY(-1px);
 }
 
+.ai-btn-phone-cam {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 11px 16px;
+  background: var(--accent-010);
+  border: 1.5px solid var(--accent-030);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+  transition: all var(--transition);
+}
+
+.ai-btn-phone-cam:hover {
+  background: var(--accent-020);
+  border-color: var(--accent);
+  color: var(--accent-hover, #6d28d9);
+  transform: translateY(-1px);
+}
+
 .ai-btn-upload {
   display: flex;
   align-items: center;
@@ -1081,6 +1105,7 @@
 
   .ai-btn-primary,
   .ai-btn-stop,
+  .ai-btn-phone-cam,
   .ai-btn-upload {
     width: 100%;
     min-height: 46px;

@@ -764,12 +764,46 @@ function AIDashboard() {
             {/* Controls */}
             <div className="ai-camera-controls">
               {!recording ? (
-                <button className="ai-btn-primary" onClick={startRecording} id="start-session-btn">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                    <polygon points="5 3 19 12 5 21 5 3"/>
-                  </svg>
-                  Start Session
-                </button>
+                <>
+                  <button className="ai-btn-primary" onClick={startRecording} id="start-session-btn" title="Record live webcam inside browser">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                      <polygon points="5 3 19 12 5 21 5 3"/>
+                    </svg>
+                    Live Cam
+                  </button>
+
+                  <label className="ai-btn-phone-cam" id="phone-cam-label" title="Record directly with your phone's native camera app">
+                    <input
+                      type="file"
+                      accept="video/*"
+                      capture="user"
+                      onChange={handleFileSelect}
+                      style={{ display: "none" }}
+                      disabled={loading}
+                    />
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                      <circle cx="12" cy="13" r="4"/>
+                    </svg>
+                    Phone Camera
+                  </label>
+
+                  <label className="ai-btn-upload" id="upload-label" title="Choose existing recorded video from storage">
+                    <input
+                      type="file"
+                      accept="video/*"
+                      onChange={handleFileSelect}
+                      style={{ display: "none" }}
+                      disabled={loading}
+                    />
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                      <polyline points="17 8 12 3 7 8"/>
+                      <line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    Upload Video
+                  </label>
+                </>
               ) : (
                 <button className="ai-btn-stop" onClick={stopRecording} id="stop-recording-btn">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -778,15 +812,6 @@ function AIDashboard() {
                   Stop Recording
                 </button>
               )}
-              <label className="ai-btn-upload" id="upload-label">
-                <input type="file" accept="video/*" onChange={handleFileSelect}
-                  style={{ display: "none" }} disabled={loading} />
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                  <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-                </svg>
-                Upload
-              </label>
             </div>
 
             {/* Ready banner */}

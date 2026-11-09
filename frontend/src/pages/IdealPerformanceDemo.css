@@ -1971,18 +1971,22 @@
   }
 
   /* ── 5. Sleek, Netflix-style subtitle caption at bottom of avatar ── */
-  .ipd-speech-bubble {
-    bottom: 8px;
-    left: 8px;
-    right: 8px;
-    max-width: calc(100% - 16px);
+  .ipd-speech-bubble,
+  .ipd-speech-bubble--mobile {
+    bottom: 10px !important;
+    left: 10px !important;
+    right: 10px !important;
+    transform: none !important;
+    width: auto !important;
+    max-width: calc(100% - 20px) !important;
     background: rgba(11, 15, 25, 0.88);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.18);
     backdrop-filter: blur(12px);
     border-radius: 12px;
     padding: 8px 12px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
     z-index: 25;
+    text-align: center;
   }
 
   .ipd-speech-header-row {
@@ -2000,11 +2004,12 @@
 
   /* ── 6. Generous viewport for 3D Avatar ── */
   .ipd-body {
-    grid-template-rows: 58vh auto;
+    grid-template-rows: 56vh auto;
   }
 
-  .ipd-avatar-viewport {
-    min-height: 340px;
+  .ipd-stage {
+    min-height: 330px;
+    height: 56vh;
   }
 
   /* ── 7. Clean up controls panel below ── */
@@ -2033,11 +2038,12 @@
 
 @media (max-width: 480px) {
   .ipd-body {
-    grid-template-rows: 56vh auto;
+    grid-template-rows: 54vh auto;
   }
 
-  .ipd-avatar-viewport {
+  .ipd-stage {
     min-height: 300px;
+    height: 54vh;
   }
 
   .ipd-card {

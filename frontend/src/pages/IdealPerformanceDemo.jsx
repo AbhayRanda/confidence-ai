@@ -192,7 +192,8 @@ export function pickBestFemaleVoice() {
     const found = list.find(v => (v.name || '').toLowerCase().includes(pri) && (v.lang || '').toLowerCase().startsWith('en'));
     if (found) return found;
   }
-  return list[0];
+  // Enforce English voice first so foreign default voices (e.g., Bulgarian) are not chosen
+  return list.find(v => (v.lang || '').toLowerCase().startsWith('en')) || list[0];
 }
 
 // ── Generating overlay (shown while script is being prepared) ─
@@ -316,6 +317,26 @@ export function IdealPerformanceDemo({ analysisData, videoBlob, onClose }) {
   const [playing,     setPlaying]     = useState(false);
   const [speed,       setSpeed]       = useState(1.0);
   const [progress,    setProgress]    = useState(0);
+
+  // Mobile detection for compact, uncluttered mobile stage
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof navigator !== 'undefined' && (
+      /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ||
+      (typeof window !== 'undefined' && window.innerWidth < 768)
+    )
+  );
+
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = Boolean(
+        (typeof navigator !== 'undefined' && /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)) ||
+        (typeof window !== 'undefined' && window.innerWidth < 768)
+      );
+      setIsMobile(mobile);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // ── TTS amplitude simulation for realistic VRM lip-sync ─────
   const startTtsAmplitude = useCallback((durationMs) => {
@@ -770,18 +791,20 @@ export function IdealPerformanceDemo({ analysisData, videoBlob, onClose }) {
             </div>
             <div>
               <div className="ipd-title">{duelMode ? 'You vs. Your AI Coach' : 'Your Ideal Performance'}</div>
-              <div className="ipd-subtitle">
-                {duelMode
-                  ? 'Side-by-side: your original delivery vs. AI-coached ideal performance'
-                  : usedUserSpeech
-                  ? '3D Avatar demonstrates your speech with improved confidence & poise'
-                  : 'Watch how your presentation looks with perfect confidence & body language'}
-              </div>
+              {!isMobile && (
+                <div className="ipd-subtitle">
+                  {duelMode
+                    ? 'Side-by-side: your original delivery vs. AI-coached ideal performance'
+                    : usedUserSpeech
+                    ? '3D Avatar demonstrates your speech with improved confidence & poise'
+                    : 'Watch how your presentation looks with perfect confidence & body language'}
+                </div>
+              )}
             </div>
           </div>
           <div className="ipd-header-actions">
-            {/* Duel mode toggle — only when a recorded/uploaded video is available */}
-            {userVideoBlobUrl && (
+            {/* Duel mode toggle — only on desktop when a recorded/uploaded video is available */}
+            {!isMobile && userVideoBlobUrl && (
               <button
                 id="ideal-demo-duel-btn"
                 className={`ipd-duel-toggle-btn${duelMode ? ' ipd-duel-toggle-btn--active' : ''}`}
@@ -973,21 +996,23 @@ export function IdealPerformanceDemo({ analysisData, videoBlob, onClose }) {
 
               {/* Top stage toolbar: Director Camera, Studio Lighting, Audience Tracking, Prompter & Telemetry */}
               <div className="ipd-stage-toolbar">
-                {/* Director Camera Presets */}
-                <div className="ipd-camera-presets ipd-camera-presets--angles" role="group" aria-label="Camera Shot Angle">
-                  {Object.values(CAMERA_PRESETS).map(preset => (
-                    <button
-                      key={preset.id}
-                      type="button"
-                      className={`ipd-camera-btn ${cameraMode === preset.id ? 'ipd-camera-btn--active' : ''}`}
-                      onClick={() => setCameraMode(preset.id)}
-                      title={`Switch to ${preset.label}`}
-                    >
-                      <span className="ipd-camera-icon">{preset.icon}</span>
-                      <span className="ipd-camera-label">{preset.label}</span>
-                    </button>
-                  ))}
-                </div>
+                {/* Director Camera Presets — desktop only */}
+                {!isMobile && (
+                  <div className="ipd-camera-presets ipd-camera-presets--angles" role="group" aria-label="Camera Shot Angle">
+                    {Object.values(CAMERA_PRESETS).map(preset => (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        className={`ipd-camera-btn ${cameraMode === preset.id ? 'ipd-camera-btn--active' : ''}`}
+                        onClick={() => setCameraMode(preset.id)}
+                        title={`Switch to ${preset.label}`}
+                      >
+                        <span className="ipd-camera-icon">{preset.icon}</span>
+                        <span className="ipd-camera-label">{preset.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
 
                 {/* Avatar Model Switcher */}
                 <div className="ipd-camera-presets ipd-camera-presets--avatars" role="group" aria-label="Avatar Model Style">
@@ -1001,7 +1026,7 @@ export function IdealPerformanceDemo({ analysisData, videoBlob, onClose }) {
                     title="Avatar 1 (VRM Humanoid)"
                   >
                     <span className="ipd-camera-icon">🧑</span>
-                    <span className="ipd-camera-label">Avatar 1</span>
+                    <span className="ipd-camera-label">{isMobile ? '1' : 'Avatar 1'}</span>
                   </button>
                   <button
                     type="button"
@@ -1013,7 +1038,7 @@ export function IdealPerformanceDemo({ analysisData, videoBlob, onClose }) {
                     title="Avatar 2 (VRM Humanoid)"
                   >
                     <span className="ipd-camera-icon">👩</span>
-                    <span className="ipd-camera-label">Avatar 2</span>
+                    <span className="ipd-camera-label">{isMobile ? '2' : 'Avatar 2'}</span>
                   </button>
                   <button
                     type="button"
@@ -1022,62 +1047,63 @@ export function IdealPerformanceDemo({ analysisData, videoBlob, onClose }) {
                     title="Abstract 3D Robot"
                   >
                     <span className="ipd-camera-icon">🤖</span>
-                    <span className="ipd-camera-label">Abstract</span>
+                    <span className="ipd-camera-label">{isMobile ? 'Bot' : 'Abstract'}</span>
                   </button>
                 </div>
 
-                {/* Studio Lighting Environments */}
-                <div className="ipd-lighting-presets" role="group" aria-label="Broadcast Studio Lighting">
-                  {Object.values(STUDIO_LIGHTING_PRESETS).map(light => (
+                {/* Stage controls — desktop only */}
+                {!isMobile && (
+                  <>
+                    <div className="ipd-lighting-presets" role="group" aria-label="Broadcast Studio Lighting">
+                      {Object.values(STUDIO_LIGHTING_PRESETS).map(light => (
+                        <button
+                          key={light.id}
+                          type="button"
+                          className={`ipd-lighting-btn ${studioLighting === light.id ? 'ipd-lighting-btn--active' : ''}`}
+                          onClick={() => setStudioLighting(light.id)}
+                          title={`Lighting: ${light.label} — ${light.description}`}
+                        >
+                          <span className="ipd-lighting-icon">{light.icon}</span>
+                          <span className="ipd-lighting-label">{light.label.split(' ')[0]}</span>
+                        </button>
+                      ))}
+                    </div>
+
                     <button
-                      key={light.id}
                       type="button"
-                      className={`ipd-lighting-btn ${studioLighting === light.id ? 'ipd-lighting-btn--active' : ''}`}
-                      onClick={() => setStudioLighting(light.id)}
-                      title={`Lighting: ${light.label} — ${light.description}`}
+                      className={`ipd-audience-toggle-btn ${audienceTracking ? 'ipd-audience-toggle-btn--active' : ''}`}
+                      onClick={() => setAudienceTracking(v => !v)}
+                      title={audienceTracking ? "Audience Eye-Contact Tracking Active (Follows cursor)" : "Enable Audience Eye-Contact Tracking"}
                     >
-                      <span className="ipd-lighting-icon">{light.icon}</span>
-                      <span className="ipd-lighting-label">{light.label.split(' ')[0]}</span>
+                      <span className="ipd-audience-icon">{audienceTracking ? '👀' : '👁️'}</span>
+                      <span className="ipd-audience-label">Audience {audienceTracking ? 'ON' : 'OFF'}</span>
                     </button>
-                  ))}
-                </div>
 
-                {/* Audience Pointer Tracking Toggle */}
-                <button
-                  type="button"
-                  className={`ipd-audience-toggle-btn ${audienceTracking ? 'ipd-audience-toggle-btn--active' : ''}`}
-                  onClick={() => setAudienceTracking(v => !v)}
-                  title={audienceTracking ? "Audience Eye-Contact Tracking Active (Follows cursor)" : "Enable Audience Eye-Contact Tracking"}
-                >
-                  <span className="ipd-audience-icon">{audienceTracking ? '👀' : '👁️'}</span>
-                  <span className="ipd-audience-label">Audience {audienceTracking ? 'ON' : 'OFF'}</span>
-                </button>
+                    <button
+                      type="button"
+                      className={`ipd-prompter-toggle-btn ${showPrompter ? 'ipd-prompter-toggle-btn--active' : ''}`}
+                      onClick={() => setShowPrompter(v => !v)}
+                      title="Toggle Broadcast Karaoke Teleprompter HUD"
+                    >
+                      <span className="ipd-prompter-icon">📺</span>
+                      <span className="ipd-prompter-label">Prompter</span>
+                    </button>
 
-                {/* Teleprompter Toggle */}
-                <button
-                  type="button"
-                  className={`ipd-prompter-toggle-btn ${showPrompter ? 'ipd-prompter-toggle-btn--active' : ''}`}
-                  onClick={() => setShowPrompter(v => !v)}
-                  title="Toggle Broadcast Karaoke Teleprompter HUD"
-                >
-                  <span className="ipd-prompter-icon">📺</span>
-                  <span className="ipd-prompter-label">Prompter</span>
-                </button>
-
-                {/* Live Biometric Telemetry Toggle */}
-                <button
-                  type="button"
-                  className={`ipd-telemetry-toggle-btn ${showTelemetry ? 'ipd-telemetry-toggle-btn--active' : ''}`}
-                  onClick={() => setShowTelemetry(v => !v)}
-                  title="Toggle Real-Time AI Biometric Presenter Telemetry"
-                >
-                  <span className="ipd-telemetry-dot" />
-                  Telemetry
-                </button>
+                    <button
+                      type="button"
+                      className={`ipd-telemetry-toggle-btn ${showTelemetry ? 'ipd-telemetry-toggle-btn--active' : ''}`}
+                      onClick={() => setShowTelemetry(v => !v)}
+                      title="Toggle Real-Time AI Biometric Presenter Telemetry"
+                    >
+                      <span className="ipd-telemetry-dot" />
+                      Telemetry
+                    </button>
+                  </>
+                )}
               </div>
 
-              {/* Live Presenter Biometric Telemetry Card */}
-              {showTelemetry && (
+              {/* Live Presenter Biometric Telemetry Card — desktop only */}
+              {!isMobile && showTelemetry && (
                 <div className="ipd-telemetry-card">
                   <div className="ipd-telemetry-header">
                     <span className="ipd-telemetry-title">⚡ Live Biometric Presenter Telemetry</span>
@@ -1170,31 +1196,35 @@ export function IdealPerformanceDemo({ analysisData, videoBlob, onClose }) {
               {/* Score ring — top left */}
               <div className="ipd-score-ring-wrap">
                 <div className="ipd-score-ring">
-                  <ScoreRing score={idealScore} size={48} />
+                  <ScoreRing score={idealScore} size={isMobile ? 36 : 48} />
                   <div className="ipd-score-ring-num">{idealScore}</div>
                 </div>
-                <div>
-                  <div className="ipd-score-ring-title">Ideal Score</div>
-                  <div className="ipd-score-ring-label">vs your {actualScore.toFixed(0)}</div>
-                </div>
+                {!isMobile && (
+                  <div>
+                    <div className="ipd-score-ring-title">Ideal Score</div>
+                    <div className="ipd-score-ring-label">vs your {actualScore.toFixed(0)}</div>
+                  </div>
+                )}
               </div>
 
-              {/* Metric chips — top right */}
-              <div className="ipd-metric-chips">
-                {[
-                  { icon: '👁️', label: 'Eye',     val: IDEAL_METRICS.eye_contact_percentage },
-                  { icon: '😊', label: 'Smile',   val: IDEAL_METRICS.smile_percentage },
-                  { icon: '🧍', label: 'Posture', val: IDEAL_METRICS.posture_percentage },
-                ].map(c => (
-                  <div key={c.label} className="ipd-chip">
-                    <span className="ipd-chip-icon">{c.icon}</span>
-                    <span className="ipd-chip-label">{c.label}</span>
-                    <span className="ipd-chip-val" style={{ color: metricColor(c.val) }}>
-                      {c.val}%
-                    </span>
-                  </div>
-                ))}
-              </div>
+              {/* Metric chips — desktop only */}
+              {!isMobile && (
+                <div className="ipd-metric-chips">
+                  {[
+                    { icon: '👁️', label: 'Eye',     val: IDEAL_METRICS.eye_contact_percentage },
+                    { icon: '😊', label: 'Smile',   val: IDEAL_METRICS.smile_percentage },
+                    { icon: '🧍', label: 'Posture', val: IDEAL_METRICS.posture_percentage },
+                  ].map(c => (
+                    <div key={c.label} className="ipd-chip">
+                      <span className="ipd-chip-icon">{c.icon}</span>
+                      <span className="ipd-chip-label">{c.label}</span>
+                      <span className="ipd-chip-val" style={{ color: metricColor(c.val) }}>
+                        {c.val}%
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {/* Playing bars — bottom left */}
               {playing && (
@@ -1208,8 +1238,8 @@ export function IdealPerformanceDemo({ analysisData, videoBlob, onClose }) {
                 </div>
               )}
 
-              {/* Broadcast Stage Teleprompter Karaoke HUD */}
-              {showPrompter && (playing || sentenceIdx > 0 || currentSentence) && (
+              {/* Broadcast Stage Teleprompter Karaoke HUD — desktop only */}
+              {!isMobile && showPrompter && (playing || sentenceIdx > 0 || currentSentence) && (
                 <div className="ipd-prompter-hud">
                   <div className="ipd-prompter-header">
                     <div className="ipd-prompter-header-left">
@@ -1243,26 +1273,28 @@ export function IdealPerformanceDemo({ analysisData, videoBlob, onClose }) {
                 </div>
               )}
 
-              {/* Speech bubble — bottom center */}
+              {/* Speech bubble — bottom center (clean subtitles on mobile) */}
               {(playing || sentenceIdx > 0) && (
-                <div className="ipd-speech-bubble">
-                  <div className="ipd-speech-header-row">
-                    <span className="ipd-speech-source-tag">
-                      {usedUserSpeech ? "🎙️ Avatar voicing your speech (improved):" : "🎙️ Ideal Demonstration:"}
-                    </span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      {activeWord && (
-                        <span className="ipd-word-viseme-tag" title="Word-synchronized viseme tracking">
-                          🗣️ <span className="ipd-word-active">{activeWord}</span>
-                        </span>
-                      )}
-                      {scriptSentences.length > 0 && (
-                        <span className="ipd-sentence-counter-tag">
-                          Sentence {sentenceIdx + 1} of {scriptSentences.length}
-                        </span>
-                      )}
+                <div className={`ipd-speech-bubble${isMobile ? ' ipd-speech-bubble--mobile' : ''}`}>
+                  {!isMobile && (
+                    <div className="ipd-speech-header-row">
+                      <span className="ipd-speech-source-tag">
+                        {usedUserSpeech ? "🎙️ Avatar voicing your speech (improved):" : "🎙️ Ideal Demonstration:"}
+                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        {activeWord && (
+                          <span className="ipd-word-viseme-tag" title="Word-synchronized viseme tracking">
+                            🗣️ <span className="ipd-word-active">{activeWord}</span>
+                          </span>
+                        )}
+                        {scriptSentences.length > 0 && (
+                          <span className="ipd-sentence-counter-tag">
+                            Sentence {sentenceIdx + 1} of {scriptSentences.length}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  )}
                   <div className="ipd-speech-text">
                     "{displayed}"
                     {playing && !sentenceDone && (
@@ -1440,39 +1472,41 @@ export function IdealPerformanceDemo({ analysisData, videoBlob, onClose }) {
                 <div className="ipd-progress-fill" style={{ width: `${progress}%` }} />
               </div>
 
-              {/* Female Voice Selector / Indicator */}
-              <div className="ipd-voice-row">
-                <span className="ipd-voice-label">Female Voice</span>
-                <div className="ipd-voice-container">
-                  {femaleVoices.length > 1 ? (
-                    <select
-                      className="ipd-voice-select"
-                      value={selectedVoice?.name || ''}
-                      onChange={(e) => {
-                        const v = femaleVoices.find(x => x.name === e.target.value);
-                        if (v) setSelectedVoice(v);
-                      }}
-                      title="Select female narrator voice"
-                    >
-                      {femaleVoices.map((v, idx) => (
-                        <option key={idx} value={v.name}>
-                          👩 {v.name.replace(/Microsoft |Google |Online \(Natural\)|Desktop/gi, '').trim()} ({v.lang})
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <div className="ipd-voice-badge" title={selectedVoice?.name || 'Female Voice'}>
-                      <span className="ipd-voice-badge-icon">👩‍💼</span>
-                      <span className="ipd-voice-badge-name">
-                        {selectedVoice
-                          ? selectedVoice.name.replace(/Microsoft |Google |Online \(Natural\)|Desktop/gi, '').trim()
-                          : 'Natural Female Voice'}
-                      </span>
-                      <span className="ipd-voice-badge-tag">Female</span>
-                    </div>
-                  )}
+              {/* Female Voice Selector / Indicator — desktop only */}
+              {!isMobile && (
+                <div className="ipd-voice-row">
+                  <span className="ipd-voice-label">Female Voice</span>
+                  <div className="ipd-voice-container">
+                    {femaleVoices.length > 1 ? (
+                      <select
+                        className="ipd-voice-select"
+                        value={selectedVoice?.name || ''}
+                        onChange={(e) => {
+                          const v = femaleVoices.find(x => x.name === e.target.value);
+                          if (v) setSelectedVoice(v);
+                        }}
+                        title="Select female narrator voice"
+                      >
+                        {femaleVoices.map((v, idx) => (
+                          <option key={idx} value={v.name}>
+                            👩 {v.name.replace(/Microsoft |Google |Online \(Natural\)|Desktop/gi, '').trim()} ({v.lang})
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <div className="ipd-voice-badge" title={selectedVoice?.name || 'Female Voice'}>
+                        <span className="ipd-voice-badge-icon">👩‍💼</span>
+                        <span className="ipd-voice-badge-name">
+                          {selectedVoice
+                            ? selectedVoice.name.replace(/Microsoft |Google |Online \(Natural\)|Desktop/gi, '').trim()
+                            : 'Natural Female Voice'}
+                        </span>
+                        <span className="ipd-voice-badge-tag">Female</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Speed */}
               <div className="ipd-speed-row">

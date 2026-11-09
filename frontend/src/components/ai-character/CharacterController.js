@@ -144,19 +144,25 @@ function buildMaterials(C) {
     }),
     // ── Mouth ──
     lip: pm(C.lip, {
-      roughness: 0.48,  metalness: 0.0,
-      clearcoat: 0.28,  clearcoatRoughness: 0.28,
-      sheen: 0.18, sheenRoughness: 0.48,
+      roughness: 0.40,  metalness: 0.0,
+      clearcoat: 0.35,  clearcoatRoughness: 0.22,
+      sheen: 0.25, sheenRoughness: 0.40,
       sheenColor: new THREE.Color('#ffbbaa'),
     }),
-    lipDark: pm(C.lipDark, { roughness: 0.55, metalness: 0.0 }),
+    lipDark: pm(C.lipDark, {
+      roughness: 0.45,  metalness: 0.0,
+      clearcoat: 0.30,  clearcoatRoughness: 0.25,
+      sheen: 0.20, sheenRoughness: 0.45,
+      sheenColor: new THREE.Color('#ee9988'),
+    }),
+    cavity: new THREE.MeshBasicMaterial({ color: new THREE.Color('#0c0406') }),
     tongue: pm(C.tongue, {
-      roughness: 0.8, metalness: 0.0,
+      roughness: 0.75, metalness: 0.0,
       transparent: true, opacity: 0.0, // animated
     }),
     teeth: pm(C.teeth, {
-      roughness: 0.4, metalness: 0.0,
-      emissive: new THREE.Color('#f8f8f8'), emissiveIntensity: 0.06,
+      roughness: 0.35, metalness: 0.0,
+      emissive: new THREE.Color('#f0f0f5'), emissiveIntensity: 0.08,
     }),
     // ── Face details ──
     nose:  pm(C.nose,  { roughness: 0.62, metalness: 0.0 }),
@@ -213,16 +219,17 @@ function buildGeometries() {
     nose:      new THREE.SphereGeometry(0.034, 16, 14),
     nostrilL:  new THREE.SphereGeometry(0.018, 12, 10),
     nostrilR:  new THREE.SphereGeometry(0.018, 12, 10),
-    upperLip:  new THREE.CapsuleGeometry(0.009, 0.090, 4, 12),
-    lowerLip:  new THREE.CapsuleGeometry(0.012, 0.084, 4, 12),
-    lipCornerL:new THREE.SphereGeometry(0.013, 10, 8),
-    lipCornerR:new THREE.SphereGeometry(0.013, 10, 8),
+    upperLip:  new THREE.CapsuleGeometry(0.0075, 0.076, 4, 16),
+    lowerLip:  new THREE.CapsuleGeometry(0.0095, 0.068, 4, 16),
+    mouthCavity: new THREE.BoxGeometry(0.074, 0.038, 0.018),
+    lipCornerL:new THREE.SphereGeometry(0.0085, 10, 8),
+    lipCornerR:new THREE.SphereGeometry(0.0085, 10, 8),
     cheekL:    new THREE.SphereGeometry(0.050, 14, 14),
     cheekR:    new THREE.SphereGeometry(0.050, 14, 14),
-    teeth:     new THREE.BoxGeometry(0.088, 0.020, 0.010),
-    lowerTeeth:new THREE.BoxGeometry(0.080, 0.016, 0.010),
-    tongue:    new THREE.SphereGeometry(0.040, 14, 10),
-    philtrum:  new THREE.SphereGeometry(0.016, 10, 10),
+    teeth:     new THREE.BoxGeometry(0.066, 0.015, 0.008),
+    lowerTeeth:new THREE.BoxGeometry(0.060, 0.013, 0.008),
+    tongue:    new THREE.SphereGeometry(0.026, 14, 10),
+    philtrum:  new THREE.SphereGeometry(0.014, 10, 10),
     // Eyelash strips
     eyelashU:  new THREE.BoxGeometry(0.098, 0.005, 0.003),
 
@@ -448,6 +455,7 @@ export function CharacterMesh({
   const rightWristRef   = useRef();
   const mouthTopRef     = useRef();
   const mouthBotRef     = useRef();
+  const mouthCavityRef  = useRef();
   const jawRef          = useRef();
   const leftEyeRef      = useRef();
   const rightEyeRef     = useRef();
@@ -609,8 +617,8 @@ export function CharacterMesh({
     const targetLipCornerY = isHappy ? 0.008
       : isThinking || isAnalyzing ? -0.006 : 0;
     a.lipCornerY = damp(a.lipCornerY, targetLipCornerY, 4, dt);
-    if (lipCornerLRef.current) lipCornerLRef.current.position.y = -0.018 + a.lipCornerY;
-    if (lipCornerRRef.current) lipCornerRRef.current.position.y = -0.018 + a.lipCornerY;
+    if (lipCornerLRef.current) lipCornerLRef.current.position.y = -0.118 + a.lipCornerY - a.mouthOpen * 0.005;
+    if (lipCornerRRef.current) lipCornerRRef.current.position.y = -0.118 + a.lipCornerY - a.mouthOpen * 0.005;
 
     // ── Iris emissive glow ─────────────────────────────────────
     const targetIrisGlow = 0.55 + (audioAmplitude > 0.02 ? audioAmplitude * 1.8 : 0);
@@ -842,19 +850,19 @@ export function CharacterMesh({
     let targetMouth = cfg.mouthOpen;
     if (isTalking) {
       targetMouth = audioAmplitude > 0.02
-        ? Math.min(1, audioAmplitude * 2.2)
-        : cfg.mouthOpen * (0.45 + Math.abs(Math.sin(a.time * 4.8)) * 0.85);
+        ? Math.min(1, audioAmplitude * 2.5)
+        : (cfg.mouthOpen || 0.45) * (0.35 + Math.abs(Math.sin(a.time * 6.5)) * 0.95);
     }
-    a.mouthOpen   = damp(a.mouthOpen,   targetMouth, 8, dt);
-    a.teethScaleY = damp(a.teethScaleY, a.mouthOpen > 0.12 ? a.mouthOpen : 0, 8, dt);
+    a.mouthOpen   = damp(a.mouthOpen,   targetMouth, 10, dt);
+    a.teethScaleY = damp(a.teethScaleY, a.mouthOpen > 0.08 ? a.mouthOpen : 0, 10, dt);
 
-    // Jaw drop — whole jaw moves down, not just lips
+    // Jaw drop — whole jaw moves down with mouth opening
     const targetJawDrop = a.mouthOpen * 0.022;
     a.jawDropY = damp(a.jawDropY, targetJawDrop, 8, dt);
 
-    // Tongue — appears at moderate mouth-open
-    const targetTongue = a.mouthOpen > 0.3 ? Math.min(1, (a.mouthOpen - 0.3) * 2) : 0;
-    a.tongueOpacity = damp(a.tongueOpacity, targetTongue * 0.65, 6, dt);
+    // Tongue — appears when mouth opens
+    const targetTongue = a.mouthOpen > 0.25 ? Math.min(1, (a.mouthOpen - 0.25) * 2.2) : 0;
+    a.tongueOpacity = damp(a.tongueOpacity, targetTongue * 0.75, 8, dt);
     tongueMat.opacity = a.tongueOpacity;
 
     // ── Aura ─────────────────────────────────────────────────
@@ -882,10 +890,31 @@ export function CharacterMesh({
     if (leftForeRef.current)  leftForeRef.current.rotation.x  = a.leftForeDrag;
     if (rightForeRef.current) rightForeRef.current.rotation.x = a.rightForeDrag;
 
-    if (mouthTopRef.current)  mouthTopRef.current.position.y  =  0.025 + a.mouthOpen * 0.018;
-    if (mouthBotRef.current)  mouthBotRef.current.position.y  = -0.018 - a.mouthOpen * 0.022;
-    if (teethRef.current)     teethRef.current.scale.y        = Math.max(0.01, a.teethScaleY);
-    if (lowerTeethRef.current) lowerTeethRef.current.position.y = -0.026 - a.jawDropY * 0.5;
+    // Dynamic lip stretch for speech phonemes (stretch wide on vowels, puckered on consonants/O)
+    const speechWave = Math.sin(a.time * 12);
+    const lipStretchX = 1 + (isTalking ? (speechWave > 0 ? 0.14 : -0.10) * a.mouthOpen : 0);
+
+    if (mouthTopRef.current) {
+      mouthTopRef.current.position.y = -0.112 + a.mouthOpen * 0.008;
+      mouthTopRef.current.scale.set(lipStretchX, 1, 1);
+    }
+    if (mouthBotRef.current) {
+      mouthBotRef.current.position.y = -0.124 - a.mouthOpen * 0.022 - a.jawDropY * 0.4;
+      mouthBotRef.current.scale.set(lipStretchX, 1, 1);
+    }
+    if (teethRef.current) {
+      teethRef.current.scale.set(1, Math.max(0.01, a.teethScaleY), 1);
+    }
+    if (lowerTeethRef.current) {
+      lowerTeethRef.current.position.y = -0.123 - a.mouthOpen * 0.018 - a.jawDropY * 0.4;
+      lowerTeethRef.current.scale.set(1, Math.max(0.01, a.teethScaleY), 1);
+    }
+    if (mouthCavityRef.current) {
+      mouthCavityRef.current.scale.set(lipStretchX, Math.max(0.01, a.mouthOpen), 1);
+    }
+    if (tongueRef.current) {
+      tongueRef.current.position.y = -0.123 - a.jawDropY * 0.3;
+    }
 
     if (auraRef.current) {
       auraRef.current.material.opacity           = a.auraOpacity;
@@ -1027,7 +1056,7 @@ export function CharacterMesh({
 
             {/* Philtrum */}
             <mesh geometry={G.philtrum} material={M.skinDark}
-              position={[0, -0.096, 0.198]} scale={[0.34, 0.54, 0.24]} />
+              position={[0, -0.096, 0.231]} scale={[0.34, 0.54, 0.24]} />
 
             {/* Cheek puffs */}
             <mesh ref={cheekLRef} geometry={G.cheekL} material={cheekMatL}
@@ -1059,26 +1088,35 @@ export function CharacterMesh({
               position={[ 0.048, 0.112, 0.190]} rotation={[Math.PI/2, 0, -0.55]} />
 
             {/* ── MOUTH ────────────────────────────────── */}
+            {/* Dark inner oral cavity */}
+            <mesh ref={mouthCavityRef} geometry={G.mouthCavity} material={M.cavity}
+              position={[0, -0.118, 0.222]} scale={[1, 0.01, 1]} />
+
+            {/* Upper lip — horizontally aligned across face */}
             <mesh ref={mouthTopRef} geometry={G.upperLip} material={M.lip}
-              position={[0,  0.025, 0.196]} rotation={[Math.PI/2, 0, 0]} />
+              position={[0, -0.112, 0.233]} rotation={[0, 0, Math.PI / 2]} />
+
+            {/* Lower lip — horizontally aligned across face */}
             <mesh ref={mouthBotRef} geometry={G.lowerLip} material={M.lipDark}
-              position={[0, -0.018, 0.196]} rotation={[Math.PI/2, 0, 0]} />
+              position={[0, -0.124, 0.231]} rotation={[0, 0, Math.PI / 2]} />
 
             {/* Upper teeth */}
             <mesh ref={teethRef} geometry={G.teeth} material={M.teeth}
-              position={[0, 0.004, 0.190]} scale={[1, 0.01, 1]} />
+              position={[0, -0.113, 0.227]} scale={[1, 0.01, 1]} />
+
             {/* Lower teeth — moves with jaw */}
             <mesh ref={lowerTeethRef} geometry={G.lowerTeeth} material={M.teeth}
-              position={[0, -0.026, 0.190]} scale={[1, 0.01, 1]} />
-            {/* Tongue — appears on wide mouth-open */}
+              position={[0, -0.123, 0.225]} scale={[1, 0.01, 1]} />
+
+            {/* Tongue — appears on mouth-open */}
             <mesh ref={tongueRef} geometry={G.tongue} material={tongueMat}
-              position={[0, -0.008, 0.168]} scale={[0.8, 0.35, 0.55]} />
+              position={[0, -0.123, 0.221]} scale={[0.8, 0.35, 0.55]} />
 
             {/* Lip corners */}
             <mesh ref={lipCornerLRef} geometry={G.lipCornerL} material={M.lip}
-              position={[-0.052, -0.018, 0.194]} scale={[0.78, 0.68, 0.58]} />
+              position={[-0.045, -0.118, 0.228]} scale={[0.78, 0.68, 0.58]} />
             <mesh ref={lipCornerRRef} geometry={G.lipCornerR} material={M.lip}
-              position={[ 0.052, -0.018, 0.194]} scale={[0.78, 0.68, 0.58]} />
+              position={[ 0.045, -0.118, 0.228]} scale={[0.78, 0.68, 0.58]} />
 
             {/* ── HAIR — 8 overlapping segments ────────── */}
             {/* Top dome */}

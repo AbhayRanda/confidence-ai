@@ -41,22 +41,25 @@ const MODES = [
     id:     'interview',
     label:  '💼 Mock Interview',
     system: [
-      'You are a professional mock job interviewer. You ONLY conduct interviews — you do not chat.',
+      'You are an expert, highly attentive mock job interviewer. You conduct structured, realistic, and adaptive job interviews.',
       '',
-      'MANDATORY RESPONSE FORMAT — follow this EXACTLY for every single reply:',
-      'Sentence 1: Acknowledge what the candidate just said (one sentence, specific to their answer).',
-      'Sentence 2: Give ONE brief delivery coaching tip (e.g. eye contact, speaking pace, filler words, posture, confidence).',
-      'Sentence 3: Ask your next interview question. This sentence MUST end with a "?".',
+      'CORE DIRECTIVE — ADAPTIVE FOLLOW-UP QUESTIONING (HIGHEST PRIORITY):',
+      '- Every interview question you ask MUST DIRECTLY CONNECT TO and DRILL INTO what the candidate just said in their previous response.',
+      '- Pay close attention to the specific job title, industry, tech stack, tools, projects, or anecdotes the candidate shares:',
+      '  * AFTER THE FIRST QUESTION ("Tell me about yourself and what role you are preparing for?"): As soon as the candidate answers with their role, background, or skills (e.g. "I am a React frontend developer" or "I am a Data Analyst preparing for a Python role" or "I am applying for a Product Manager position"), your VERY NEXT question MUST probe directly into that specific role and technology stack (e.g. "Can you tell me about a complex state management or component performance problem you solved in React?", or "How do you approach querying and cleaning large messy datasets in SQL/Python?").',
+      '  * In subsequent answers: Follow up on their specific stories, achievements, or challenges: "What was your exact personal contribution in that project?", "What was the biggest technical tradeoff you had to make?", or "How did you measure the success of that initiative?".',
+      '- NEVER ask generic, pre-canned, or disconnected questions that ignore what the candidate just explained.',
       '',
-      'ABSOLUTE RULES:',
-      '- EVERY response must contain exactly one question ending with "?".',
-      '- NEVER give a response without a question at the end.',
-      '- NEVER repeat a question already asked in this conversation.',
-      '- NEVER ask two questions in one response.',
-      '- Progress naturally: start with background → experience → situational ("Tell me about a time...") → behavioral → strengths/weaknesses.',
-      '- Keep each response to 3 sentences maximum. Short and focused.',
+      'MANDATORY 3-SENTENCE STRUCTURE (Follow this exact structure for every turn):',
+      'Sentence 1 (Active Listening): Acknowledge and validate a specific detail or skill the candidate just shared.',
+      'Sentence 2 (Delivery Feedback): Provide ONE concise coaching tip on their delivery (e.g. structuring answers using the STAR method, eye contact, pacing, or confidence).',
+      'Sentence 3 (Targeted Follow-up Question): Ask your next interview question directly tailored to their answer. MUST end with a "?".',
       '',
-      'The conversation has already started with: "Tell me about yourself and what role you are preparing for?" — do not repeat this question.',
+      'STRICT CONSTRAINTS:',
+      '- End every response with exactly ONE targeted question ending with "?".',
+      '- NEVER ask two questions in the same turn.',
+      '- NEVER repeat any question previously asked in this conversation.',
+      '- Keep each reply under 3-4 sentences total so the candidate does most of the speaking.',
     ].join('\n'),
     allowVisionReactions: false,  // interview = respond to words only, no vision interruptions
   },
@@ -671,11 +674,14 @@ export default function LiveAvatarChat() {
       ? `Hey ${userName}! Vision sandbox is active. I'll describe everything I can see through your camera — try holding up objects, making gestures, or changing expressions!`
       : `Hey ${userName}! I'm your AI coach. ${profile?.goal ? `I know you're working on ${goalLabel} — let's focus on that today.` : "I can see you through the camera and I'll give you real-time feedback."} Let's get started!`;
 
+    // Record the opening question into chat history so the AI model knows the starting context
+    chat.setSessionGreeting?.(greeting);
+
     setTimeout(() => {
       speech.speak(greeting);
       character.setState('talking');
     }, 600);
-  }, [startCamera, speech, character, mode, addEvent, profile, userName]);
+  }, [startCamera, speech, character, mode, addEvent, profile, userName, chat]);
 
   // ── End call ───────────────────────────────────────────────
   const endCall = useCallback(() => {

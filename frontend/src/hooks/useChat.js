@@ -336,6 +336,19 @@ export function useChat({ getAnalysisContext = null, character = null, speech = 
     }]);
   }, [profile]);
 
+  // ── Set custom initial greeting for a specific session mode ─
+  const setSessionGreeting = useCallback((text, role = 'mentor') => {
+    historyRef.current = [{ role, text }];
+    setMessages([{
+      id:        newId(),
+      role,
+      text,
+      emotion:   'greeting',
+      ts:        Date.now(),
+      streaming: false,
+    }]);
+  }, []);
+
   // ── Stop ongoing response ──────────────────────────────────
   const stopResponse = useCallback(() => {
     if (abortRef.current) abortRef.current.abort();
@@ -359,6 +372,7 @@ export function useChat({ getAnalysisContext = null, character = null, speech = 
     sendMessage,
     stopResponse,
     clearHistory,
+    setSessionGreeting,
   };
 }
 

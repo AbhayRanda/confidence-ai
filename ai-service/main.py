@@ -163,9 +163,15 @@ def get_user_storage_usage(user_id: int) -> dict:
         results = db.query(AnalysisResult).filter(AnalysisResult.user_id == user_id).all()
         total_bytes = 0
         for result in results:
-            video_path = os.path.join(settings.upload_folder, result.video_path)
-            if os.path.exists(video_path):
-                total_bytes += os.path.getsize(video_path)
+            if not result.video_path:
+                continue
+            if result.video_path.startswith("http"):
+                # Approximate 8MB per cloud-hosted video towards quota
+                total_bytes += 8 * 1024 * 1024
+            else:
+                video_path = os.path.join(settings.upload_folder, result.video_path)
+                if os.path.exists(video_path):
+                    total_bytes += os.path.getsize(video_path)
         used_mb       = total_bytes / (1024 * 1024)
         available_bytes = max(0, STORAGE_LIMIT_BYTES - total_bytes)
         available_mb  = available_bytes / (1024 * 1024)
@@ -476,6 +482,54 @@ def _remux_to_mp4(webm_path: str) -> str:
     return webm_path   # fall back to original
 
 
+def upload_to_cloudinary(local_file_path: str) -> Optional[str]:
+    """
+    Upload video to Cloudinary for permanent storage across Render free-tier restarts.
+    Returns secure HTTPS video URL on success, or None if Cloudinary is not configured or fails.
+    """
+    if not local_file_path or not os.path.exists(local_file_path):
+        return None
+
+    c_settings = get_settings()
+    cloud_name = (c_settings.cloudinary_cloud_name or os.environ.get("CLOUDINARY_CLOUD_NAME", "")).strip()
+    api_key    = (c_settings.cloudinary_api_key or os.environ.get("CLOUDINARY_API_KEY", "")).strip()
+    api_secret = (c_settings.cloudinary_api_secret or os.environ.get("CLOUDINARY_API_SECRET", "")).strip()
+    c_url      = (c_settings.cloudinary_url or os.environ.get("CLOUDINARY_URL", "")).strip()
+
+    if not (c_url or (cloud_name and api_key and api_secret)):
+        return None
+
+    try:
+        import cloudinary
+        import cloudinary.uploader
+
+        if c_url:
+            cloudinary.config(cloudinary_url=c_url, secure=True)
+        else:
+            cloudinary.config(
+                cloud_name=cloud_name,
+                api_key=api_key,
+                api_secret=api_secret,
+                secure=True,
+            )
+
+        logger.info(f"[Cloudinary] Uploading {os.path.basename(local_file_path)} for permanent cloud storage...")
+        res = cloudinary.uploader.upload_large(
+            local_file_path,
+            resource_type="video",
+            folder="confidence_ai_videos",
+            chunk_size=6000000,
+        )
+        secure_url = res.get("secure_url")
+        if secure_url:
+            logger.info(f"[Cloudinary] Permanent video uploaded successfully: {secure_url}")
+            return secure_url
+    except Exception as exc:
+        logger.warning(f"[Cloudinary] Upload failed (falling back to local storage): {exc}")
+
+    return None
+
+
 @app.post("/analyze")
 @limiter.limit(lambda: settings.rate_limit_analyze)
 async def analyze_video(
@@ -540,6 +594,13 @@ async def analyze_video(
         # Store in database
         db = SessionLocal()
         try:
+            # Step 1: Upload to Cloudinary for permanent video storage if configured
+            cloudinary_url = None
+            if os.path.exists(file_path):
+                cloudinary_url = await loop.run_in_executor(None, lambda: upload_to_cloudinary(file_path))
+
+            final_video_path = cloudinary_url or os.path.basename(file_path)
+
             db_result = AnalysisResult(
                 user_id=current_user.id,
                 confidence_score=analysis_result["confidence_score"],
@@ -552,7 +613,7 @@ async def analyze_video(
                 filler_word_count=analysis_result["filler_word_count"],
                 words_per_minute=analysis_result["words_per_minute"],
                 hand_movement_percentage=analysis_result["hand_movement_percentage"],
-                video_path=os.path.basename(file_path),
+                video_path=final_video_path,
             )
             db.add(db_result)
             db.commit()
@@ -1121,13 +1182,36 @@ def delete_video(video_id: int, current_user: User = Depends(get_current_user)) 
         if result.user_id != current_user.id:
             raise HTTPException(status_code=403, detail="Not authorized to delete this video")
 
-        video_path = os.path.join(settings.upload_folder, result.video_path)
-        if os.path.exists(video_path):
-            try:
-                os.remove(video_path)
-                logger.info(f"Deleted video file: {video_path}")
-            except Exception as e:
-                logger.warning(f"Failed to delete video file {video_path}: {str(e)}")
+        if result.video_path:
+            if result.video_path.startswith("http"):
+                try:
+                    import cloudinary
+                    import cloudinary.uploader
+                    c_settings = get_settings()
+                    c_url = (c_settings.cloudinary_url or os.environ.get("CLOUDINARY_URL", "")).strip()
+                    if c_url:
+                        cloudinary.config(cloudinary_url=c_url, secure=True)
+                    else:
+                        cloudinary.config(
+                            cloud_name=c_settings.cloudinary_cloud_name or os.environ.get("CLOUDINARY_CLOUD_NAME"),
+                            api_key=c_settings.cloudinary_api_key or os.environ.get("CLOUDINARY_API_KEY"),
+                            api_secret=c_settings.cloudinary_api_secret or os.environ.get("CLOUDINARY_API_SECRET"),
+                            secure=True,
+                        )
+                    fname = result.video_path.split("/")[-1].split(".")[0]
+                    public_id = f"confidence_ai_videos/{fname}"
+                    cloudinary.uploader.destroy(public_id, resource_type="video")
+                    logger.info(f"Deleted Cloudinary video: {public_id}")
+                except Exception as ce:
+                    logger.warning(f"Failed to delete Cloudinary video: {ce}")
+            else:
+                video_path = os.path.join(settings.upload_folder, result.video_path)
+                if os.path.exists(video_path):
+                    try:
+                        os.remove(video_path)
+                        logger.info(f"Deleted video file: {video_path}")
+                    except Exception as e:
+                        logger.warning(f"Failed to delete video file {video_path}: {str(e)}")
 
         db.delete(result)
         db.commit()

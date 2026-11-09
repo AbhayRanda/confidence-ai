@@ -561,7 +561,7 @@ function Dashboard() {
               <tbody>
                 {dataPoints.map((d, i) => {
                   const videoUrl = d.video_path
-                    ? `${API_BASE_URL}/uploads/${d.video_path.replace(/\.webm$/i, '.mp4')}#t=0.001`
+                    ? (d.video_path.startsWith("http") ? d.video_path : `${API_BASE_URL}/uploads/${d.video_path.replace(/\.webm$/i, '.mp4')}#t=0.001`)
                     : null;
                   return (
                     <tr key={d.id} className="dash-tr">
@@ -623,7 +623,7 @@ function Dashboard() {
           <div className="dash-mobile-cards">
             {dataPoints.map((d, i) => {
               const videoUrl = d.video_path
-                ? `${API_BASE_URL}/uploads/${d.video_path.replace(/\.webm$/i, '.mp4')}#t=0.001`
+                ? (d.video_path.startsWith("http") ? d.video_path : `${API_BASE_URL}/uploads/${d.video_path.replace(/\.webm$/i, '.mp4')}#t=0.001`)
                 : null;
               return (
                 <div key={d.id} className="dash-m-card">

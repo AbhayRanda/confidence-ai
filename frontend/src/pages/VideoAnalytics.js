@@ -210,73 +210,89 @@ function VideoAnalytics() {
         </div>
         <div className="va-score-right">
           <div className="va-level-badge" style={{ color: q.color }}>{q.label}</div>
-          <div className="va-level-sub">{videoData.confidence_level} Confidence</div>
+          <div className="va-level-sub">
+            {videoData.confidence_level?.toLowerCase().endsWith("confidence")
+              ? videoData.confidence_level
+              : `${videoData.confidence_level} Confidence`}
+          </div>
         </div>
       </div>
 
       <div className="va-two-col">
         {/* Video Player */}
-        {videoData.video_path && (
-          <div className="va-card">
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
-              <h2 className="va-card-title" style={{ margin: 0 }}>
-                <span>📹</span> Video Playback
-              </h2>
-              <a
-                href={`${API_BASE_URL}/uploads/${videoData.video_path.replace(/\.webm$/i, '.mp4')}`}
-                target="_blank"
-                rel="noreferrer"
-                style={{
-                  fontSize: "12px",
-                  color: "var(--accent-light, #a78bfa)",
-                  textDecoration: "none",
-                  fontWeight: 600,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "4px"
-                }}
-              >
-                Open Video ↗
-              </a>
-            </div>
-            <div className="va-video-wrapper">
-              {videoError ? (
-                <div style={{
-                  padding: "36px 20px",
-                  textAlign: "center",
-                  background: "rgba(255, 255, 255, 0.03)",
-                  borderRadius: "12px",
-                  border: "1px dashed rgba(255, 255, 255, 0.15)",
-                }}>
-                  <div style={{ fontSize: "28px", marginBottom: "8px" }}>📁</div>
-                  <p style={{ margin: "0 0 6px", fontWeight: 600, color: "var(--text-primary)" }}>
-                    Video Recording Expired from Ephemeral Storage
-                  </p>
-                  <p style={{ margin: 0, fontSize: "12px", color: "var(--text-muted)" }}>
-                    All computed confidence scores, vocal metrics, and posture insights are fully preserved below.
-                  </p>
-                </div>
-              ) : (
-                <video
-                  controls
-                  playsInline
-                  webkit-playsinline="true"
-                  preload="auto"
-                  className="va-video-player"
-                  onError={() => setVideoError(true)}
-                  src={`${API_BASE_URL}/uploads/${videoData.video_path.replace(/\.webm$/i, '.mp4')}#t=0.001`}
-                >
-                  <source
-                    src={`${API_BASE_URL}/uploads/${videoData.video_path.replace(/\.webm$/i, '.mp4')}#t=0.001`}
-                    type="video/mp4"
+        {videoData.video_path && (() => {
+          const isCloud = videoData.video_path.startsWith("http");
+          const playUrl = isCloud
+            ? videoData.video_path
+            : `${API_BASE_URL}/uploads/${videoData.video_path.replace(/\.webm$/i, '.mp4')}#t=0.001`;
+          const rawUrl = isCloud
+            ? videoData.video_path
+            : `${API_BASE_URL}/uploads/${videoData.video_path.replace(/\.webm$/i, '.mp4')}`;
+
+          return (
+            <div className="va-card">
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
+                <h2 className="va-card-title" style={{ margin: 0 }}>
+                  <span>📹</span> Video Playback
+                </h2>
+                {!videoError && (
+                  <a
+                    href={rawUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      fontSize: "12px",
+                      color: "var(--accent-light, #a78bfa)",
+                      textDecoration: "none",
+                      fontWeight: 600,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "4px"
+                    }}
+                  >
+                    Open Video ↗
+                  </a>
+                )}
+              </div>
+              <div className="va-video-wrapper">
+                {videoError ? (
+                  <div style={{
+                    padding: "36px 20px",
+                    textAlign: "center",
+                    background: "rgba(255, 255, 255, 0.03)",
+                    borderRadius: "12px",
+                    border: "1px dashed rgba(255, 255, 255, 0.15)",
+                  }}>
+                    <div style={{ fontSize: "28px", marginBottom: "8px" }}>📁</div>
+                    <p style={{ margin: "0 0 6px", fontWeight: 600, color: "var(--text-primary)" }}>
+                      Video Recording Expired from Ephemeral Storage
+                    </p>
+                    <p style={{ margin: 0, fontSize: "12px", color: "var(--text-muted)" }}>
+                      All computed confidence scores, vocal metrics, and posture insights are fully preserved below.
+                    </p>
+                  </div>
+                ) : (
+                  <video
+                    controls
+                    playsInline
+                    webkit-playsinline="true"
+                    preload="auto"
+                    className="va-video-player"
                     onError={() => setVideoError(true)}
-                  />
-                  Your browser does not support this video format.
-                </video>
-              )}
+                    src={playUrl}
+                  >
+                    <source
+                      src={playUrl}
+                      type="video/mp4"
+                      onError={() => setVideoError(true)}
+                    />
+                    Your browser does not support this video format.
+                  </video>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Key Insights */}
         <div className="va-card">

@@ -17,6 +17,12 @@ class Settings(BaseSettings):
     # File Upload
     upload_folder: str = "uploads"
     max_file_size_mb: int = 100
+
+    # Cloudinary Permanent Video Storage (prevents video expiration on Render free tier)
+    cloudinary_cloud_name: str = ""
+    cloudinary_api_key: str = ""
+    cloudinary_api_secret: str = ""
+    cloudinary_url: str = ""  # Or use CLOUDINARY_URL=cloudinary://API_KEY:API_SECRET@CLOUD_NAME
     
     # CORS - comma-separated string
     allowed_origins: str = "http://localhost:3000,http://127.0.0.1:3000"

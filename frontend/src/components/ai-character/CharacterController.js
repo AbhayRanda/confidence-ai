@@ -197,144 +197,202 @@ function buildMaterials(C) {
 // ── Build geometry set ────────────────────────────────────────
 function buildGeometries() {
   return {
-    // ── Head — clean stylized proportions ──
+    // ── Head — improved oval skull ──
     skull:     new THREE.SphereGeometry(0.225, 48, 40),
-    jaw:       new THREE.SphereGeometry(0.200, 36, 30),
-    chin:      new THREE.SphereGeometry(0.052, 16, 16),
+    jaw:       new THREE.SphereGeometry(0.205, 36, 30),
+    chin:      new THREE.SphereGeometry(0.058, 16, 16),
+    foreheadRidge: new THREE.BoxGeometry(0.30, 0.028, 0.018),  // subtle brow shelf
     zygL:      new THREE.SphereGeometry(0.038, 12, 12),        // left cheekbone
     zygR:      new THREE.SphereGeometry(0.038, 12, 12),        // right cheekbone
 
     // ── Face features ──
-    eyeball:   new THREE.SphereGeometry(0.048, 28, 24),
-    iris:      new THREE.SphereGeometry(0.028, 24, 20),
-    pupil:     new THREE.SphereGeometry(0.014, 16, 16),
-    catchlight:new THREE.SphereGeometry(0.006, 8, 8),
-    eyelidU:   new THREE.CapsuleGeometry(0.026, 0.048, 4, 12),
-    brow:      new THREE.CapsuleGeometry(0.006, 0.062, 4, 12),
-    browInner: new THREE.CapsuleGeometry(0.005, 0.030, 4, 8),
-    ear:       new THREE.SphereGeometry(0.048, 18, 16),
-    earInner:  new THREE.SphereGeometry(0.028, 10, 10),
-    earLobe:   new THREE.SphereGeometry(0.024, 12, 12),
-    noseBridge:new THREE.BoxGeometry(0.018, 0.058, 0.016),
-    nose:      new THREE.SphereGeometry(0.028, 16, 14),
-    nostrilL:  new THREE.SphereGeometry(0.015, 12, 10),
-    nostrilR:  new THREE.SphereGeometry(0.015, 12, 10),
+    eyeball:   new THREE.SphereGeometry(0.058, 28, 24),
+    iris:      new THREE.SphereGeometry(0.038, 20, 18),
+    pupil:     new THREE.SphereGeometry(0.022, 14, 14),
+    catchlight:new THREE.SphereGeometry(0.008, 8, 8),
+    brow:      new THREE.CapsuleGeometry(0.006, 0.065, 4, 12), // shorter, thicker
+    browInner: new THREE.CapsuleGeometry(0.006, 0.034, 4, 8),  // independent inner brow
+    ear:       new THREE.SphereGeometry(0.050, 18, 16),
+    earInner:  new THREE.SphereGeometry(0.030, 10, 10),        // inner ear helix
+    earLobe:   new THREE.SphereGeometry(0.026, 12, 12),
+    noseBridge:new THREE.BoxGeometry(0.022, 0.065, 0.018),     // nose bridge
+    nose:      new THREE.SphereGeometry(0.034, 16, 14),
+    nostrilL:  new THREE.SphereGeometry(0.018, 12, 10),
+    nostrilR:  new THREE.SphereGeometry(0.018, 12, 10),
     upperLip:  new THREE.CapsuleGeometry(0.0075, 0.076, 4, 16),
     lowerLip:  new THREE.CapsuleGeometry(0.0095, 0.068, 4, 16),
     mouthCavity: new THREE.BoxGeometry(0.074, 0.038, 0.018),
     lipCornerL:new THREE.SphereGeometry(0.0085, 10, 8),
     lipCornerR:new THREE.SphereGeometry(0.0085, 10, 8),
-    cheekL:    new THREE.SphereGeometry(0.046, 14, 14),
-    cheekR:    new THREE.SphereGeometry(0.046, 14, 14),
+    cheekL:    new THREE.SphereGeometry(0.050, 14, 14),
+    cheekR:    new THREE.SphereGeometry(0.050, 14, 14),
     teeth:     new THREE.BoxGeometry(0.066, 0.015, 0.008),
     lowerTeeth:new THREE.BoxGeometry(0.060, 0.013, 0.008),
     tongue:    new THREE.SphereGeometry(0.026, 14, 10),
     philtrum:  new THREE.SphereGeometry(0.014, 10, 10),
+    // Eyelash strips
+    eyelashU:  new THREE.BoxGeometry(0.098, 0.005, 0.003),
 
-    // ── Hair — clean contoured cut (zero glitching horns/boxes) ──
-    hairTop:    new THREE.SphereGeometry(0.232, 40, 30, 0, Math.PI * 2, 0, Math.PI / 1.8),
-    hairCrown:  new THREE.SphereGeometry(0.220, 32, 24, 0, Math.PI * 2, 0, Math.PI / 2.2),
-    hairSideL:  new THREE.SphereGeometry(0.062, 16, 16),
-    hairSideR:  new THREE.SphereGeometry(0.062, 16, 16),
-    hairBack:   new THREE.SphereGeometry(0.180, 24, 18, 0, Math.PI * 2, 0, Math.PI / 2),
+    // ── Hair — 8 overlapping segments ──
+    hairTop:    new THREE.SphereGeometry(0.232, 40, 30, 0, Math.PI * 2, 0, Math.PI / 2),
+    hairCrown:  new THREE.SphereGeometry(0.214, 32, 24, 0, Math.PI * 2, 0, Math.PI / 2.5),
+    hairFront:  new THREE.BoxGeometry(0.200, 0.055, 0.042),
+    hairFringe: new THREE.CapsuleGeometry(0.018, 0.160, 4, 10), // side fringe piece
+    hairSideL:  new THREE.BoxGeometry(0.052, 0.175, 0.240),
+    hairSideR:  new THREE.BoxGeometry(0.052, 0.175, 0.240),
+    hairBack:   new THREE.BoxGeometry(0.395, 0.140, 0.055),
+    hairTempleL:new THREE.BoxGeometry(0.032, 0.075, 0.022),
+    hairTempleR:new THREE.BoxGeometry(0.032, 0.075, 0.022),
+    hairNape:   new THREE.SphereGeometry(0.070, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.50),
 
-    // ── Neck / Torso / Suit (proportional human anatomy) ──
-    neck:       new THREE.CylinderGeometry(0.074, 0.092, 0.120, 24),
-    adamApple:  new THREE.SphereGeometry(0.016, 10, 8),
-    scmL:       new THREE.CapsuleGeometry(0.014, 0.110, 4, 10),
-    scmR:       new THREE.CapsuleGeometry(0.014, 0.110, 4, 10),
-    torso:      new THREE.CapsuleGeometry(0.235, 0.440, 14, 24),
-    shirtChest: new THREE.BoxGeometry(0.140, 0.280, 0.035),
-    shoulder:   new THREE.CapsuleGeometry(0.076, 0.100, 8, 16),
-    lapelL:     new THREE.BoxGeometry(0.065, 0.260, 0.018),
-    lapelR:     new THREE.BoxGeometry(0.065, 0.260, 0.018),
-    collarL:    new THREE.BoxGeometry(0.065, 0.045, 0.022),
-    collarR:    new THREE.BoxGeometry(0.065, 0.045, 0.022),
-    tieBody:    new THREE.BoxGeometry(0.038, 0.240, 0.014),
-    tieKnot:    new THREE.BoxGeometry(0.045, 0.035, 0.022),
-    button:     new THREE.SphereGeometry(0.009, 8, 8),
+    // ── Neck / torso ──
+    neck:     new THREE.CylinderGeometry(0.085, 0.105, 0.180, 22), // taller
+    adamApple:new THREE.SphereGeometry(0.018, 10, 8),               // Adam's apple
+    scmL:     new THREE.CapsuleGeometry(0.018, 0.145, 4, 10),       // left SCM muscle
+    scmR:     new THREE.CapsuleGeometry(0.018, 0.145, 4, 10),       // right SCM
+    torso:    new THREE.CapsuleGeometry(0.235, 0.440, 10, 20),
+    shoulder: new THREE.SphereGeometry(0.130, 22, 20),
+    lapelL:   new THREE.BoxGeometry(0.082, 0.300, 0.045),
+    lapelR:   new THREE.BoxGeometry(0.082, 0.300, 0.045),
+    collarL:  new THREE.BoxGeometry(0.070, 0.065, 0.042),
+    collarR:  new THREE.BoxGeometry(0.070, 0.065, 0.042),
+    tieBody:  new THREE.BoxGeometry(0.052, 0.340, 0.016),
+    tieKnot:  new THREE.BoxGeometry(0.060, 0.045, 0.030),
+    button:   new THREE.SphereGeometry(0.010, 8, 8),
+    waist:    new THREE.CylinderGeometry(0.220, 0.200, 0.150, 20),
+
+    // ── Arms ──
+    upperArm: new THREE.CapsuleGeometry(0.078, 0.260, 10, 14),
+    lowerArm: new THREE.CapsuleGeometry(0.064, 0.230, 10, 14),
+    wrist:    new THREE.SphereGeometry(0.060, 18, 14),
+    palm:     new THREE.SphereGeometry(0.074, 20, 16),
+    thumb:    new THREE.CapsuleGeometry(0.022, 0.055, 4, 8),
+
+    // ── 3-phalanx finger segments ──
+    phalanxP: new THREE.CapsuleGeometry(0.014, 0.048, 4, 8), // proximal (base)
+    phalanxM: new THREE.CapsuleGeometry(0.013, 0.038, 4, 8), // medial (mid)
+    phalanxD: new THREE.CapsuleGeometry(0.012, 0.030, 4, 8), // distal (tip)
+    knuckle:  new THREE.SphereGeometry(0.016, 8, 8),          // knuckle bump
+    fingernail:new THREE.BoxGeometry(0.022, 0.006, 0.016),    // flat nail plate
+
+    // Eyelid
+    eyelidU: new THREE.CapsuleGeometry(0.058, 0.092, 4, 10),
+
+    // Accessories
+    watchFace:    new THREE.CylinderGeometry(0.023, 0.023, 0.007, 20),
+    watchBand:    new THREE.BoxGeometry(0.020, 0.010, 0.048),
     pocketSquare: new THREE.BoxGeometry(0.022, 0.028, 0.004),
-    waist:      new THREE.CylinderGeometry(0.220, 0.200, 0.150, 20),
+    cufflink:     new THREE.CylinderGeometry(0.009, 0.009, 0.012, 10),
 
-    // ── Arms & Hands ──
-    upperArm:   new THREE.CapsuleGeometry(0.070, 0.230, 10, 14),
-    lowerArm:   new THREE.CapsuleGeometry(0.060, 0.210, 10, 14),
-    cuff:       new THREE.CylinderGeometry(0.062, 0.062, 0.025, 18),
-    palm:       new THREE.SphereGeometry(0.048, 18, 14),
-    wrist:      new THREE.SphereGeometry(0.048, 14, 12),
-    finger:     new THREE.CapsuleGeometry(0.012, 0.055, 4, 8),
-    thumb:      new THREE.CapsuleGeometry(0.014, 0.045, 4, 8),
-
-    // ── Aura ──
-    aura:       new THREE.CapsuleGeometry(0.260, 0.460, 10, 20),
+    // Aura
+    aura: new THREE.CapsuleGeometry(0.260, 0.460, 10, 20),
   };
 }
 
 // ─────────────────────────────────────────────────────────────
-// Eye component — clean, stylized, expressive
+// Eye component — layered construction
 // ─────────────────────────────────────────────────────────────
 function Eye({ position, pupilOffX = 0, pupilOffY = 0, dilated = false, squint = 0,
-               G, M, irisMat, irisRef }) {
-  const irisScale   = dilated ? 1.08 : 1.0;
+               G, M, irisMat, irisRef, eyelashMat }) {
+  const irisScale   = dilated ? 1.15 : 1.0;
   const squintScale = 1 - squint * 0.35;
   const activeMat   = irisMat || M.iris;
   return (
     <group position={position} scale={[1, squintScale, 1]}>
       {/* Sclera */}
-      <mesh geometry={G.eyeball} material={M.eyeWhite} scale={[1, 0.94, 0.88]} />
-      {/* Upper eyelid curve */}
+      <mesh geometry={G.eyeball} material={M.eyeWhite} />
+      {/* Upper eyelid */}
       <mesh geometry={G.eyelidU} material={M.skinDark}
-        position={[0, 0.034, 0.024]} rotation={[0, 0, Math.PI / 2]}
-        scale={[0.62, 0.14, 0.28]} />
+        position={[0, 0.050, 0.036]} rotation={[0, 0, Math.PI / 2]}
+        scale={[0.54, 0.10, 0.22]} />
+      {/* Lower eyelid */}
+      <mesh geometry={G.eyelidU} material={M.skinDark}
+        position={[0, -0.046, 0.038]} rotation={[0, 0, Math.PI / 2]}
+        scale={[0.54, 0.07, 0.18]} />
+      {/* Eyelash strip — upper */}
+      <mesh geometry={G.eyelashU} material={eyelashMat || M.brow}
+        position={[0, 0.052, 0.040]} />
       {/* Iris outer */}
       <mesh ref={irisRef} geometry={G.iris} material={activeMat}
-        position={[pupilOffX * 0.012, pupilOffY * 0.010, 0.024]}
-        scale={[irisScale, irisScale, 0.9]} />
+        position={[pupilOffX * 0.013, pupilOffY * 0.011, 0.032]}
+        scale={[irisScale, irisScale, 1]} />
       {/* Iris inner (depth) */}
       <mesh geometry={G.iris} material={M.irisInner}
-        position={[pupilOffX * 0.012, pupilOffY * 0.010, 0.028]}
-        scale={[irisScale * 0.55, irisScale * 0.55, 0.8]} />
+        position={[pupilOffX * 0.013, pupilOffY * 0.011, 0.038]}
+        scale={[irisScale * 0.6, irisScale * 0.6, 1]} />
       {/* Pupil */}
       <mesh geometry={G.pupil} material={M.pupil}
-        position={[pupilOffX * 0.012, pupilOffY * 0.010, 0.033]} />
+        position={[pupilOffX * 0.013, pupilOffY * 0.011, 0.044]} />
       {/* Catchlight */}
       <mesh geometry={G.catchlight} material={M.catchlight}
-        position={[pupilOffX * 0.012 + 0.010, pupilOffY * 0.010 + 0.010, 0.038]} />
+        position={[pupilOffX * 0.013 + 0.014, pupilOffY * 0.011 + 0.014, 0.052]} />
     </group>
   );
 }
 
 // ─────────────────────────────────────────────────────────────
-// Hand component — stylized natural coach hand
+// Finger — 3 phalanges with knuckle + nail
+// ─────────────────────────────────────────────────────────────
+function Finger({ basePos, dir = 1, curl = 0, G, M, showNail = true }) {
+  // curl: 0 = flat open, 1 = fully curled
+  const c   = curl * (Math.PI / 2.2);
+  const c2  = curl * (Math.PI / 1.8);
+  const c3  = curl * (Math.PI / 1.6);
+  return (
+    <group position={basePos}>
+      {/* Proximal phalanx */}
+      <group rotation={[c, 0, 0]}>
+        <mesh geometry={G.phalanxP} material={M.skin} position={[0, 0.040, 0]} />
+        <mesh geometry={G.knuckle}  material={M.skin} position={[0, 0.072, 0]} scale={[0.7, 0.5, 0.7]} />
+        {/* Medial phalanx */}
+        <group position={[0, 0.090, 0]} rotation={[c2 * 0.7, 0, 0]}>
+          <mesh geometry={G.phalanxM} material={M.skin} position={[0, 0.032, 0]} />
+          <mesh geometry={G.knuckle}  material={M.skin} position={[0, 0.055, 0]} scale={[0.6, 0.45, 0.6]} />
+          {/* Distal phalanx */}
+          <group position={[0, 0.065, 0]} rotation={[c3 * 0.5, 0, 0]}>
+            <mesh geometry={G.phalanxD} material={M.skin} position={[0, 0.025, 0]} />
+            {showNail && (
+              <mesh geometry={G.fingernail} material={M.nail}
+                position={[0, 0.048, 0.010]} rotation={[0.3, 0, 0]} />
+            )}
+          </group>
+        </group>
+      </group>
+    </group>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Hand component — thumb + 4 fingers (3-phalanx)
 // ─────────────────────────────────────────────────────────────
 function Hand({ position, rotation, curl = 0, thumbsUp = false, isLeft = false, G, M }) {
   const dir = isLeft ? -1 : 1;
-  const fingerCurl = thumbsUp ? 0.75 : curl;
-  const thumbCurl  = thumbsUp ? 0.0 : curl * 0.5;
+  // thumbsUp overrides curl for thumb/other fingers
+  const fingerCurl  = thumbsUp ? 0.85 : curl;
+  const thumbCurl   = thumbsUp ? 0.0 : curl * 0.6;
   return (
     <group position={position} rotation={rotation}>
       {/* Palm */}
-      <mesh geometry={G.palm} material={M.skin} position={[0, -0.040, 0]} scale={[1.0, 1.15, 0.65]} />
-      {/* Wrist */}
-      <mesh geometry={G.wrist} material={M.skin} position={[0, -0.010, 0]} scale={[0.85, 0.70, 0.70]} />
+      <mesh geometry={G.palm}  material={M.skin} />
+      <mesh geometry={G.wrist} material={M.skin} position={[0, 0.04, 0]} />
       {/* Thumb */}
-      <mesh geometry={G.thumb} material={M.skin}
-        position={[dir * 0.042, -0.036, 0.018]}
-        rotation={[thumbCurl * 0.6, dir * -0.35, dir * 0.55]} />
-      {/* 4 Fingers hanging naturally down (-Y) with gentle curl */}
+      <group position={[dir * 0.068, 0.020, 0.012]}
+             rotation={[0, dir * -0.5, dir * Math.PI / 2.5]}>
+        <Finger basePos={[0, 0, 0]} curl={thumbCurl} G={G} M={M} />
+      </group>
+      {/* 4 fingers — positions offset laterally */}
       {[
-        { x: dir * -0.030, len: 0.92, z: 0.005 },
-        { x: dir * -0.010, len: 1.05, z: 0.008 },
-        { x: dir *  0.010, len: 1.00, z: 0.007 },
-        { x: dir *  0.028, len: 0.85, z: 0.004 },
-      ].map(({ x, len, z }, i) => (
-        <mesh
+        { x: dir * -0.046, z: 0.006 },
+        { x: dir * -0.016, z: 0.008 },
+        { x: dir *  0.014, z: 0.008 },
+        { x: dir *  0.040, z: 0.004 },
+      ].map(({ x, z }, i) => (
+        <Finger
           key={i}
-          geometry={G.finger}
-          material={M.skin}
-          position={[x, -0.088, z]}
-          rotation={[fingerCurl * 0.6 + 0.12, 0, dir * (i - 1.5) * 0.04]}
-          scale={[0.88, len, 0.88]}
+          basePos={[x, 0.082, z]}
+          curl={fingerCurl}
+          G={G} M={M}
+          showNail
         />
       ))}
     </group>
@@ -416,6 +474,7 @@ export function CharacterMesh({
   const nostrilLRef     = useRef();
   const nostrilRRef     = useRef();
   const hairTopRef      = useRef();
+  const hairFrontRef    = useRef();
   const hairCrownRef    = useRef();
   const leftShoulderRef  = useRef();
   const rightShoulderRef = useRef();
@@ -556,14 +615,13 @@ export function CharacterMesh({
 
     // ── Lip corners ───────────────────────────────────────────
     const targetLipCornerY = isHappy ? 0.008
-      : isTalking ? 0.003
-      : isThinking || isAnalyzing ? -0.004 : 0.003;
+      : isThinking || isAnalyzing ? -0.006 : 0;
     a.lipCornerY = damp(a.lipCornerY, targetLipCornerY, 4, dt);
-    if (lipCornerLRef.current) lipCornerLRef.current.position.y = -0.117 + a.lipCornerY - a.mouthOpen * 0.005;
-    if (lipCornerRRef.current) lipCornerRRef.current.position.y = -0.117 + a.lipCornerY - a.mouthOpen * 0.005;
+    if (lipCornerLRef.current) lipCornerLRef.current.position.y = -0.118 + a.lipCornerY - a.mouthOpen * 0.005;
+    if (lipCornerRRef.current) lipCornerRRef.current.position.y = -0.118 + a.lipCornerY - a.mouthOpen * 0.005;
 
-    // ── Iris emissive glow — subtle & lively intelligence ───────
-    const targetIrisGlow = 0.12 + (audioAmplitude > 0.02 ? audioAmplitude * 0.35 : 0);
+    // ── Iris emissive glow ─────────────────────────────────────
+    const targetIrisGlow = 0.55 + (audioAmplitude > 0.02 ? audioAmplitude * 1.8 : 0);
     a.irisGlow = damp(a.irisGlow, targetIrisGlow, 6, dt);
     irisMatL.emissiveIntensity = a.irisGlow;
     irisMatR.emissiveIntensity = a.irisGlow;
@@ -580,19 +638,20 @@ export function CharacterMesh({
     a.hairMomentum *= Math.pow(0.22, dt);   // damping
     a.hairWindZ    += a.hairMomentum * dt;
     if (hairTopRef.current)   hairTopRef.current.rotation.z   = a.hairWindZ * 0.5;
+    if (hairFrontRef.current) hairFrontRef.current.rotation.z = a.hairWindZ;
     if (hairCrownRef.current) hairCrownRef.current.rotation.z = a.hairWindZ * 0.7;
 
     // ── Shoulder shrug ────────────────────────────────────────
-    const targetShrug = state === CHARACTER_STATES.ENCOURAGING ? 0.035 : 0;
+    const targetShrug = state === CHARACTER_STATES.ENCOURAGING ? 0.042 : 0;
     a.shoulderShrug = damp(a.shoulderShrug, targetShrug, 5, dt);
-    if (leftShoulderRef.current)  leftShoulderRef.current.position.y  = 0.220 + a.shoulderShrug;
-    if (rightShoulderRef.current) rightShoulderRef.current.position.y = 0.220 + a.shoulderShrug;
+    if (leftShoulderRef.current)  leftShoulderRef.current.position.y  = 0.270 + a.shoulderShrug;
+    if (rightShoulderRef.current) rightShoulderRef.current.position.y = 0.270 + a.shoulderShrug;
 
     // ── Lapel micro-jitter ────────────────────────────────────
     const jitterFreq = isActive ? 4.8 : 1.8;
-    a.lapelJitter = Math.sin(a.time * jitterFreq) * (isActive ? 0.002 : 0.0005);
-    if (lapelLRef.current) lapelLRef.current.rotation.z =  0.08 + a.lapelJitter;
-    if (lapelRRef.current) lapelRRef.current.rotation.z = -0.08 - a.lapelJitter;
+    a.lapelJitter = Math.sin(a.time * jitterFreq) * (isActive ? 0.0035 : 0.001);
+    if (lapelLRef.current) lapelLRef.current.rotation.z =  0.15 + a.lapelJitter;
+    if (lapelRRef.current) lapelRRef.current.rotation.z = -0.15 - a.lapelJitter;
 
     // ── Mouse tracking ────────────────────────────────────────
     a.targetHeadX = damp(a.targetHeadX, mousePosition.y * 0.20, 3, dt);
@@ -787,24 +846,22 @@ export function CharacterMesh({
     leftHandCurlRef.current  = a.leftCurl;
     rightHandCurlRef.current = a.rightCurl;
 
-    // ── Mouth — resting closed in Idle, dynamic phonemes in speech ──
-    let targetMouth = 0;
+    // ── Mouth — jaw-drop + audio amplitude ──────────────────
+    let targetMouth = cfg.mouthOpen;
     if (isTalking) {
       targetMouth = audioAmplitude > 0.02
         ? Math.min(1, audioAmplitude * 2.5)
-        : 0.38 * (0.35 + Math.abs(Math.sin(a.time * 6.5)) * 0.95);
-    } else if (cfg.mouthOpen && state !== CHARACTER_STATES.IDLE) {
-      targetMouth = cfg.mouthOpen * 0.4;
+        : (cfg.mouthOpen || 0.45) * (0.35 + Math.abs(Math.sin(a.time * 6.5)) * 0.95);
     }
     a.mouthOpen   = damp(a.mouthOpen,   targetMouth, 10, dt);
-    a.teethScaleY = damp(a.teethScaleY, a.mouthOpen > 0.12 ? a.mouthOpen : 0, 10, dt);
+    a.teethScaleY = damp(a.teethScaleY, a.mouthOpen > 0.08 ? a.mouthOpen : 0, 10, dt);
 
     // Jaw drop — whole jaw moves down with mouth opening
     const targetJawDrop = a.mouthOpen * 0.022;
     a.jawDropY = damp(a.jawDropY, targetJawDrop, 8, dt);
 
-    // Tongue — appears when mouth opens wide
-    const targetTongue = a.mouthOpen > 0.30 ? Math.min(1, (a.mouthOpen - 0.30) * 2.5) : 0;
+    // Tongue — appears when mouth opens
+    const targetTongue = a.mouthOpen > 0.25 ? Math.min(1, (a.mouthOpen - 0.25) * 2.2) : 0;
     a.tongueOpacity = damp(a.tongueOpacity, targetTongue * 0.75, 8, dt);
     tongueMat.opacity = a.tongueOpacity;
 
@@ -838,25 +895,25 @@ export function CharacterMesh({
     const lipStretchX = 1 + (isTalking ? (speechWave > 0 ? 0.14 : -0.10) * a.mouthOpen : 0);
 
     if (mouthTopRef.current) {
-      mouthTopRef.current.position.y = -0.114 + a.mouthOpen * 0.008;
+      mouthTopRef.current.position.y = -0.112 + a.mouthOpen * 0.008;
       mouthTopRef.current.scale.set(lipStretchX, 1, 1);
     }
     if (mouthBotRef.current) {
-      mouthBotRef.current.position.y = -0.120 - a.mouthOpen * 0.022 - a.jawDropY * 0.4;
+      mouthBotRef.current.position.y = -0.124 - a.mouthOpen * 0.022 - a.jawDropY * 0.4;
       mouthBotRef.current.scale.set(lipStretchX, 1, 1);
     }
     if (teethRef.current) {
-      teethRef.current.scale.set(1, Math.max(0.001, a.teethScaleY), 1);
+      teethRef.current.scale.set(1, Math.max(0.01, a.teethScaleY), 1);
     }
     if (lowerTeethRef.current) {
-      lowerTeethRef.current.position.y = -0.121 - a.mouthOpen * 0.018 - a.jawDropY * 0.4;
-      lowerTeethRef.current.scale.set(1, Math.max(0.001, a.teethScaleY), 1);
+      lowerTeethRef.current.position.y = -0.123 - a.mouthOpen * 0.018 - a.jawDropY * 0.4;
+      lowerTeethRef.current.scale.set(1, Math.max(0.01, a.teethScaleY), 1);
     }
     if (mouthCavityRef.current) {
-      mouthCavityRef.current.scale.set(lipStretchX, Math.max(0.001, a.mouthOpen), 1);
+      mouthCavityRef.current.scale.set(lipStretchX, Math.max(0.01, a.mouthOpen), 1);
     }
     if (tongueRef.current) {
-      tongueRef.current.position.y = -0.122 - a.jawDropY * 0.3;
+      tongueRef.current.position.y = -0.123 - a.jawDropY * 0.3;
     }
 
     if (auraRef.current) {
@@ -876,6 +933,10 @@ export function CharacterMesh({
   const isDilated     = isHappy;
   const a             = anim.current;
 
+  // Eyelash material (dark, thin)
+  const eyelashMat = useMemo(() => new THREE.MeshBasicMaterial({ color: '#0a0818' }), []);
+  useEffect(() => () => eyelashMat.dispose(), [eyelashMat]);
+
   return (
     <group ref={rootRef}>
 
@@ -884,92 +945,92 @@ export function CharacterMesh({
 
       {/* ── TORSO ─────────────────────────────────────────── */}
       <group ref={torsoRef}>
-        {/* Tailored Jacket / Blazer Outer Shell */}
-        <mesh geometry={G.torso} material={M.jacket} />
+        <mesh geometry={G.torso} material={shirtMat} />
 
-        {/* Inner Shirt V-Panel (showing the chosen theme accent color) */}
-        <mesh geometry={G.shirtChest} material={shirtMat}
-          position={[0, 0.130, 0.222]} scale={[1, 1, 0.5]} />
+        {/* Jacket lapels — with micro-jitter refs */}
+        <mesh ref={lapelLRef} geometry={G.lapelL} material={M.jacket}
+          position={[-0.108, 0.105, 0.180]} rotation={[0, 0.15, 0]} />
+        <mesh ref={lapelRRef} geometry={G.lapelR} material={M.jacket}
+          position={[ 0.108, 0.105, 0.180]} rotation={[0,-0.15, 0]} />
 
-        {/* Jacket Lapels — flush on the front chest */}
-        <mesh ref={lapelLRef} geometry={G.lapelL} material={M.jacketLight || M.jacket}
-          position={[-0.092, 0.125, 0.238]} rotation={[0, 0.12, 0]} />
-        <mesh ref={lapelRRef} geometry={G.lapelR} material={M.jacketLight || M.jacket}
-          position={[ 0.092, 0.125, 0.238]} rotation={[0,-0.12, 0]} />
-
-        {/* Shirt Collar — cleanly framing the neck base */}
+        {/* Shirt collar */}
         <mesh geometry={G.collarL} material={M.collar}
-          position={[-0.046, 0.275, 0.205]} rotation={[0.2, 0.25, 0.15]} />
+          position={[-0.038, 0.305, 0.165]} rotation={[0, 0.2, 0.06]} />
         <mesh geometry={G.collarR} material={M.collar}
-          position={[ 0.046, 0.275, 0.205]} rotation={[0.2,-0.25,-0.15]} />
+          position={[ 0.038, 0.305, 0.165]} rotation={[0,-0.2,-0.06]} />
 
         {/* Tie */}
-        <mesh geometry={G.tieKnot} material={M.tieKnot} position={[0, 0.250, 0.232]} />
-        <mesh geometry={G.tieBody} material={tieMat}    position={[0, 0.110, 0.238]} />
+        <mesh geometry={G.tieKnot} material={M.tieKnot} position={[0, 0.285, 0.195]} />
+        <mesh geometry={G.tieBody} material={tieMat}    position={[0, 0.095, 0.205]} />
 
         {/* Buttons */}
-        {[-0.06, 0.01].map((y, i) => (
+        {[-0.06, 0.02, 0.10].map((y, i) => (
           <mesh key={i} geometry={G.button} material={M.lapel}
-            position={[0, y, 0.244]} scale={[1, 1, 0.5]} />
+            position={[0, y, 0.215]} scale={[1, 1, 0.5]} />
         ))}
 
         {/* Pocket square */}
         <mesh geometry={G.pocketSquare} material={M.collar}
-          position={[-0.128, 0.190, 0.224]} rotation={[0, 0.18, 0.08]}
-          scale={[0.85, 0.85, 0.5]} />
+          position={[-0.122, 0.232, 0.188]} rotation={[0, 0.15, 0.09]}
+          scale={[0.82, 0.88, 0.55]} />
 
-        {/* Shoulders — natural deltoid blending */}
+        {/* Shoulders */}
         <mesh ref={leftShoulderRef}  geometry={G.shoulder} material={M.jacket}
-          position={[-0.260, 0.220, 0]} rotation={[0, 0, 0.35]} />
+          position={[-0.280, 0.270, 0]} />
         <mesh ref={rightShoulderRef} geometry={G.shoulder} material={M.jacket}
-          position={[ 0.260, 0.220, 0]} rotation={[0, 0,-0.35]} />
+          position={[ 0.280, 0.270, 0]} />
 
         {/* Waist */}
         <mesh geometry={G.waist} material={M.pants} position={[0, -0.340, 0]} />
 
-        {/* ── NECK — natural human height ───────────────── */}
-        <group ref={neckRef} position={[0, 0.360, 0]}>
+        {/* ── NECK ─────────────────────────────────────── */}
+        <group ref={neckRef} position={[0, 0.470, 0]}>
           <mesh geometry={G.neck} material={skinMat} />
 
           {/* Adam's apple */}
           <mesh geometry={G.adamApple} material={M.skinDark}
-            position={[0, 0.010, 0.072]} scale={[0.8, 0.6, 0.5]} />
+            position={[0, 0.040, 0.078]} scale={[1, 0.7, 0.55]} />
 
-          {/* SCM muscles */}
+          {/* SCM muscles — angle from behind-ear to collarbone */}
           <mesh geometry={G.scmL} material={M.scm}
-            position={[-0.046, 0.005, 0.028]}
-            rotation={[0.15, 0.20, -0.30]} />
+            position={[-0.052, 0.010, 0.032]}
+            rotation={[0.18, 0.22, -0.35]} />
           <mesh geometry={G.scmR} material={M.scm}
-            position={[ 0.046, 0.005, 0.028]}
-            rotation={[0.15, -0.20,  0.30]} />
+            position={[ 0.052, 0.010, 0.032]}
+            rotation={[0.18, -0.22,  0.35]} />
 
-          {/* SSS neck glow */}
-          <mesh geometry={G.neck} material={sssMat} scale={[1.03, 1.01, 1.03]} />
+          {/* SSS BackSide ear glow shell on neck */}
+          <mesh geometry={G.neck} material={sssMat} scale={[1.04, 1.01, 1.04]} />
 
-          {/* ── HEAD ───────────────────────────────────── */}
-          <group ref={headRef} position={[0, 0.160, 0]}>
+          {/* ── HEAD ─────────────────────────────────── */}
+          <group ref={headRef} position={[0, 0.310, 0]}>
 
-            {/* SSS BackSide glow */}
-            <mesh geometry={G.skull} material={sssMat} scale={[1.05, 1.05, 1.05]} />
+            {/* SSS BackSide glow — surrounds skull for ear/rim translucency */}
+            <mesh geometry={G.skull} material={sssMat} scale={[1.06, 1.06, 1.06]} />
 
-            {/* Skull — clean oval */}
-            <mesh geometry={G.skull} material={skinMat} scale={[1, 1.06, 0.94]} />
+            {/* Skull — slightly flattened oval */}
+            <mesh geometry={G.skull} material={skinMat} scale={[1, 1.08, 0.92]} />
 
-            {/* Cheekbones */}
+            {/* Forehead ridge — subtle brow shelf */}
+            <mesh geometry={G.foreheadRidge} material={M.skinDark}
+              position={[0, 0.110, 0.178]}
+              scale={[1, 0.45, 0.5]} />
+
+            {/* Zygomatic arches (cheekbones) */}
             <mesh geometry={G.zygL} material={M.skinDark}
-              position={[-0.134, -0.008, 0.145]} scale={[0.8, 0.65, 0.55]} />
+              position={[-0.138, -0.008, 0.150]} scale={[0.8, 0.65, 0.55]} />
             <mesh geometry={G.zygR} material={M.skinDark}
-              position={[ 0.134, -0.008, 0.145]} scale={[0.8, 0.65, 0.55]} />
+              position={[ 0.138, -0.008, 0.150]} scale={[0.8, 0.65, 0.55]} />
 
-            {/* Jaw */}
+            {/* Jaw — wider, more defined */}
             <mesh ref={jawRef} geometry={G.jaw} material={skinMat}
-              position={[0, -0.055, 0.042]} scale={[1.06, 0.76, 1.00]} />
+              position={[0, -0.055, 0.042]} scale={[1.08, 0.76, 1.01]} />
 
             {/* Chin */}
             <mesh geometry={G.chin} material={skinMat}
-              position={[0, -0.162, 0.082]} scale={[1.05, 0.68, 0.88]} />
+              position={[0, -0.168, 0.082]} scale={[1.1, 0.68, 0.90]} />
 
-            {/* Ears */}
+            {/* Ears — composed ear with inner helix */}
             <group position={[-0.218, 0.005, 0]}>
               <mesh geometry={G.ear}      material={M.ear}  scale={[0.56, 0.90, 0.46]} />
               <mesh geometry={G.earInner} material={M.skinDark} position={[0.008, 0, 0]} scale={[0.4, 0.7, 0.35]} />
@@ -989,9 +1050,9 @@ export function CharacterMesh({
             <mesh geometry={G.nose} material={M.nose}
               position={[0, -0.042, 0.200]} scale={[1, 0.74, 0.82]} />
             <mesh ref={nostrilLRef} geometry={G.nostrilL} material={M.nose}
-              position={[-0.026,-0.068, 0.194]} scale={[0.60, 0.50, 0.50]} />
+              position={[-0.028,-0.070, 0.194]} scale={[0.64, 0.54, 0.54]} />
             <mesh ref={nostrilRRef} geometry={G.nostrilR} material={M.nose}
-              position={[ 0.026,-0.068, 0.194]} scale={[0.60, 0.50, 0.50]} />
+              position={[ 0.028,-0.070, 0.194]} scale={[0.64, 0.54, 0.54]} />
 
             {/* Philtrum */}
             <mesh geometry={G.philtrum} material={M.skinDark}
@@ -1004,80 +1065,100 @@ export function CharacterMesh({
               position={[ 0.115, -0.010, 0.176]} />
 
             {/* ── EYES ─────────────────────────────────── */}
-            <group ref={leftEyeRef}  position={[-0.088, 0.045, 0.172]}>
+            <group ref={leftEyeRef}  position={[-0.090, 0.045, 0.172]}>
               <Eye position={[0,0,0]} pupilOffX={a.pupilOffX} pupilOffY={a.pupilOffY}
                 dilated={isDilated} squint={a.eyeSquint} G={G} M={M}
-                irisMat={irisMatL} irisRef={irisLRef} />
+                irisMat={irisMatL} irisRef={irisLRef} eyelashMat={eyelashMat} />
             </group>
-            <group ref={rightEyeRef} position={[ 0.088, 0.045, 0.172]}>
+            <group ref={rightEyeRef} position={[ 0.090, 0.045, 0.172]}>
               <Eye position={[0,0,0]} pupilOffX={a.pupilOffX} pupilOffY={a.pupilOffY}
                 dilated={isDilated} squint={a.eyeSquint} G={G} M={M}
-                irisMat={irisMatR} irisRef={irisRRef} />
+                irisMat={irisMatR} irisRef={irisRRef} eyelashMat={eyelashMat} />
             </group>
 
             {/* ── EYEBROWS — outer + inner ─────────────── */}
             <mesh ref={eyebrowLRef} geometry={G.brow} material={M.brow}
-              position={[-0.082, 0.112, 0.188]} rotation={[Math.PI/2, 0,  0.25]} />
+              position={[-0.084, 0.115, 0.188]} rotation={[Math.PI/2, 0,  0.28]} />
             <mesh ref={eyebrowRRef} geometry={G.brow} material={M.brow}
-              position={[ 0.082, 0.112, 0.188]} rotation={[Math.PI/2, 0, -0.25]} />
+              position={[ 0.084, 0.115, 0.188]} rotation={[Math.PI/2, 0, -0.28]} />
+            {/* Inner brow segments — emotion detail */}
             <mesh ref={innerBrowLRef} geometry={G.browInner} material={M.brow}
-              position={[-0.046, 0.110, 0.190]} rotation={[Math.PI/2, 0,  0.50]} />
+              position={[-0.048, 0.112, 0.190]} rotation={[Math.PI/2, 0,  0.55]} />
             <mesh ref={innerBrowRRef} geometry={G.browInner} material={M.brow}
-              position={[ 0.046, 0.110, 0.190]} rotation={[Math.PI/2, 0, -0.50]} />
+              position={[ 0.048, 0.112, 0.190]} rotation={[Math.PI/2, 0, -0.55]} />
 
             {/* ── MOUTH ────────────────────────────────── */}
             {/* Dark inner oral cavity */}
             <mesh ref={mouthCavityRef} geometry={G.mouthCavity} material={M.cavity}
-              position={[0, -0.118, 0.222]} scale={[1, 0.001, 1]} />
+              position={[0, -0.118, 0.222]} scale={[1, 0.01, 1]} />
 
-            {/* Upper lip */}
+            {/* Upper lip — horizontally aligned across face */}
             <mesh ref={mouthTopRef} geometry={G.upperLip} material={M.lip}
-              position={[0, -0.114, 0.233]} rotation={[0, 0, Math.PI / 2]} />
+              position={[0, -0.112, 0.233]} rotation={[0, 0, Math.PI / 2]} />
 
-            {/* Lower lip */}
+            {/* Lower lip — horizontally aligned across face */}
             <mesh ref={mouthBotRef} geometry={G.lowerLip} material={M.lipDark}
-              position={[0, -0.120, 0.231]} rotation={[0, 0, Math.PI / 2]} />
+              position={[0, -0.124, 0.231]} rotation={[0, 0, Math.PI / 2]} />
 
             {/* Upper teeth */}
             <mesh ref={teethRef} geometry={G.teeth} material={M.teeth}
-              position={[0, -0.113, 0.227]} scale={[1, 0.001, 1]} />
+              position={[0, -0.113, 0.227]} scale={[1, 0.01, 1]} />
 
-            {/* Lower teeth */}
+            {/* Lower teeth — moves with jaw */}
             <mesh ref={lowerTeethRef} geometry={G.lowerTeeth} material={M.teeth}
-              position={[0, -0.121, 0.225]} scale={[1, 0.001, 1]} />
+              position={[0, -0.123, 0.225]} scale={[1, 0.01, 1]} />
 
-            {/* Tongue */}
+            {/* Tongue — appears on mouth-open */}
             <mesh ref={tongueRef} geometry={G.tongue} material={tongueMat}
-              position={[0, -0.122, 0.221]} scale={[0.8, 0.35, 0.55]} />
+              position={[0, -0.123, 0.221]} scale={[0.8, 0.35, 0.55]} />
 
             {/* Lip corners */}
             <mesh ref={lipCornerLRef} geometry={G.lipCornerL} material={M.lip}
-              position={[-0.044, -0.117, 0.228]} scale={[0.78, 0.68, 0.58]} />
+              position={[-0.045, -0.118, 0.228]} scale={[0.78, 0.68, 0.58]} />
             <mesh ref={lipCornerRRef} geometry={G.lipCornerR} material={M.lip}
-              position={[ 0.044, -0.117, 0.228]} scale={[0.78, 0.68, 0.58]} />
+              position={[ 0.045, -0.118, 0.228]} scale={[0.78, 0.68, 0.58]} />
 
-            {/* ── HAIR — clean contoured modern haircut ─ */}
+            {/* ── HAIR — 8 overlapping segments ────────── */}
+            {/* Top dome */}
             <mesh ref={hairTopRef} geometry={G.hairTop} material={M.hair}
-              position={[0, 0.020, -0.010]} scale={[1.03, 1.08, 1.03]} />
+              position={[0, 0.012, 0]} scale={[1.06, 1.12, 1.06]} />
+            {/* Crown layer (slightly smaller, random z offset) */}
             <mesh ref={hairCrownRef} geometry={G.hairCrown} material={M.hair}
-              position={[0, 0.035, -0.025]} scale={[1.01, 1.05, 1.02]} />
+              position={[0, 0.028, -0.010]} scale={[1.02, 1.08, 1.04]}
+              rotation={[0.05, 0.03, 0]} />
+            {/* Front swoop */}
+            <mesh ref={hairFrontRef} geometry={G.hairFront} material={M.hair}
+              position={[0, 0.148, 0.196]} rotation={[0.35, 0, 0]}
+              scale={[1, 0.58, 0.48]} />
+            {/* Side fringe — left */}
+            <mesh geometry={G.hairFringe} material={M.hair}
+              position={[-0.110, 0.135, 0.160]}
+              rotation={[0.6, -0.3, 0.15]} scale={[0.8, 0.9, 0.7]} />
+            {/* Side volumes */}
             <mesh geometry={G.hairSideL} material={M.hair}
-              position={[-0.195, 0.015, -0.010]} scale={[0.55, 1.15, 1.05]} />
+              position={[-0.210,-0.020, 0]} scale={[0.47, 0.72, 0.96]} />
             <mesh geometry={G.hairSideR} material={M.hair}
-              position={[ 0.195, 0.015, -0.010]} scale={[0.55, 1.15, 1.05]} />
+              position={[ 0.210,-0.020, 0]} scale={[0.47, 0.72, 0.96]} />
+            {/* Temple strips */}
+            <mesh geometry={G.hairTempleL} material={M.hair}
+              position={[-0.198, 0.062, 0.068]} rotation={[0, -0.25, 0.08]} />
+            <mesh geometry={G.hairTempleR} material={M.hair}
+              position={[ 0.198, 0.062, 0.068]} rotation={[0,  0.25,-0.08]} />
+            {/* Back & nape */}
             <mesh geometry={G.hairBack} material={M.hair}
-              position={[0, -0.045, -0.165]} scale={[1.04, 0.90, 0.90]} />
+              position={[0, -0.042, -0.198]} />
+            <mesh geometry={G.hairNape} material={M.hair}
+              position={[0, -0.088, -0.186]} scale={[1.08, 0.80, 0.70]} />
 
           </group>{/* /head */}
         </group>{/* /neck */}
 
         {/* ── LEFT ARM ──────────────────────────────────── */}
-        <group ref={leftArmRef} position={[-0.330, 0.220, 0]}>
+        <group ref={leftArmRef} position={[-0.360, 0.245, 0]}>
           <mesh geometry={G.upperArm} material={M.jacket} />
-          <group ref={leftForeRef} position={[0, -0.230, 0]}>
-            <mesh geometry={G.lowerArm} material={M.jacket} position={[0, -0.125, 0]} />
-            <mesh geometry={G.cuff} material={M.collar} position={[0, -0.240, 0]} />
-            <group ref={leftWristRef} position={[0, -0.265, 0]}>
+          <group ref={leftForeRef} position={[0, -0.250, 0]}>
+            <mesh geometry={G.lowerArm} material={skinMat} position={[0, -0.145, 0]} />
+            <group ref={leftWristRef} position={[0, -0.320, 0]}>
               <Hand
                 position={[0, 0, 0]}
                 rotation={[0, 0, 0]}
@@ -1091,12 +1172,11 @@ export function CharacterMesh({
         </group>
 
         {/* ── RIGHT ARM ─────────────────────────────────── */}
-        <group ref={rightArmRef} position={[0.330, 0.220, 0]}>
+        <group ref={rightArmRef} position={[0.360, 0.245, 0]}>
           <mesh geometry={G.upperArm} material={M.jacket} />
-          <group ref={rightForeRef} position={[0, -0.230, 0]}>
-            <mesh geometry={G.lowerArm} material={M.jacket} position={[0, -0.125, 0]} />
-            <mesh geometry={G.cuff} material={M.collar} position={[0, -0.240, 0]} />
-            <group ref={rightWristRef} position={[0, -0.265, 0]}>
+          <group ref={rightForeRef} position={[0, -0.250, 0]}>
+            <mesh geometry={G.lowerArm} material={skinMat} position={[0, -0.145, 0]} />
+            <group ref={rightWristRef} position={[0, -0.320, 0]}>
               <Hand
                 position={[0, 0, 0]}
                 rotation={[0, 0, 0]}

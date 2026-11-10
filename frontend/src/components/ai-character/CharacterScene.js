@@ -123,8 +123,11 @@ function SceneLighting({ stateColor, isMobile = false }) {
       {/* Rim / back accent — state-driven */}
       <pointLight position={[0, 1.8, -3.0]} intensity={1.1} color={color} distance={7} decay={2} />
 
-      {/* Ground bounce — warm skin undertone from below */}
-      <pointLight position={[0, -1.2, 1.2]} intensity={0.28} color="#5b8def" distance={5} decay={2} />
+      {/* Cyber cyan halo rim backlight */}
+      <pointLight position={[0, 0.8, -1.8]} intensity={0.95} color="#00e5ff" distance={6} decay={2} />
+
+      {/* Cyber orange ground & armor bounce — illuminates orange vest and warm amber eyes */}
+      <pointLight position={[0, -0.2, 1.2]} intensity={0.65} color="#ff7700" distance={5} decay={2} />
 
       {/* Top crown light */}
       <spotLight
@@ -401,6 +404,105 @@ function DynamicSparkles({ stateColor, state, isMobile }) {
   );
 }
 
+// ── Holographic Concentric Halo Rings behind character ────────
+function HoloHaloRings({ stateColor }) {
+  const cyanRingRef   = useRef();
+  const violetRingRef = useRef();
+  const outerRingRef  = useRef();
+
+  const cyanMat = useMemo(() => new THREE.MeshBasicMaterial({
+    color: '#00e5ff',
+    transparent: true,
+    opacity: 0.65,
+    side: THREE.DoubleSide,
+  }), []);
+
+  const violetMat = useMemo(() => new THREE.MeshBasicMaterial({
+    color: '#8b5cf6',
+    transparent: true,
+    opacity: 0.50,
+    side: THREE.DoubleSide,
+  }), []);
+
+  const accentMat = useMemo(() => new THREE.MeshBasicMaterial({
+    color: '#4f46e5',
+    transparent: true,
+    opacity: 0.28,
+    side: THREE.DoubleSide,
+  }), []);
+
+  const cyanGeo   = useMemo(() => new THREE.RingGeometry(0.48, 0.500, 64), []);
+  const violetGeo = useMemo(() => new THREE.RingGeometry(0.66, 0.680, 64), []);
+  const accentGeo = useMemo(() => new THREE.RingGeometry(0.88, 0.895, 64), []);
+
+  useFrame((state, delta) => {
+    const t = state.clock.elapsedTime;
+    if (cyanRingRef.current) {
+      cyanRingRef.current.rotation.z = t * 0.12;
+      cyanMat.opacity = 0.55 + Math.sin(t * 1.6) * 0.12;
+    }
+    if (violetRingRef.current) {
+      violetRingRef.current.rotation.z = -t * 0.08;
+      violetMat.opacity = 0.42 + Math.sin(t * 1.3 + 1) * 0.10;
+    }
+    if (outerRingRef.current) {
+      outerRingRef.current.rotation.z = t * 0.04;
+    }
+  });
+
+  useEffect(() => () => {
+    [cyanMat, violetMat, accentMat, cyanGeo, violetGeo, accentGeo].forEach(x => x?.dispose?.());
+  }, [cyanMat, violetMat, accentMat, cyanGeo, violetGeo, accentGeo]);
+
+  return (
+    <group position={[0, 0.40, -0.45]}>
+      {/* Inner glowing cyan halo ring */}
+      <mesh ref={cyanRingRef} geometry={cyanGeo} material={cyanMat} />
+      {/* Mid glowing violet halo ring */}
+      <mesh ref={violetRingRef} geometry={violetGeo} material={violetMat} />
+      {/* Outer subtle accent ring */}
+      <mesh ref={outerRingRef} geometry={accentGeo} material={accentMat} />
+    </group>
+  );
+}
+
+// ── Holographic side HUD accents (concept art border wings) ────
+function HoloSideWings() {
+  const wingGeo = useMemo(() => new THREE.PlaneGeometry(0.24, 0.65), []);
+  const wingMat = useMemo(() => new THREE.MeshBasicMaterial({
+    color: '#7c5cfc',
+    transparent: true,
+    opacity: 0.12,
+    side: THREE.DoubleSide,
+  }), []);
+
+  const borderGeo = useMemo(() => new THREE.PlaneGeometry(0.012, 0.65), []);
+  const borderMat = useMemo(() => new THREE.MeshBasicMaterial({
+    color: '#00e5ff',
+    transparent: true,
+    opacity: 0.45,
+    side: THREE.DoubleSide,
+  }), []);
+
+  useEffect(() => () => {
+    [wingGeo, wingMat, borderGeo, borderMat].forEach(x => x?.dispose?.());
+  }, [wingGeo, wingMat, borderGeo, borderMat]);
+
+  return (
+    <group position={[0, 0.10, -0.35]}>
+      {/* Left HUD wing */}
+      <group position={[-1.38, 0, 0]} rotation={[0, 0.35, 0]}>
+        <mesh geometry={wingGeo} material={wingMat} />
+        <mesh geometry={borderGeo} material={borderMat} position={[0.12, 0, 0.002]} />
+      </group>
+      {/* Right HUD wing */}
+      <group position={[1.38, 0, 0]} rotation={[0, -0.35, 0]}>
+        <mesh geometry={wingGeo} material={wingMat} />
+        <mesh geometry={borderGeo} material={borderMat} position={[-0.12, 0, 0.002]} />
+      </group>
+    </group>
+  );
+}
 
 // ── Inner scene ───────────────────────────────────────────────
 function InnerScene({ state, mousePosition, onReady, isMobile, audioAmplitude = 0, preset }) {
@@ -440,6 +542,12 @@ function InnerScene({ state, mousePosition, onReady, isMobile, audioAmplitude = 
 
       {/* Holographic grid floor */}
       <HoloGrid stateColor={cssColor} />
+
+      {/* Holographic Concentric Halo Rings behind character */}
+      <HoloHaloRings stateColor={cssColor} />
+
+      {/* Holographic Side HUD Accents */}
+      <HoloSideWings />
 
       {/* Floating orb — state-reactive glow sphere */}
       <FloatingOrb stateColor={cssColor} />

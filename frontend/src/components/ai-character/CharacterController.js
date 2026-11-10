@@ -27,39 +27,54 @@ import {
   CHARACTER_PRESETS,
 } from './CharacterAnimations';
 
-// ── Default Palette ───────────────────────────────────────────
+// ── Default Cyber Mecha Palette (Reference: Cyber Anime AI Coach) ───
 const BASE_PALETTE = {
-  skin:        '#e8c090',
-  skinShadow:  '#c89060',
-  skinLight:   '#f5d8b0',
-  skinSSS:     '#ff8870',   // subsurface scatter hint
-  hair:        '#18182a',
-  hairSheen:   '#3a3a6a',
-  shirt:       '#7c5cfc',
-  shirtDark:   '#5a3de8',
-  pant:        '#18203a',
-  eyeWhite:    '#f4f6ff',
-  irisOuter:   '#7c5cfc',
-  irisInner:   '#4a3ab0',
-  pupil:       '#0a0820',
-  catchlight:  '#ffffff',
-  lip:         '#c07870',
-  lipDark:     '#a05858',
-  tongue:      '#d06860',
-  jacket:      '#1e2850',
-  jacketLight: '#2a3870',
-  lapel:       '#151c38',
-  collar:      '#eef0ff',
-  tie:         '#5b8def',
-  tieDark:     '#3a6adc',
-  tieKnot:     '#4a7ae0',
-  teeth:       '#f5f5f8',
-  sclera:      '#f0f4ff',
-  brow:        '#1a1a2e',
-  ear:         '#d8a878',
-  nose:        '#d09870',
-  nail:        '#f0c8c0',
-  scm:         '#d4a070',   // sternocleidomastoid muscle
+  skin:             '#f8d5be',   // Anime skin tone
+  skinShadow:       '#dfa98c',
+  skinLight:        '#fff2e8',
+  skinSSS:          '#ff7864',   // Subsurface scatter hint
+  hair:             '#11131c',   // Matte jet black hair
+  hairSheen:        '#28324a',   // Cool metallic sheen
+  brow:             '#0d0f17',
+  armorOrange:      '#ff7700',   // Cyber racing orange
+  armorOrangeDark:  '#cc5800',
+  armorOrangeGlow:  '#ff8800',
+  armorDark:        '#121520',   // Titanium charcoal/black
+  armorDarkPlate:   '#181d2e',
+  armorWhite:       '#f4f6fa',   // Crisp bionic white
+  armorWhiteAccent: '#dce3f0',
+  ledOrange:        '#ff8800',   // Vivid neon-orange LED strip glow
+  ledOrangeBright:  '#ffaa22',
+  coreTriangle:     '#ff9900',   // Glowing power core (inverted triangle ▽)
+  coreFrame:        '#2a1608',
+  visorGlass:       '#ffffff',   // Holographic translucent AR visor
+  visorFrame:       '#1e2232',
+  headset:          '#151824',
+  eyeWhite:         '#f8f9ff',
+  irisOuter:        '#f59e0b',   // Warm amber/golden glowing anime eyes
+  irisInner:        '#d97706',
+  pupil:            '#0a0814',
+  catchlight:       '#ffffff',
+  lip:              '#e2867c',
+  lipDark:          '#b8554d',
+  tongue:           '#d8665c',
+  teeth:            '#ffffff',
+  // Backward compatibility aliases
+  shirt:            '#ff7700',
+  shirtDark:        '#cc5800',
+  pant:             '#121520',
+  jacket:           '#121520',
+  jacketLight:      '#181d2e',
+  lapel:            '#121520',
+  collar:           '#f4f6fa',
+  tie:              '#ff8800',
+  tieDark:          '#cc5800',
+  tieKnot:          '#ff8800',
+  sclera:           '#f8f9ff',
+  ear:              '#dfa98c',
+  nose:             '#dfa98c',
+  nail:             '#f4f6fa',
+  scm:              '#dfa98c',
 };
 
 // ── Physical material factory ─────────────────────────────────
@@ -69,21 +84,26 @@ function pm(color, opts = {}) {
 
 // ── Build material set from palette ──────────────────────────
 function buildMaterials(C) {
+  const orange = C.armorOrange || C.shirt || '#ff7700';
+  const dark   = C.armorDark   || C.jacket || '#121520';
+  const white  = C.armorWhite  || C.collar || '#f4f6fa';
+  const led    = C.ledOrange   || C.tie    || '#ff8800';
+
   return {
-    // ── Skin — improved SSS simulation ──
+    // ── Skin — refined anime SSS simulation ──
     skin: pm(C.skin, {
-      roughness:         0.55,
-      metalness:         0.0,
-      sheen:             0.60,
-      sheenRoughness:    0.65,
-      sheenColor:        new THREE.Color(C.skinLight),
-      clearcoat:         0.22,
-      clearcoatRoughness:0.38,
-      emissive:          new THREE.Color(C.skinSSS),
-      emissiveIntensity: 0.0,  // animated in active states
+      roughness:          0.52,
+      metalness:          0.0,
+      sheen:              0.65,
+      sheenRoughness:     0.55,
+      sheenColor:         new THREE.Color(C.skinLight),
+      clearcoat:          0.32,
+      clearcoatRoughness: 0.28,
+      emissive:           new THREE.Color(C.skinSSS),
+      emissiveIntensity:  0.0,
     }),
-    skinDark:   pm(C.skinShadow, { roughness: 0.68, metalness: 0.0 }),
-    skinLight:  pm(C.skinLight,  { roughness: 0.50, metalness: 0.0 }),
+    skinDark:  pm(C.skinShadow, { roughness: 0.65, metalness: 0.0 }),
+    skinLight: pm(C.skinLight,  { roughness: 0.45, metalness: 0.0 }),
     skinSSS: new THREE.MeshPhysicalMaterial({
       color:     new THREE.Color(C.skin),
       roughness: 0.8, metalness: 0.0,
@@ -92,102 +112,174 @@ function buildMaterials(C) {
       emissiveIntensity: 0.28,
       side: THREE.BackSide,
     }),
-    // ── Hair ──
+
+    // ── Hair — layered anime sheen ──
     hair: pm(C.hair, {
-      roughness: 0.22,
-      metalness: 0.06,
-      sheen:     0.80,
-      sheenRoughness: 0.42,
-      sheenColor: new THREE.Color(C.hairSheen),
-      clearcoat: 0.18,
-      clearcoatRoughness: 0.52,
+      roughness:          0.24,
+      metalness:          0.08,
+      sheen:              0.85,
+      sheenRoughness:     0.35,
+      sheenColor:         new THREE.Color(C.hairSheen),
+      clearcoat:          0.22,
+      clearcoatRoughness: 0.45,
     }),
-    brow:   pm(C.brow,  { roughness: 0.38, metalness: 0.0 }),
-    // ── Clothes ──
-    shirt:  pm(C.shirt, {
-      roughness: 0.55, metalness: 0.08,
-      emissive: new THREE.Color(C.shirt), emissiveIntensity: 0.04,
+    brow: pm(C.brow, { roughness: 0.38, metalness: 0.0 }),
+
+    // ── Cyber Armor Materials ──
+    armorOrange: pm(orange, {
+      roughness:          0.24,
+      metalness:          0.15,
+      clearcoat:          0.90,
+      clearcoatRoughness: 0.12,
+      emissive:           new THREE.Color(orange),
+      emissiveIntensity:  0.05,
     }),
-    jacket: pm(C.jacket, {
-      roughness: 0.36, metalness: 0.18,
-      clearcoat: 0.52, clearcoatRoughness: 0.60,
+    armorOrangeDark: pm(C.armorOrangeDark || '#cc5800', {
+      roughness: 0.32, metalness: 0.20,
     }),
-    jacketLight: pm(C.jacketLight, {
-      roughness: 0.5, metalness: 0.1,
-      clearcoat: 0.2, clearcoatRoughness: 0.8,
+    armorDark: pm(dark, {
+      roughness:          0.28,
+      metalness:          0.60,
+      clearcoat:          0.45,
+      clearcoatRoughness: 0.25,
     }),
-    lapel:  pm(C.lapel,  { roughness: 0.4, metalness: 0.18 }),
-    collar: pm(C.collar, { roughness: 0.8, metalness: 0.0  }),
-    tie: pm(C.tie, {
-      roughness: 0.4, metalness: 0.05,
-      sheen: 0.6, sheenRoughness: 0.4,
-      sheenColor: new THREE.Color('#a0c0ff'),
-      emissive: new THREE.Color(C.tie), emissiveIntensity: 0.05,
+    armorDarkPlate: pm(C.armorDarkPlate || '#181d2e', {
+      roughness: 0.38, metalness: 0.50,
     }),
-    tieKnot:  pm(C.tieKnot, { roughness: 0.35, metalness: 0.08 }),
-    pants:    pm(C.pant,    { roughness: 0.8,  metalness: 0.0  }),
-    // ── Eyes ──
-    eyeWhite: pm(C.sclera,  { roughness: 0.18, metalness: 0.0  }),
-    iris: pm(C.irisOuter, {
+    armorWhite: pm(white, {
+      roughness:          0.18,
+      metalness:          0.10,
+      clearcoat:          0.95,
+      clearcoatRoughness: 0.08,
+    }),
+    armorWhiteAccent: pm(C.armorWhiteAccent || '#dce3f0', {
+      roughness: 0.28, metalness: 0.15,
+    }),
+
+    // ── Glowing LED Light Strips & Core ──
+    ledOrange: new THREE.MeshBasicMaterial({
+      color: new THREE.Color(led),
+    }),
+    ledOrangeBright: new THREE.MeshBasicMaterial({
+      color: new THREE.Color(C.ledOrangeBright || '#ffaa22'),
+    }),
+    coreGlow: new THREE.MeshBasicMaterial({
+      color: new THREE.Color(C.coreTriangle || '#ff9900'),
+    }),
+    coreFrame: pm(C.coreFrame || '#2a1608', {
+      roughness: 0.35, metalness: 0.75,
+    }),
+
+    // ── Holographic AR Visor ──
+    visorGlass: new THREE.MeshPhysicalMaterial({
+      color:        new THREE.Color('#ffffff'),
+      roughness:    0.04,
+      metalness:    0.04,
+      transmission: 0.90,
+      opacity:      0.82,
+      transparent:  true,
+      ior:          1.52,
+      thickness:    0.04,
+    }),
+    visorFrame: pm(C.visorFrame || '#1e2232', {
+      roughness: 0.25, metalness: 0.70,
+    }),
+    visorOrange: pm(orange, {
+      roughness: 0.25, metalness: 0.40,
+    }),
+
+    // ── Cyber Headset ──
+    headset: pm(C.headset || '#151824', {
+      roughness: 0.28, metalness: 0.65,
+    }),
+    headsetRing: new THREE.MeshBasicMaterial({
+      color: new THREE.Color(led),
+    }),
+
+    // ── Backward-compatible Aliases ──
+    shirt: pm(orange, {
+      roughness:          0.24,
+      metalness:          0.15,
+      clearcoat:          0.90,
+      clearcoatRoughness: 0.12,
+      emissive:           new THREE.Color(orange),
+      emissiveIntensity:  0.05,
+    }),
+    jacket: pm(dark, {
+      roughness: 0.28, metalness: 0.60, clearcoat: 0.45,
+    }),
+    jacketLight: pm(C.armorDarkPlate || '#181d2e', { roughness: 0.38, metalness: 0.50 }),
+    lapel:  pm(dark, { roughness: 0.30, metalness: 0.55 }),
+    collar: pm(white, { roughness: 0.20, metalness: 0.10, clearcoat: 0.92 }),
+    tie: new THREE.MeshBasicMaterial({ color: new THREE.Color(led) }),
+    tieKnot: new THREE.MeshBasicMaterial({ color: new THREE.Color(led) }),
+    pants: pm(dark, { roughness: 0.5, metalness: 0.3 }),
+
+    // ── Eyes (Amber Glowing Anime Eyes) ──
+    eyeWhite: pm(C.sclera || '#f8f9ff', { roughness: 0.18, metalness: 0.0 }),
+    iris: pm(C.irisOuter || '#f59e0b', {
       roughness: 0.04, metalness: 0.0,
-      emissive: new THREE.Color(C.irisOuter), emissiveIntensity: 0.55,
-      clearcoat: 1.0,  clearcoatRoughness: 0.0,
+      emissive: new THREE.Color(C.irisOuter || '#f59e0b'), emissiveIntensity: 0.65,
+      clearcoat: 1.0, clearcoatRoughness: 0.0,
     }),
-    irisInner: pm(C.irisInner, {
+    irisInner: pm(C.irisInner || '#d97706', {
       roughness: 0.04, metalness: 0.0,
-      emissive: new THREE.Color(C.irisInner), emissiveIntensity: 0.35,
+      emissive: new THREE.Color(C.irisInner || '#d97706'), emissiveIntensity: 0.45,
     }),
-    pupil: pm(C.pupil, { roughness: 0.0, metalness: 0.0 }),
-    catchlight: pm(C.catchlight, {
+    pupil: pm(C.pupil || '#0a0814', { roughness: 0.0, metalness: 0.0 }),
+    catchlight: pm('#ffffff', {
       roughness: 0.0, metalness: 0.0,
       emissive: new THREE.Color('#ffffff'), emissiveIntensity: 1.0,
     }),
+
     // ── Mouth ──
     lip: pm(C.lip, {
-      roughness: 0.40,  metalness: 0.0,
-      clearcoat: 0.35,  clearcoatRoughness: 0.22,
+      roughness: 0.40, metalness: 0.0,
+      clearcoat: 0.35, clearcoatRoughness: 0.22,
       sheen: 0.25, sheenRoughness: 0.40,
       sheenColor: new THREE.Color('#ffbbaa'),
     }),
     lipDark: pm(C.lipDark, {
-      roughness: 0.45,  metalness: 0.0,
-      clearcoat: 0.30,  clearcoatRoughness: 0.25,
+      roughness: 0.45, metalness: 0.0,
+      clearcoat: 0.30, clearcoatRoughness: 0.25,
       sheen: 0.20, sheenRoughness: 0.45,
       sheenColor: new THREE.Color('#ee9988'),
     }),
     cavity: new THREE.MeshBasicMaterial({ color: new THREE.Color('#0c0406') }),
     tongue: pm(C.tongue, {
       roughness: 0.75, metalness: 0.0,
-      transparent: true, opacity: 0.0, // animated
+      transparent: true, opacity: 0.0,
     }),
-    teeth: pm(C.teeth, {
+    teeth: pm(C.teeth || '#ffffff', {
       roughness: 0.35, metalness: 0.0,
       emissive: new THREE.Color('#f0f0f5'), emissiveIntensity: 0.08,
     }),
+
     // ── Face details ──
-    nose:  pm(C.nose,  { roughness: 0.62, metalness: 0.0 }),
-    ear:   pm(C.ear,   { roughness: 0.68, metalness: 0.0 }),
+    nose:  pm(C.skinShadow, { roughness: 0.62, metalness: 0.0 }),
+    ear:   pm(C.skinShadow, { roughness: 0.68, metalness: 0.0 }),
     cheek: pm(C.skin, {
       roughness: 0.6, metalness: 0.0,
       transparent: true, opacity: 0.0,
       emissive: new THREE.Color('#ffb0a0'), emissiveIntensity: 0.0,
     }),
-    nail: pm(C.nail, {
+    nail: pm(white, {
       roughness: 0.12, metalness: 0.0,
       clearcoat: 0.9, clearcoatRoughness: 0.08,
       transparent: true, opacity: 0.85,
     }),
-    scm: pm(C.scm || C.skin, { roughness: 0.7, metalness: 0.0, transparent: true, opacity: 0.55 }),
+    scm: pm(C.skinShadow, { roughness: 0.7, metalness: 0.0, transparent: true, opacity: 0.55 }),
+
     // ── Accessories ──
     watch:    pm('#c8d4ea', { roughness: 0.06, metalness: 0.96, clearcoat: 1.0, clearcoatRoughness: 0.04 }),
     watchBand:pm('#0c0a08', { roughness: 0.88, metalness: 0.02 }),
     cufflink: pm('#d0d8ea', { roughness: 0.05, metalness: 0.98, clearcoat: 1.0, clearcoatRoughness: 0.04,
       emissive: new THREE.Color('#c0c8e0'), emissiveIntensity: 0.12 }),
     aura: new THREE.MeshPhysicalMaterial({
-      color: new THREE.Color(C.shirt),
+      color: new THREE.Color(orange),
       roughness: 1.0, metalness: 0.0,
       transparent: true, opacity: 0.0,
-      emissive: new THREE.Color(C.shirt),
+      emissive: new THREE.Color(orange),
       emissiveIntensity: 0.0,
       side: THREE.BackSide,
     }),
@@ -197,100 +289,138 @@ function buildMaterials(C) {
 // ── Build geometry set ────────────────────────────────────────
 function buildGeometries() {
   return {
-    // ── Head — improved oval skull ──
-    skull:     new THREE.SphereGeometry(0.225, 48, 40),
-    jaw:       new THREE.SphereGeometry(0.205, 36, 30),
-    chin:      new THREE.SphereGeometry(0.058, 16, 16),
-    foreheadRidge: new THREE.BoxGeometry(0.30, 0.028, 0.018),  // subtle brow shelf
-    zygL:      new THREE.SphereGeometry(0.038, 12, 12),        // left cheekbone
-    zygR:      new THREE.SphereGeometry(0.038, 12, 12),        // right cheekbone
+    // ── Head — anime aesthetic oval skull & refined jaw ──
+    skull:        new THREE.SphereGeometry(0.212, 48, 40),
+    jaw:          new THREE.SphereGeometry(0.182, 36, 30),
+    chin:         new THREE.SphereGeometry(0.048, 16, 16),
+    foreheadRidge:new THREE.BoxGeometry(0.28, 0.024, 0.016),
+    zygL:         new THREE.SphereGeometry(0.035, 12, 12),
+    zygR:         new THREE.SphereGeometry(0.035, 12, 12),
 
     // ── Face features ──
-    eyeball:   new THREE.SphereGeometry(0.058, 28, 24),
-    iris:      new THREE.SphereGeometry(0.038, 20, 18),
-    pupil:     new THREE.SphereGeometry(0.022, 14, 14),
-    catchlight:new THREE.SphereGeometry(0.008, 8, 8),
-    brow:      new THREE.CapsuleGeometry(0.006, 0.065, 4, 12), // shorter, thicker
-    browInner: new THREE.CapsuleGeometry(0.006, 0.034, 4, 8),  // independent inner brow
-    ear:       new THREE.SphereGeometry(0.050, 18, 16),
-    earInner:  new THREE.SphereGeometry(0.030, 10, 10),        // inner ear helix
-    earLobe:   new THREE.SphereGeometry(0.026, 12, 12),
-    noseBridge:new THREE.BoxGeometry(0.022, 0.065, 0.018),     // nose bridge
-    nose:      new THREE.SphereGeometry(0.034, 16, 14),
-    nostrilL:  new THREE.SphereGeometry(0.018, 12, 10),
-    nostrilR:  new THREE.SphereGeometry(0.018, 12, 10),
-    upperLip:  new THREE.CapsuleGeometry(0.0075, 0.076, 4, 16),
-    lowerLip:  new THREE.CapsuleGeometry(0.0095, 0.068, 4, 16),
-    mouthCavity: new THREE.BoxGeometry(0.074, 0.038, 0.018),
-    lipCornerL:new THREE.SphereGeometry(0.0085, 10, 8),
-    lipCornerR:new THREE.SphereGeometry(0.0085, 10, 8),
-    cheekL:    new THREE.SphereGeometry(0.050, 14, 14),
-    cheekR:    new THREE.SphereGeometry(0.050, 14, 14),
-    teeth:     new THREE.BoxGeometry(0.066, 0.015, 0.008),
-    lowerTeeth:new THREE.BoxGeometry(0.060, 0.013, 0.008),
-    tongue:    new THREE.SphereGeometry(0.026, 14, 10),
-    philtrum:  new THREE.SphereGeometry(0.014, 10, 10),
-    // Eyelash strips
-    eyelashU:  new THREE.BoxGeometry(0.098, 0.005, 0.003),
+    eyeball:      new THREE.SphereGeometry(0.062, 28, 24),
+    iris:         new THREE.SphereGeometry(0.044, 22, 20),
+    pupil:        new THREE.SphereGeometry(0.024, 16, 16),
+    catchlight:   new THREE.SphereGeometry(0.010, 8, 8),
+    eyelashU:     new THREE.BoxGeometry(0.108, 0.007, 0.004),
+    eyelidU:      new THREE.CapsuleGeometry(0.060, 0.096, 4, 10),
+    brow:         new THREE.CapsuleGeometry(0.007, 0.072, 4, 12),
+    browInner:    new THREE.CapsuleGeometry(0.006, 0.036, 4, 8),
+    ear:          new THREE.SphereGeometry(0.046, 18, 16),
+    earInner:     new THREE.SphereGeometry(0.028, 10, 10),
+    earLobe:      new THREE.SphereGeometry(0.024, 12, 12),
+    nose:         new THREE.ConeGeometry(0.018, 0.044, 12),
+    noseBridge:   new THREE.BoxGeometry(0.018, 0.055, 0.016),
+    nostrilL:     new THREE.SphereGeometry(0.014, 10, 8),
+    nostrilR:     new THREE.SphereGeometry(0.014, 10, 8),
+    cheekL:       new THREE.SphereGeometry(0.048, 14, 14),
+    cheekR:       new THREE.SphereGeometry(0.048, 14, 14),
+    philtrum:     new THREE.SphereGeometry(0.012, 8, 8),
 
-    // ── Hair — 8 overlapping segments ──
-    hairTop:    new THREE.SphereGeometry(0.232, 40, 30, 0, Math.PI * 2, 0, Math.PI / 2),
-    hairCrown:  new THREE.SphereGeometry(0.214, 32, 24, 0, Math.PI * 2, 0, Math.PI / 2.5),
-    hairFront:  new THREE.BoxGeometry(0.200, 0.055, 0.042),
-    hairFringe: new THREE.CapsuleGeometry(0.018, 0.160, 4, 10), // side fringe piece
-    hairSideL:  new THREE.BoxGeometry(0.052, 0.175, 0.240),
-    hairSideR:  new THREE.BoxGeometry(0.052, 0.175, 0.240),
-    hairBack:   new THREE.BoxGeometry(0.395, 0.140, 0.055),
-    hairTempleL:new THREE.BoxGeometry(0.032, 0.075, 0.022),
-    hairTempleR:new THREE.BoxGeometry(0.032, 0.075, 0.022),
-    hairNape:   new THREE.SphereGeometry(0.070, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.50),
+    // ── Mouth Lip-Sync Elements ──
+    upperLip:     new THREE.CapsuleGeometry(0.0075, 0.076, 4, 16),
+    lowerLip:     new THREE.CapsuleGeometry(0.0095, 0.068, 4, 16),
+    mouthCavity:  new THREE.BoxGeometry(0.076, 0.038, 0.018),
+    lipCornerL:   new THREE.SphereGeometry(0.0085, 10, 8),
+    lipCornerR:   new THREE.SphereGeometry(0.0085, 10, 8),
+    teeth:        new THREE.BoxGeometry(0.066, 0.015, 0.008),
+    lowerTeeth:   new THREE.BoxGeometry(0.060, 0.013, 0.008),
+    tongue:       new THREE.SphereGeometry(0.026, 14, 10),
 
-    // ── Neck / torso ──
-    neck:     new THREE.CylinderGeometry(0.085, 0.105, 0.180, 22), // taller
-    adamApple:new THREE.SphereGeometry(0.018, 10, 8),               // Adam's apple
-    scmL:     new THREE.CapsuleGeometry(0.018, 0.145, 4, 10),       // left SCM muscle
-    scmR:     new THREE.CapsuleGeometry(0.018, 0.145, 4, 10),       // right SCM
-    torso:    new THREE.CapsuleGeometry(0.235, 0.440, 10, 20),
-    shoulder: new THREE.SphereGeometry(0.130, 22, 20),
-    lapelL:   new THREE.BoxGeometry(0.082, 0.300, 0.045),
-    lapelR:   new THREE.BoxGeometry(0.082, 0.300, 0.045),
-    collarL:  new THREE.BoxGeometry(0.070, 0.065, 0.042),
-    collarR:  new THREE.BoxGeometry(0.070, 0.065, 0.042),
-    tieBody:  new THREE.BoxGeometry(0.052, 0.340, 0.016),
-    tieKnot:  new THREE.BoxGeometry(0.060, 0.045, 0.030),
-    button:   new THREE.SphereGeometry(0.010, 8, 8),
-    waist:    new THREE.CylinderGeometry(0.220, 0.200, 0.150, 20),
+    // ── Layered Anime Hair ──
+    hairCap:      new THREE.SphereGeometry(0.222, 40, 30, 0, Math.PI * 2, 0, Math.PI / 1.85),
+    hairCrown:    new THREE.SphereGeometry(0.216, 32, 24),
+    hairTop:      new THREE.SphereGeometry(0.226, 40, 30, 0, Math.PI * 2, 0, Math.PI / 1.9),
+    hairFront:    new THREE.BoxGeometry(0.180, 0.050, 0.040),
+    hairTuftLg:   new THREE.ConeGeometry(0.058, 0.170, 8),
+    hairTuftMd:   new THREE.ConeGeometry(0.046, 0.145, 8),
+    hairTuftSm:   new THREE.ConeGeometry(0.035, 0.115, 8),
+    hairTuftBang: new THREE.ConeGeometry(0.042, 0.155, 8),
+    hairSideL:    new THREE.BoxGeometry(0.048, 0.165, 0.210),
+    hairSideR:    new THREE.BoxGeometry(0.048, 0.165, 0.210),
+    hairBack:     new THREE.BoxGeometry(0.360, 0.150, 0.070),
+    hairNape:     new THREE.SphereGeometry(0.075, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.50),
+
+    // ── Holographic AR Smart-Visor ──
+    visorGlass:   new THREE.CylinderGeometry(0.228, 0.228, 0.075, 36, 1, true, -Math.PI * 0.35, Math.PI * 0.70),
+    visorFrameTop:new THREE.BoxGeometry(0.260, 0.012, 0.014),
+    visorFrameSide: new THREE.BoxGeometry(0.012, 0.055, 0.085),
+    visorAccent:  new THREE.BoxGeometry(0.026, 0.008, 0.012),
+
+    // ── Cyber Headset & Boom Mic ──
+    headsetBand:  new THREE.TorusGeometry(0.226, 0.014, 12, 32, Math.PI * 0.85),
+    headsetCup:   new THREE.CylinderGeometry(0.056, 0.056, 0.035, 24),
+    headsetLedRing: new THREE.TorusGeometry(0.040, 0.006, 12, 28),
+    headsetCenter:new THREE.CylinderGeometry(0.026, 0.026, 0.038, 16),
+    headsetBoomMic:new THREE.CapsuleGeometry(0.007, 0.165, 6, 12),
+    headsetMicTip:new THREE.CylinderGeometry(0.011, 0.011, 0.024, 12),
+    headsetMicLed:new THREE.SphereGeometry(0.006, 8, 8),
+
+    // ── Neck & High Cyber Collar ──
+    neck:         new THREE.CylinderGeometry(0.076, 0.098, 0.165, 22),
+    collarInner:  new THREE.CylinderGeometry(0.108, 0.118, 0.115, 24, 1, true, -Math.PI * 0.82, Math.PI * 1.64),
+    collarOuter:  new THREE.CylinderGeometry(0.120, 0.134, 0.098, 24, 1, true, -Math.PI * 0.78, Math.PI * 1.56),
+    collarLapelL: new THREE.BoxGeometry(0.035, 0.090, 0.015),
+    collarLapelR: new THREE.BoxGeometry(0.035, 0.090, 0.015),
+    collarL:      new THREE.BoxGeometry(0.035, 0.090, 0.015),
+    collarR:      new THREE.BoxGeometry(0.035, 0.090, 0.015),
+
+    // ── Cyber Armor Vest & Glowing Power Core ──
+    torsoBody:    new THREE.CapsuleGeometry(0.215, 0.420, 10, 20),
+    torso:        new THREE.CapsuleGeometry(0.215, 0.420, 10, 20),
+    chestCenter:  new THREE.BoxGeometry(0.165, 0.320, 0.050),
+    vestArmorL:   new THREE.BoxGeometry(0.105, 0.355, 0.065),
+    vestArmorR:   new THREE.BoxGeometry(0.105, 0.355, 0.065),
+    lapelL:       new THREE.BoxGeometry(0.105, 0.355, 0.065),
+    lapelR:       new THREE.BoxGeometry(0.105, 0.355, 0.065),
+    vestWhiteStripeL: new THREE.BoxGeometry(0.018, 0.325, 0.072),
+    vestWhiteStripeR: new THREE.BoxGeometry(0.018, 0.325, 0.072),
+    vestLedStripL:new THREE.BoxGeometry(0.009, 0.270, 0.076),
+    vestLedStripR:new THREE.BoxGeometry(0.009, 0.270, 0.076),
+
+    // Inverted Triangle Power Core (▽)
+    coreFrame:    new THREE.CylinderGeometry(0.052, 0.052, 0.014, 3),
+    coreTriangle: new THREE.CylinderGeometry(0.040, 0.040, 0.018, 3),
+    coreInner:    new THREE.CylinderGeometry(0.024, 0.024, 0.020, 3),
+
+    // ── Waist & Belt ──
+    waistBelt:    new THREE.CylinderGeometry(0.205, 0.190, 0.130, 22),
+    waist:        new THREE.CylinderGeometry(0.205, 0.190, 0.130, 22),
+    beltBuckle:   new THREE.BoxGeometry(0.065, 0.040, 0.035),
+    beltAccent:   new THREE.BoxGeometry(0.025, 0.015, 0.038),
+
+    // ── Shoulders (Dark Pauldrons with Glowing LED Ring ◎) ──
+    shoulderBall:     new THREE.SphereGeometry(0.105, 22, 20),
+    shoulderPauldron: new THREE.SphereGeometry(0.132, 24, 20, 0, Math.PI * 2, 0, Math.PI * 0.58),
+    shoulder:         new THREE.SphereGeometry(0.132, 24, 20, 0, Math.PI * 2, 0, Math.PI * 0.58),
+    shoulderLedRing:  new THREE.TorusGeometry(0.042, 0.006, 12, 28),
+    shoulderLedCenter:new THREE.CylinderGeometry(0.022, 0.022, 0.014, 16),
 
     // ── Arms ──
-    upperArm: new THREE.CapsuleGeometry(0.078, 0.260, 10, 14),
-    lowerArm: new THREE.CapsuleGeometry(0.064, 0.230, 10, 14),
-    wrist:    new THREE.SphereGeometry(0.060, 18, 14),
-    palm:     new THREE.SphereGeometry(0.074, 20, 16),
-    thumb:    new THREE.CapsuleGeometry(0.022, 0.055, 4, 8),
+    upperArm:     new THREE.CapsuleGeometry(0.074, 0.235, 10, 14),
+    elbowRing:    new THREE.TorusGeometry(0.066, 0.012, 10, 24),
+    forearmBionic:new THREE.CapsuleGeometry(0.068, 0.235, 10, 14),
+    lowerArm:     new THREE.CapsuleGeometry(0.068, 0.235, 10, 14),
+    forearmLed:   new THREE.BoxGeometry(0.012, 0.170, 0.016),
+    wristCuff:    new THREE.CylinderGeometry(0.062, 0.062, 0.028, 18),
+    wrist:        new THREE.SphereGeometry(0.058, 18, 14),
+    palm:         new THREE.SphereGeometry(0.068, 20, 16),
+    thumb:        new THREE.CapsuleGeometry(0.020, 0.052, 4, 8),
 
     // ── 3-phalanx finger segments ──
-    phalanxP: new THREE.CapsuleGeometry(0.014, 0.048, 4, 8), // proximal (base)
-    phalanxM: new THREE.CapsuleGeometry(0.013, 0.038, 4, 8), // medial (mid)
-    phalanxD: new THREE.CapsuleGeometry(0.012, 0.030, 4, 8), // distal (tip)
-    knuckle:  new THREE.SphereGeometry(0.016, 8, 8),          // knuckle bump
-    fingernail:new THREE.BoxGeometry(0.022, 0.006, 0.016),    // flat nail plate
+    phalanxP:     new THREE.CapsuleGeometry(0.014, 0.048, 4, 8),
+    phalanxM:     new THREE.CapsuleGeometry(0.013, 0.038, 4, 8),
+    phalanxD:     new THREE.CapsuleGeometry(0.012, 0.030, 4, 8),
+    knuckle:      new THREE.SphereGeometry(0.016, 8, 8),
+    fingernail:   new THREE.BoxGeometry(0.022, 0.006, 0.016),
 
-    // Eyelid
-    eyelidU: new THREE.CapsuleGeometry(0.058, 0.092, 4, 10),
-
-    // Accessories
-    watchFace:    new THREE.CylinderGeometry(0.023, 0.023, 0.007, 20),
-    watchBand:    new THREE.BoxGeometry(0.020, 0.010, 0.048),
-    pocketSquare: new THREE.BoxGeometry(0.022, 0.028, 0.004),
-    cufflink:     new THREE.CylinderGeometry(0.009, 0.009, 0.012, 10),
-
-    // Aura
-    aura: new THREE.CapsuleGeometry(0.260, 0.460, 10, 20),
+    // ── Aura ──
+    aura:         new THREE.CapsuleGeometry(0.260, 0.460, 10, 20),
   };
 }
 
 // ─────────────────────────────────────────────────────────────
-// Eye component — layered construction
+// Eye component — anime layered construction with amber glow
 // ─────────────────────────────────────────────────────────────
 function Eye({ position, pupilOffX = 0, pupilOffY = 0, dilated = false, squint = 0,
                G, M, irisMat, irisRef, eyelashMat }) {
@@ -303,29 +433,33 @@ function Eye({ position, pupilOffX = 0, pupilOffY = 0, dilated = false, squint =
       <mesh geometry={G.eyeball} material={M.eyeWhite} />
       {/* Upper eyelid */}
       <mesh geometry={G.eyelidU} material={M.skinDark}
-        position={[0, 0.050, 0.036]} rotation={[0, 0, Math.PI / 2]}
-        scale={[0.54, 0.10, 0.22]} />
+        position={[0, 0.052, 0.038]} rotation={[0, 0, Math.PI / 2]}
+        scale={[0.55, 0.10, 0.22]} />
       {/* Lower eyelid */}
       <mesh geometry={G.eyelidU} material={M.skinDark}
-        position={[0, -0.046, 0.038]} rotation={[0, 0, Math.PI / 2]}
-        scale={[0.54, 0.07, 0.18]} />
-      {/* Eyelash strip — upper */}
+        position={[0, -0.048, 0.040]} rotation={[0, 0, Math.PI / 2]}
+        scale={[0.55, 0.07, 0.18]} />
+      {/* Upper anime eyelash strip */}
       <mesh geometry={G.eyelashU} material={eyelashMat || M.brow}
-        position={[0, 0.052, 0.040]} />
-      {/* Iris outer */}
+        position={[0, 0.054, 0.042]} />
+      {/* Iris outer — golden amber anime glow */}
       <mesh ref={irisRef} geometry={G.iris} material={activeMat}
-        position={[pupilOffX * 0.013, pupilOffY * 0.011, 0.032]}
+        position={[pupilOffX * 0.013, pupilOffY * 0.011, 0.034]}
         scale={[irisScale, irisScale, 1]} />
-      {/* Iris inner (depth) */}
+      {/* Iris inner depth ring */}
       <mesh geometry={G.iris} material={M.irisInner}
-        position={[pupilOffX * 0.013, pupilOffY * 0.011, 0.038]}
-        scale={[irisScale * 0.6, irisScale * 0.6, 1]} />
-      {/* Pupil */}
+        position={[pupilOffX * 0.013, pupilOffY * 0.011, 0.040]}
+        scale={[irisScale * 0.65, irisScale * 0.65, 1]} />
+      {/* Dark Pupil */}
       <mesh geometry={G.pupil} material={M.pupil}
-        position={[pupilOffX * 0.013, pupilOffY * 0.011, 0.044]} />
-      {/* Catchlight */}
+        position={[pupilOffX * 0.013, pupilOffY * 0.011, 0.046]} />
+      {/* Main Catchlight — anime sparkle */}
       <mesh geometry={G.catchlight} material={M.catchlight}
-        position={[pupilOffX * 0.013 + 0.014, pupilOffY * 0.011 + 0.014, 0.052]} />
+        position={[pupilOffX * 0.013 + 0.015, pupilOffY * 0.011 + 0.015, 0.054]} />
+      {/* Secondary soft catchlight */}
+      <mesh geometry={G.catchlight} material={M.catchlight}
+        position={[pupilOffX * 0.013 - 0.012, pupilOffY * 0.011 - 0.010, 0.053]}
+        scale={[0.55, 0.55, 0.55]} />
     </group>
   );
 }
@@ -945,158 +1079,166 @@ export function CharacterMesh({
 
       {/* ── TORSO ─────────────────────────────────────────── */}
       <group ref={torsoRef}>
-        <mesh geometry={G.torso} material={shirtMat} />
+        {/* Base dark titanium compression chassis */}
+        <mesh geometry={G.torsoBody} material={M.armorDark} />
 
-        {/* Jacket lapels — with micro-jitter refs */}
-        <mesh ref={lapelLRef} geometry={G.lapelL} material={M.jacket}
-          position={[-0.108, 0.105, 0.180]} rotation={[0, 0.15, 0]} />
-        <mesh ref={lapelRRef} geometry={G.lapelR} material={M.jacket}
-          position={[ 0.108, 0.105, 0.180]} rotation={[0,-0.15, 0]} />
+        {/* Center chest dark plate */}
+        <mesh geometry={G.chestCenter} material={M.armorDarkPlate}
+          position={[0, 0.075, 0.175]} />
 
-        {/* Shirt collar */}
-        <mesh geometry={G.collarL} material={M.collar}
-          position={[-0.038, 0.305, 0.165]} rotation={[0, 0.2, 0.06]} />
-        <mesh geometry={G.collarR} material={M.collar}
-          position={[ 0.038, 0.305, 0.165]} rotation={[0,-0.2,-0.06]} />
+        {/* ── CYBER ORANGE ARMOR VEST (Left & Right) ─────── */}
+        <mesh ref={lapelLRef} geometry={G.vestArmorL} material={shirtMat}
+          position={[-0.118, 0.080, 0.170]} rotation={[0, 0.14, 0]} />
+        <mesh ref={lapelRRef} geometry={G.vestArmorR} material={shirtMat}
+          position={[ 0.118, 0.080, 0.170]} rotation={[0, -0.14, 0]} />
 
-        {/* Tie */}
-        <mesh geometry={G.tieKnot} material={M.tieKnot} position={[0, 0.285, 0.195]} />
-        <mesh geometry={G.tieBody} material={tieMat}    position={[0, 0.095, 0.205]} />
+        {/* ── BIONIC WHITE ACCENT STRIPES ─────────────────── */}
+        <mesh geometry={G.vestWhiteStripeL} material={M.armorWhite}
+          position={[-0.068, 0.078, 0.188]} rotation={[0, 0.08, 0]} />
+        <mesh geometry={G.vestWhiteStripeR} material={M.armorWhite}
+          position={[ 0.068, 0.078, 0.188]} rotation={[0, -0.08, 0]} />
 
-        {/* Buttons */}
-        {[-0.06, 0.02, 0.10].map((y, i) => (
-          <mesh key={i} geometry={G.button} material={M.lapel}
-            position={[0, y, 0.215]} scale={[1, 1, 0.5]} />
-        ))}
+        {/* ── GLOWING NEON ORANGE LED LIGHT STRIPS ────────── */}
+        <mesh geometry={G.vestLedStripL} material={tieMat}
+          position={[-0.086, 0.075, 0.194]} rotation={[0, 0.10, 0]} />
+        <mesh geometry={G.vestLedStripR} material={tieMat}
+          position={[ 0.086, 0.075, 0.194]} rotation={[0, -0.10, 0]} />
 
-        {/* Pocket square */}
-        <mesh geometry={G.pocketSquare} material={M.collar}
-          position={[-0.122, 0.232, 0.188]} rotation={[0, 0.15, 0.09]}
-          scale={[0.82, 0.88, 0.55]} />
+        {/* ── GLOWING CHEST POWER CORE (Inverted Triangle ▽) ── */}
+        <group position={[0, 0.138, 0.208]}>
+          {/* Outer dark titanium triangular frame */}
+          <mesh geometry={G.coreFrame} material={M.coreFrame}
+            rotation={[Math.PI / 2, 0, Math.PI]} />
+          {/* Glowing neon-orange triangle core */}
+          <mesh geometry={G.coreTriangle} material={M.coreGlow}
+            position={[0, 0, 0.003]}
+            rotation={[Math.PI / 2, 0, Math.PI]} />
+          {/* Inner bright yellow-orange hotspot */}
+          <mesh geometry={G.coreInner} material={M.ledOrangeBright}
+            position={[0, 0, 0.006]}
+            rotation={[Math.PI / 2, 0, Math.PI]} />
+        </group>
 
-        {/* Shoulders */}
-        <mesh ref={leftShoulderRef}  geometry={G.shoulder} material={M.jacket}
-          position={[-0.280, 0.270, 0]} />
-        <mesh ref={rightShoulderRef} geometry={G.shoulder} material={M.jacket}
-          position={[ 0.280, 0.270, 0]} />
+        {/* ── WAIST & MECHA BELT ──────────────────────────── */}
+        <mesh geometry={G.waistBelt} material={M.armorDark} position={[0, -0.290, 0]} />
+        <mesh geometry={G.beltBuckle} material={M.armorDarkPlate} position={[0, -0.270, 0.195]} />
+        <mesh geometry={G.beltAccent} material={M.ledOrange} position={[0, -0.270, 0.210]} />
 
-        {/* Waist */}
-        <mesh geometry={G.waist} material={M.pants} position={[0, -0.340, 0]} />
+        {/* ── MECHA SHOULDERS (Dark Pauldrons with Glowing LED Ring ◎) ── */}
+        <group position={[-0.295, 0.255, 0]}>
+          <mesh ref={leftShoulderRef} geometry={G.shoulderPauldron} material={M.armorDark}
+            rotation={[0, 0, 0.35]} />
+          {/* Glowing Circular Orange LED Ring on shoulder */}
+          <mesh geometry={G.shoulderLedRing} material={M.ledOrange}
+            position={[-0.108, 0.015, 0]} rotation={[0, Math.PI / 2, 0]} />
+          <mesh geometry={G.shoulderLedCenter} material={M.armorDarkPlate}
+            position={[-0.105, 0.015, 0]} rotation={[0, Math.PI / 2, 0]} />
+        </group>
 
-        {/* ── NECK ─────────────────────────────────────── */}
-        <group ref={neckRef} position={[0, 0.470, 0]}>
+        <group position={[0.295, 0.255, 0]}>
+          <mesh ref={rightShoulderRef} geometry={G.shoulderPauldron} material={M.armorDark}
+            rotation={[0, 0, -0.35]} />
+          {/* Glowing Circular Orange LED Ring on shoulder */}
+          <mesh geometry={G.shoulderLedRing} material={M.ledOrange}
+            position={[0.108, 0.015, 0]} rotation={[0, -Math.PI / 2, 0]} />
+          <mesh geometry={G.shoulderLedCenter} material={M.armorDarkPlate}
+            position={[0.105, 0.015, 0]} rotation={[0, -Math.PI / 2, 0]} />
+        </group>
+
+        {/* ── NECK & CYBER MANDARIN COLLAR ────────────────── */}
+        <group ref={neckRef} position={[0, 0.440, 0]}>
+          {/* Sleek neck */}
           <mesh geometry={G.neck} material={skinMat} />
 
-          {/* Adam's apple */}
-          <mesh geometry={G.adamApple} material={M.skinDark}
-            position={[0, 0.040, 0.078]} scale={[1, 0.7, 0.55]} />
+          {/* High Dark Titanium Inner Collar */}
+          <mesh geometry={G.collarInner} material={M.armorDarkPlate}
+            position={[0, -0.015, 0]} />
 
-          {/* SCM muscles — angle from behind-ear to collarbone */}
-          <mesh geometry={G.scmL} material={M.scm}
-            position={[-0.052, 0.010, 0.032]}
-            rotation={[0.18, 0.22, -0.35]} />
-          <mesh geometry={G.scmR} material={M.scm}
-            position={[ 0.052, 0.010, 0.032]}
-            rotation={[0.18, -0.22,  0.35]} />
+          {/* Cyber Orange Outer Collar */}
+          <mesh geometry={G.collarOuter} material={shirtMat}
+            position={[0, -0.025, 0]} />
 
-          {/* SSS BackSide ear glow shell on neck */}
+          {/* Orange Collar Lapel Notches */}
+          <mesh geometry={G.collarLapelL} material={shirtMat}
+            position={[-0.045, 0.020, 0.118]} rotation={[0, 0.25, 0.12]} />
+          <mesh geometry={G.collarLapelR} material={shirtMat}
+            position={[ 0.045, 0.020, 0.118]} rotation={[0, -0.25, -0.12]} />
+
+          {/* SSS neck glow shell */}
           <mesh geometry={G.neck} material={sssMat} scale={[1.04, 1.01, 1.04]} />
 
-          {/* ── HEAD ─────────────────────────────────── */}
-          <group ref={headRef} position={[0, 0.310, 0]}>
+          {/* ── HEAD ───────────────────────────────────────── */}
+          <group ref={headRef} position={[0, 0.280, 0]}>
+            {/* SSS Glow shell */}
+            <mesh geometry={G.skull} material={sssMat} scale={[1.05, 1.05, 1.05]} />
 
-            {/* SSS BackSide glow — surrounds skull for ear/rim translucency */}
-            <mesh geometry={G.skull} material={sssMat} scale={[1.06, 1.06, 1.06]} />
+            {/* Anime Skull */}
+            <mesh geometry={G.skull} material={skinMat} scale={[1, 1.06, 0.94]} />
 
-            {/* Skull — slightly flattened oval */}
-            <mesh geometry={G.skull} material={skinMat} scale={[1, 1.08, 0.92]} />
-
-            {/* Forehead ridge — subtle brow shelf */}
+            {/* Forehead ridge */}
             <mesh geometry={G.foreheadRidge} material={M.skinDark}
-              position={[0, 0.110, 0.178]}
-              scale={[1, 0.45, 0.5]} />
+              position={[0, 0.105, 0.174]} scale={[1, 0.42, 0.5]} />
 
-            {/* Zygomatic arches (cheekbones) */}
-            <mesh geometry={G.zygL} material={M.skinDark}
-              position={[-0.138, -0.008, 0.150]} scale={[0.8, 0.65, 0.55]} />
-            <mesh geometry={G.zygR} material={M.skinDark}
-              position={[ 0.138, -0.008, 0.150]} scale={[0.8, 0.65, 0.55]} />
-
-            {/* Jaw — wider, more defined */}
+            {/* Anime V-Jaw */}
             <mesh ref={jawRef} geometry={G.jaw} material={skinMat}
-              position={[0, -0.055, 0.042]} scale={[1.08, 0.76, 1.01]} />
+              position={[0, -0.052, 0.038]} scale={[1.05, 0.76, 0.98]} />
 
             {/* Chin */}
             <mesh geometry={G.chin} material={skinMat}
-              position={[0, -0.168, 0.082]} scale={[1.1, 0.68, 0.90]} />
+              position={[0, -0.162, 0.080]} scale={[1.05, 0.70, 0.88]} />
 
-            {/* Ears — composed ear with inner helix */}
-            <group position={[-0.218, 0.005, 0]}>
-              <mesh geometry={G.ear}      material={M.ear}  scale={[0.56, 0.90, 0.46]} />
+            {/* Ears */}
+            <group position={[-0.205, 0.005, 0]}>
+              <mesh geometry={G.ear}      material={skinMat} scale={[0.52, 0.88, 0.45]} />
               <mesh geometry={G.earInner} material={M.skinDark} position={[0.008, 0, 0]} scale={[0.4, 0.7, 0.35]} />
-              <mesh geometry={G.earLobe}  material={M.ear}  position={[0, -0.058, 0]}   scale={[0.55, 0.54, 0.44]} />
             </group>
-            <group position={[ 0.218, 0.005, 0]}>
-              <mesh geometry={G.ear}      material={M.ear}  scale={[0.56, 0.90, 0.46]} />
+            <group position={[ 0.205, 0.005, 0]}>
+              <mesh geometry={G.ear}      material={skinMat} scale={[0.52, 0.88, 0.45]} />
               <mesh geometry={G.earInner} material={M.skinDark} position={[-0.008, 0, 0]} scale={[0.4, 0.7, 0.35]} />
-              <mesh geometry={G.earLobe}  material={M.ear}  position={[0, -0.058, 0]}   scale={[0.55, 0.54, 0.44]} />
             </group>
 
-            {/* Nose bridge */}
-            <mesh geometry={G.noseBridge} material={M.skinDark}
-              position={[0, -0.008, 0.198]} scale={[1, 1, 0.5]} />
+            {/* Anime Nose */}
+            <mesh geometry={G.nose} material={skinMat}
+              position={[0, -0.032, 0.202]} rotation={[0.42, 0, 0]} />
 
-            {/* Nose tip + nostrils */}
-            <mesh geometry={G.nose} material={M.nose}
-              position={[0, -0.042, 0.200]} scale={[1, 0.74, 0.82]} />
-            <mesh ref={nostrilLRef} geometry={G.nostrilL} material={M.nose}
-              position={[-0.028,-0.070, 0.194]} scale={[0.64, 0.54, 0.54]} />
-            <mesh ref={nostrilRRef} geometry={G.nostrilR} material={M.nose}
-              position={[ 0.028,-0.070, 0.194]} scale={[0.64, 0.54, 0.54]} />
-
-            {/* Philtrum */}
-            <mesh geometry={G.philtrum} material={M.skinDark}
-              position={[0, -0.096, 0.231]} scale={[0.34, 0.54, 0.24]} />
-
-            {/* Cheek puffs */}
+            {/* Cheek blush */}
             <mesh ref={cheekLRef} geometry={G.cheekL} material={cheekMatL}
-              position={[-0.115, -0.010, 0.176]} />
+              position={[-0.108, -0.012, 0.168]} />
             <mesh ref={cheekRRef} geometry={G.cheekR} material={cheekMatR}
-              position={[ 0.115, -0.010, 0.176]} />
+              position={[ 0.108, -0.012, 0.168]} />
 
-            {/* ── EYES ─────────────────────────────────── */}
-            <group ref={leftEyeRef}  position={[-0.090, 0.045, 0.172]}>
+            {/* ── EYES (Warm Amber Glowing Anime Eyes) ──────── */}
+            <group ref={leftEyeRef} position={[-0.088, 0.046, 0.170]}>
               <Eye position={[0,0,0]} pupilOffX={a.pupilOffX} pupilOffY={a.pupilOffY}
                 dilated={isDilated} squint={a.eyeSquint} G={G} M={M}
                 irisMat={irisMatL} irisRef={irisLRef} eyelashMat={eyelashMat} />
             </group>
-            <group ref={rightEyeRef} position={[ 0.090, 0.045, 0.172]}>
+            <group ref={rightEyeRef} position={[ 0.088, 0.046, 0.170]}>
               <Eye position={[0,0,0]} pupilOffX={a.pupilOffX} pupilOffY={a.pupilOffY}
                 dilated={isDilated} squint={a.eyeSquint} G={G} M={M}
                 irisMat={irisMatR} irisRef={irisRRef} eyelashMat={eyelashMat} />
             </group>
 
-            {/* ── EYEBROWS — outer + inner ─────────────── */}
+            {/* ── EYEBROWS ───────────────────────────────────── */}
             <mesh ref={eyebrowLRef} geometry={G.brow} material={M.brow}
-              position={[-0.084, 0.115, 0.188]} rotation={[Math.PI/2, 0,  0.28]} />
+              position={[-0.084, 0.118, 0.188]} rotation={[Math.PI/2, 0,  0.26]} />
             <mesh ref={eyebrowRRef} geometry={G.brow} material={M.brow}
-              position={[ 0.084, 0.115, 0.188]} rotation={[Math.PI/2, 0, -0.28]} />
-            {/* Inner brow segments — emotion detail */}
+              position={[ 0.084, 0.118, 0.188]} rotation={[Math.PI/2, 0, -0.26]} />
             <mesh ref={innerBrowLRef} geometry={G.browInner} material={M.brow}
-              position={[-0.048, 0.112, 0.190]} rotation={[Math.PI/2, 0,  0.55]} />
+              position={[-0.046, 0.114, 0.190]} rotation={[Math.PI/2, 0,  0.50]} />
             <mesh ref={innerBrowRRef} geometry={G.browInner} material={M.brow}
-              position={[ 0.048, 0.112, 0.190]} rotation={[Math.PI/2, 0, -0.55]} />
+              position={[ 0.046, 0.114, 0.190]} rotation={[Math.PI/2, 0, -0.50]} />
 
-            {/* ── MOUTH ────────────────────────────────── */}
-            {/* Dark inner oral cavity */}
+            {/* ── MOUTH (Horizontal Lip-Sync with Speech Audio) ── */}
+            {/* Dark oral cavity */}
             <mesh ref={mouthCavityRef} geometry={G.mouthCavity} material={M.cavity}
               position={[0, -0.118, 0.222]} scale={[1, 0.01, 1]} />
 
-            {/* Upper lip — horizontally aligned across face */}
+            {/* Upper lip */}
             <mesh ref={mouthTopRef} geometry={G.upperLip} material={M.lip}
               position={[0, -0.112, 0.233]} rotation={[0, 0, Math.PI / 2]} />
 
-            {/* Lower lip — horizontally aligned across face */}
+            {/* Lower lip */}
             <mesh ref={mouthBotRef} geometry={G.lowerLip} material={M.lipDark}
               position={[0, -0.124, 0.231]} rotation={[0, 0, Math.PI / 2]} />
 
@@ -1104,11 +1246,11 @@ export function CharacterMesh({
             <mesh ref={teethRef} geometry={G.teeth} material={M.teeth}
               position={[0, -0.113, 0.227]} scale={[1, 0.01, 1]} />
 
-            {/* Lower teeth — moves with jaw */}
+            {/* Lower teeth */}
             <mesh ref={lowerTeethRef} geometry={G.lowerTeeth} material={M.teeth}
               position={[0, -0.123, 0.225]} scale={[1, 0.01, 1]} />
 
-            {/* Tongue — appears on mouth-open */}
+            {/* Tongue */}
             <mesh ref={tongueRef} geometry={G.tongue} material={tongueMat}
               position={[0, -0.123, 0.221]} scale={[0.8, 0.35, 0.55]} />
 
@@ -1118,46 +1260,114 @@ export function CharacterMesh({
             <mesh ref={lipCornerRRef} geometry={G.lipCornerR} material={M.lip}
               position={[ 0.045, -0.118, 0.228]} scale={[0.78, 0.68, 0.58]} />
 
-            {/* ── HAIR — 8 overlapping segments ────────── */}
-            {/* Top dome */}
-            <mesh ref={hairTopRef} geometry={G.hairTop} material={M.hair}
-              position={[0, 0.012, 0]} scale={[1.06, 1.12, 1.06]} />
-            {/* Crown layer (slightly smaller, random z offset) */}
+            {/* ── HOLOGRAPHIC AR SMART-VISOR ─────────────────── */}
+            <group position={[0, 0.048, 0.088]}>
+              {/* Translucent curved visor glass plate */}
+              <mesh geometry={G.visorGlass} material={M.visorGlass} />
+              {/* Titanium top frame bar */}
+              <mesh geometry={G.visorFrameTop} material={M.visorFrame}
+                position={[0, 0.038, 0.128]} />
+              {/* Left & Right temple connectors */}
+              <mesh geometry={G.visorFrameSide} material={M.visorFrame}
+                position={[-0.142, 0.005, 0.075]} rotation={[0, 0.25, 0]} />
+              <mesh geometry={G.visorFrameSide} material={M.visorFrame}
+                position={[ 0.142, 0.005, 0.075]} rotation={[0, -0.25, 0]} />
+              {/* Neon orange accent tabs */}
+              <mesh geometry={G.visorAccent} material={M.visorOrange}
+                position={[-0.142, 0.038, 0.115]} />
+              <mesh geometry={G.visorAccent} material={M.visorOrange}
+                position={[ 0.142, 0.038, 0.115]} />
+            </group>
+
+            {/* ── CYBER HEADSET WITH BOOM MIC ────────────────── */}
+            <group position={[0, 0, 0]}>
+              {/* Over-head cyber arch band */}
+              <mesh geometry={G.headsetBand} material={M.headset}
+                position={[0, 0.110, -0.015]} rotation={[0.15, 0, 0]} />
+
+              {/* Left ear unit */}
+              <mesh geometry={G.headsetCup} material={M.headset}
+                position={[-0.225, 0.008, 0]} rotation={[0, 0, Math.PI / 2]} />
+              <mesh geometry={G.headsetLedRing} material={M.headsetRing}
+                position={[-0.245, 0.008, 0]} rotation={[0, Math.PI / 2, 0]} />
+              <mesh geometry={G.headsetCenter} material={M.armorDarkPlate}
+                position={[-0.235, 0.008, 0]} rotation={[0, 0, Math.PI / 2]} />
+
+              {/* Right ear unit (with glowing ring & boom mic) */}
+              <mesh geometry={G.headsetCup} material={M.headset}
+                position={[0.225, 0.008, 0]} rotation={[0, 0, -Math.PI / 2]} />
+              <mesh geometry={G.headsetLedRing} material={M.headsetRing}
+                position={[0.245, 0.008, 0]} rotation={[0, -Math.PI / 2, 0]} />
+              <mesh geometry={G.headsetCenter} material={M.armorDarkPlate}
+                position={[0.235, 0.008, 0]} rotation={[0, 0, -Math.PI / 2]} />
+
+              {/* Boom Microphone extending forward towards mouth */}
+              <group position={[0.232, 0.008, 0]} rotation={[0.42, 0.48, -0.32]}>
+                <mesh geometry={G.headsetBoomMic} material={M.headset}
+                  position={[-0.010, -0.115, 0.105]} rotation={[0.65, 0, 0]} />
+                <mesh geometry={G.headsetMicTip} material={M.armorDarkPlate}
+                  position={[-0.010, -0.185, 0.170]} rotation={[0.65, 0, 0]} />
+                {/* Glowing neon-orange mic LED */}
+                <mesh geometry={G.headsetMicLed} material={M.ledOrange}
+                  position={[-0.010, -0.198, 0.182]} />
+              </group>
+            </group>
+
+            {/* ── LAYERED ANIME HAIR ─────────────────────────── */}
+            {/* Hair base cap */}
+            <mesh ref={hairTopRef} geometry={G.hairCap} material={M.hair}
+              position={[0, 0.016, 0]} scale={[1.05, 1.12, 1.05]} />
             <mesh ref={hairCrownRef} geometry={G.hairCrown} material={M.hair}
-              position={[0, 0.028, -0.010]} scale={[1.02, 1.08, 1.04]}
-              rotation={[0.05, 0.03, 0]} />
-            {/* Front swoop */}
-            <mesh ref={hairFrontRef} geometry={G.hairFront} material={M.hair}
-              position={[0, 0.148, 0.196]} rotation={[0.35, 0, 0]}
-              scale={[1, 0.58, 0.48]} />
-            {/* Side fringe — left */}
-            <mesh geometry={G.hairFringe} material={M.hair}
-              position={[-0.110, 0.135, 0.160]}
-              rotation={[0.6, -0.3, 0.15]} scale={[0.8, 0.9, 0.7]} />
-            {/* Side volumes */}
+              position={[0, 0.032, -0.015]} scale={[1.02, 1.08, 1.03]} />
+
+            {/* Voluminous styled top tufts */}
+            <mesh geometry={G.hairTuftLg} material={M.hair}
+              position={[0.025, 0.225, 0.040]} rotation={[-0.45, 0.20, -0.25]} />
+            <mesh geometry={G.hairTuftMd} material={M.hair}
+              position={[-0.065, 0.215, 0.030]} rotation={[-0.40, -0.30, 0.35]} />
+            <mesh geometry={G.hairTuftMd} material={M.hair}
+              position={[0.085, 0.200, 0.015]} rotation={[-0.35, 0.35, -0.40]} />
+            <mesh geometry={G.hairTuftSm} material={M.hair}
+              position={[0.010, 0.245, -0.040]} rotation={[-0.60, 0.10, -0.15]} />
+
+            {/* Forehead Swept Anime Bangs */}
+            <mesh ref={hairFrontRef} geometry={G.hairTuftBang} material={M.hair}
+              position={[-0.055, 0.145, 0.185]} rotation={[0.75, -0.22, 0.35]} />
+            <mesh geometry={G.hairTuftBang} material={M.hair}
+              position={[0.045, 0.152, 0.182]} rotation={[0.70, 0.28, -0.30]} />
+            <mesh geometry={G.hairTuftSm} material={M.hair}
+              position={[-0.115, 0.130, 0.165]} rotation={[0.85, -0.45, 0.55]} />
+            <mesh geometry={G.hairTuftSm} material={M.hair}
+              position={[0.115, 0.130, 0.165]} rotation={[0.85, 0.45, -0.55]} />
+
+            {/* Side volume & nape */}
             <mesh geometry={G.hairSideL} material={M.hair}
-              position={[-0.210,-0.020, 0]} scale={[0.47, 0.72, 0.96]} />
+              position={[-0.198, -0.015, 0]} scale={[0.55, 0.75, 0.95]} />
             <mesh geometry={G.hairSideR} material={M.hair}
-              position={[ 0.210,-0.020, 0]} scale={[0.47, 0.72, 0.96]} />
-            {/* Temple strips */}
-            <mesh geometry={G.hairTempleL} material={M.hair}
-              position={[-0.198, 0.062, 0.068]} rotation={[0, -0.25, 0.08]} />
-            <mesh geometry={G.hairTempleR} material={M.hair}
-              position={[ 0.198, 0.062, 0.068]} rotation={[0,  0.25,-0.08]} />
-            {/* Back & nape */}
+              position={[ 0.198, -0.015, 0]} scale={[0.55, 0.75, 0.95]} />
             <mesh geometry={G.hairBack} material={M.hair}
-              position={[0, -0.042, -0.198]} />
+              position={[0, -0.038, -0.195]} />
             <mesh geometry={G.hairNape} material={M.hair}
-              position={[0, -0.088, -0.186]} scale={[1.08, 0.80, 0.70]} />
+              position={[0, -0.085, -0.182]} scale={[1.08, 0.80, 0.70]} />
 
           </group>{/* /head */}
         </group>{/* /neck */}
 
         {/* ── LEFT ARM ──────────────────────────────────── */}
         <group ref={leftArmRef} position={[-0.360, 0.245, 0]}>
-          <mesh geometry={G.upperArm} material={M.jacket} />
+          {/* Upper arm mecha sleeve */}
+          <mesh geometry={G.upperArm} material={M.armorDark} />
+          {/* Cyber elbow joint */}
+          <mesh geometry={G.elbowRing} material={M.armorDarkPlate} position={[0, -0.140, 0]} />
+
           <group ref={leftForeRef} position={[0, -0.250, 0]}>
-            <mesh geometry={G.lowerArm} material={skinMat} position={[0, -0.145, 0]} />
+            {/* Crisp Bionic White Forearm Gauntlet */}
+            <mesh geometry={G.forearmBionic} material={M.armorWhite} position={[0, -0.145, 0]} />
+            {/* Glowing neon-orange energy channel strip */}
+            <mesh geometry={G.forearmLed} material={M.ledOrange} position={[0, -0.145, 0.070]} />
+            {/* Cyber wrist cuff */}
+            <mesh geometry={G.wristCuff} material={M.armorDarkPlate} position={[0, -0.265, 0]} />
+
             <group ref={leftWristRef} position={[0, -0.320, 0]}>
               <Hand
                 position={[0, 0, 0]}
@@ -1173,9 +1383,19 @@ export function CharacterMesh({
 
         {/* ── RIGHT ARM ─────────────────────────────────── */}
         <group ref={rightArmRef} position={[0.360, 0.245, 0]}>
-          <mesh geometry={G.upperArm} material={M.jacket} />
+          {/* Upper arm mecha sleeve */}
+          <mesh geometry={G.upperArm} material={M.armorDark} />
+          {/* Cyber elbow joint */}
+          <mesh geometry={G.elbowRing} material={M.armorDarkPlate} position={[0, -0.140, 0]} />
+
           <group ref={rightForeRef} position={[0, -0.250, 0]}>
-            <mesh geometry={G.lowerArm} material={skinMat} position={[0, -0.145, 0]} />
+            {/* Crisp Bionic White Forearm Gauntlet */}
+            <mesh geometry={G.forearmBionic} material={M.armorWhite} position={[0, -0.145, 0]} />
+            {/* Glowing neon-orange energy channel strip */}
+            <mesh geometry={G.forearmLed} material={M.ledOrange} position={[0, -0.145, 0.070]} />
+            {/* Cyber wrist cuff */}
+            <mesh geometry={G.wristCuff} material={M.armorDarkPlate} position={[0, -0.265, 0]} />
+
             <group ref={rightWristRef} position={[0, -0.320, 0]}>
               <Hand
                 position={[0, 0, 0]}

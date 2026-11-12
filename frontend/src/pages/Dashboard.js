@@ -739,7 +739,8 @@ function Dashboard() {
                       </td>
                       <td className="dash-td">
                         <div className="dash-row-actions">
-                          <button className="dash-delete-btn" onClick={() => handleDelete(d.id)}>Delete</button>
+                          <button className="dash-analytics-btn" onClick={() => navigate(`/video/${d.id}`)}>Analytics</button>
+                          <button className="dash-delete-btn"    onClick={() => handleDelete(d.id)}>Delete</button>
                         </div>
                       </td>
                     </tr>
@@ -819,6 +820,12 @@ function Dashboard() {
                   </div>
 
                   <div className="dash-m-actions">
+                    <button
+                      className="dash-m-analytics-btn"
+                      onClick={() => navigate(`/video/${d.id}`)}
+                    >
+                      📊 View Session Analytics
+                    </button>
                     <button
                       className="dash-delete-btn"
                       onClick={() => handleDelete(d.id)}

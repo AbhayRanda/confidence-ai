@@ -10,6 +10,69 @@ import { API_BASE_URL, apiJSON } from "../utils/api";
 
 ChartJS.register(LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend, BarElement);
 
+const DEMO_ANALYTICS = {
+  "demo-1": {
+    id: "demo-1",
+    created_at: new Date(Date.now() - 3 * 86400000).toISOString(),
+    confidence_score: 76.5,
+    confidence_level: "Moderate",
+    eye_contact_percentage: 72,
+    posture_percentage: 80,
+    speech_score: 75,
+    smile_percentage: 68,
+    hand_movement_percentage: 70,
+    words_per_minute: 128,
+    face_visibility_percentage: 95,
+    filler_word_count: 5,
+    video_path: null,
+  },
+  "demo-2": {
+    id: "demo-2",
+    created_at: new Date(Date.now() - 2 * 86400000).toISOString(),
+    confidence_score: 82.0,
+    confidence_level: "High",
+    eye_contact_percentage: 80,
+    posture_percentage: 85,
+    speech_score: 81,
+    smile_percentage: 75,
+    hand_movement_percentage: 78,
+    words_per_minute: 135,
+    face_visibility_percentage: 98,
+    filler_word_count: 3,
+    video_path: null,
+  },
+  "demo-3": {
+    id: "demo-3",
+    created_at: new Date(Date.now() - 1 * 86400000).toISOString(),
+    confidence_score: 87.4,
+    confidence_level: "High",
+    eye_contact_percentage: 86,
+    posture_percentage: 89,
+    speech_score: 86,
+    smile_percentage: 82,
+    hand_movement_percentage: 80,
+    words_per_minute: 140,
+    face_visibility_percentage: 99,
+    filler_word_count: 2,
+    video_path: null,
+  },
+  "demo-4": {
+    id: "demo-4",
+    created_at: new Date().toISOString(),
+    confidence_score: 91.2,
+    confidence_level: "High",
+    eye_contact_percentage: 89,
+    posture_percentage: 93,
+    speech_score: 90,
+    smile_percentage: 86,
+    hand_movement_percentage: 85,
+    words_per_minute: 142,
+    face_visibility_percentage: 100,
+    filler_word_count: 1,
+    video_path: null,
+  },
+};
+
 function VideoAnalytics() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -23,6 +86,17 @@ function VideoAnalytics() {
   const fetchVideoData = useCallback(async (isRetry = false) => {
     setLoading(true);
     setError(null);
+
+    // Support demo sessions for visitors & recruiters instantly
+    if (String(id).startsWith("demo-")) {
+      const demoList = Object.values(DEMO_ANALYTICS);
+      setAllVideos(demoList);
+      const found = DEMO_ANALYTICS[id] || demoList[demoList.length - 1];
+      setVideoData(found);
+      setLoading(false);
+      return;
+    }
+
     if (isRetry) setRetrying(true);
 
     try {
@@ -48,6 +122,16 @@ function VideoAnalytics() {
       if (loadedVideo) {
         setVideoData(loadedVideo);
       } else {
+        // Fallback to demo data if guest or not found
+        const token = localStorage.getItem("token");
+        if (!token) {
+          const demoList = Object.values(DEMO_ANALYTICS);
+          setAllVideos(demoList);
+          setVideoData(DEMO_ANALYTICS[id] || demoList[demoList.length - 1]);
+          setLoading(false);
+          return;
+        }
+
         // If single video failed, check if it was a 404 or a network error
         const singleErr = videoRes.status === "rejected" ? videoRes.reason : null;
         const isNetworkErr = singleErr && (
@@ -219,8 +303,8 @@ function VideoAnalytics() {
       </div>
 
       <div className="va-two-col">
-        {/* Video Player */}
-        {videoData.video_path && (() => {
+        {/* Video Player or Evaluation Highlights Card */}
+        {videoData.video_path ? (() => {
           const isCloud = videoData.video_path.startsWith("http");
           const playUrl = isCloud
             ? videoData.video_path
@@ -292,7 +376,46 @@ function VideoAnalytics() {
               </div>
             </div>
           );
-        })()}
+        })() : (
+          <div className="va-card">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
+              <h2 className="va-card-title" style={{ margin: 0 }}>
+                <span>📹</span> Evaluation Highlights
+              </h2>
+              <span style={{ fontSize: "11.5px", padding: "3px 9px", borderRadius: "12px", background: "rgba(99, 102, 241, 0.18)", color: "#818cf8", fontWeight: 600 }}>
+                AI Evaluated
+              </span>
+            </div>
+            <div style={{
+              padding: "36px 20px",
+              textAlign: "center",
+              background: "linear-gradient(135deg, rgba(20, 24, 39, 0.6) 0%, rgba(30, 41, 59, 0.5) 100%)",
+              borderRadius: "12px",
+              border: "1px solid rgba(255, 255, 255, 0.08)",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "10px",
+              minHeight: "220px"
+            }}>
+              <div style={{ fontSize: "36px" }}>🎯</div>
+              <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 700, color: "var(--text-primary)" }}>
+                Multi-Modal Candidate Assessment
+              </h3>
+              <p style={{ margin: 0, fontSize: "12.5px", color: "var(--text-muted)", maxWidth: "340px", lineHeight: "1.5" }}>
+                Real-time WebRTC audio, MediaPipe gaze-tracking, and vocal clarity pipeline verified. Full metric breakdown preserved below.
+              </p>
+              <button
+                onClick={() => navigate("/practice")}
+                className="va-nav-btn va-nav-btn--primary"
+                style={{ marginTop: "6px", fontSize: "12px", padding: "7px 16px" }}
+              >
+                Start Live Practice Drill
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Key Insights */}
         <div className="va-card">

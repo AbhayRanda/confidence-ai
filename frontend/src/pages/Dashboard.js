@@ -417,8 +417,8 @@ function Dashboard() {
             </span>
           </div>
           <div className="dash-guest-actions">
-            <button onClick={() => navigate("/practice")} className="dash-guest-btn dash-guest-btn--primary">
-              Try Practice Drill
+            <button onClick={() => navigate("/live")} className="dash-guest-btn dash-guest-btn--primary">
+              Try Live 3D Coach
             </button>
             <button onClick={() => navigate("/login")} className="dash-guest-btn dash-guest-btn--secondary">
               Sign In
@@ -586,35 +586,35 @@ function Dashboard() {
           <h2 className="dash-section-title">Quick Actions</h2>
         </div>
         <div className="dash-actions-grid">
-          <button className="dash-action-card" onClick={() => navigate("/ai")} id="start-practice-btn">
+          <button className="dash-action-card" onClick={() => navigate("/live")} id="start-live-btn">
             <div className="dash-action-icon" style={{ background: "rgba(124,92,252,0.15)", color: "#7c5cfc" }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M15.05 5A5 5 0 0 1 19 8.95M15.05 1A9 9 0 0 1 23 8.94" />
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
+              </svg>
+            </div>
+            <div className="dash-action-label">Live 3D Coach</div>
+            <div className="dash-action-desc">Mock interview with 3D avatar</div>
+          </button>
+          <button className="dash-action-card" onClick={() => navigate("/ai")} id="start-practice-btn">
+            <div className="dash-action-icon" style={{ background: "rgba(91,141,239,0.15)", color: "#5b8def" }}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
                 <path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/>
               </svg>
             </div>
-            <div className="dash-action-label">AI Practice</div>
-            <div className="dash-action-desc">Start real-time training</div>
+            <div className="dash-action-label">Studio Practice</div>
+            <div className="dash-action-desc">Video &amp; vocal analysis</div>
           </button>
-          <button className="dash-action-card" onClick={() => navigate("/resources")} id="resources-btn">
-            <div className="dash-action-icon" style={{ background: "rgba(91,141,239,0.15)", color: "#5b8def" }}>
+          <button className="dash-action-card dash-action-card--primary" onClick={() => navigate("/resources")} id="resources-btn">
+            <div className="dash-action-icon" style={{ background: "rgba(255,255,255,0.15)", color: "#fff" }}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
                 <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
               </svg>
             </div>
-            <div className="dash-action-label">Resources</div>
-            <div className="dash-action-desc">Browse tips &amp; guides</div>
-          </button>
-          <button className="dash-action-card dash-action-card--primary" onClick={() => navigate("/ai")} id="upload-btn">
-            <div className="dash-action-icon" style={{ background: "rgba(255,255,255,0.15)", color: "#fff" }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-              </svg>
-            </div>
-            <div className="dash-action-label" style={{ color: "#fff" }}>Upload Video</div>
-            <div className="dash-action-desc" style={{ color: "rgba(255,255,255,0.65)" }}>Analyze a recording</div>
+            <div className="dash-action-label" style={{ color: "#fff" }}>Resources</div>
+            <div className="dash-action-desc" style={{ color: "rgba(255,255,255,0.65)" }}>Browse tips &amp; guides</div>
           </button>
         </div>
       </div>
@@ -739,8 +739,7 @@ function Dashboard() {
                       </td>
                       <td className="dash-td">
                         <div className="dash-row-actions">
-                          <button className="dash-analytics-btn" onClick={() => navigate(`/video/${d.id}`)}>Analytics</button>
-                          <button className="dash-delete-btn"    onClick={() => handleDelete(d.id)}>Delete</button>
+                          <button className="dash-delete-btn" onClick={() => handleDelete(d.id)}>Delete</button>
                         </div>
                       </td>
                     </tr>
@@ -820,12 +819,6 @@ function Dashboard() {
                   </div>
 
                   <div className="dash-m-actions">
-                    <button
-                      className="dash-m-analytics-btn"
-                      onClick={() => navigate(`/video/${d.id}`)}
-                    >
-                      📊 View Session Analytics
-                    </button>
                     <button
                       className="dash-delete-btn"
                       onClick={() => handleDelete(d.id)}

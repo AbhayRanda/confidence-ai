@@ -274,17 +274,18 @@ export const STUDIO_LIGHTING_PRESETS = {
 };
 
 // ── Phase 4: Expressive Chironomia & Per-Finger Kinesics Engine
-export function computeFingerPose(intent, finger, phalanx, side = 'right', t = 0) {
+export function computeFingerPose(intent, finger, phalanx, side = 'right', t = 0, audioAmplitude = 0) {
   const phalanxMultMap = {
-    Proximal: 0.50,
-    Intermediate: 0.80,
+    Proximal: 0.55,
+    Intermediate: 0.85,
     Distal: 1.00,
   };
   const pMult = phalanxMultMap[phalanx] ?? 0.75;
   const flutter = lsin(t, 2.1, 0.012, 1.1, 0.006) * (side === 'left' ? 1 : -1);
+  const ampPulse = (audioAmplitude || 0) > 0.03 ? Math.min(0.12, (audioAmplitude || 0) * 0.5) : 0;
 
   // Default resting curl
-  let baseCurl = 0.65;
+  let baseCurl = 0.26;
   let splay = 0.0;
 
   if (side === 'right') {
@@ -292,113 +293,157 @@ export function computeFingerPose(intent, finger, phalanx, side = 'right', t = 0
       case 'enumerate':
         // Precision Index Point: index is straight, other fingers curled inward
         if (finger === 'Index') {
-          baseCurl = 0.04 + Math.sin(t * 5.0) * 0.015;
-          splay = -0.05;
+          baseCurl = 0.03 + Math.sin(t * 5.0) * 0.015;
+          splay = -0.08;
         } else if (finger === 'Thumb') {
-          baseCurl = 0.45;
+          baseCurl = 0.38;
           splay = -0.15;
         } else if (finger === 'Middle') {
-          baseCurl = 0.82;
+          baseCurl = 0.80;
         } else if (finger === 'Ring') {
-          baseCurl = 0.88;
+          baseCurl = 0.86;
         } else if (finger === 'Little') {
-          baseCurl = 0.92;
+          baseCurl = 0.90;
         }
         break;
 
       case 'vision':
         // Expansive Open Welcoming Palm (Supine fanning)
         if (finger === 'Thumb') {
-          baseCurl = 0.12;
+          baseCurl = Math.max(0.06, 0.12 - ampPulse);
           splay = -0.22;
         } else if (finger === 'Index') {
-          baseCurl = 0.06;
-          splay = -0.08;
+          baseCurl = Math.max(0.04, 0.06 - ampPulse);
+          splay = -0.09;
         } else if (finger === 'Middle') {
-          baseCurl = 0.10;
+          baseCurl = Math.max(0.06, 0.10 - ampPulse);
           splay = 0.0;
         } else if (finger === 'Ring') {
-          baseCurl = 0.16;
-          splay = 0.07;
+          baseCurl = Math.max(0.08, 0.16 - ampPulse);
+          splay = 0.08;
         } else if (finger === 'Little') {
-          baseCurl = 0.22;
-          splay = 0.14;
+          baseCurl = Math.max(0.12, 0.22 - ampPulse);
+          splay = 0.15;
         }
         break;
 
       case 'conviction':
         // Gentle Heart/Sternum Cup curvature
         if (finger === 'Thumb') {
-          baseCurl = 0.28;
+          baseCurl = 0.24;
           splay = -0.10;
         } else if (finger === 'Index') {
-          baseCurl = 0.32;
+          baseCurl = 0.28;
+          splay = -0.04;
         } else if (finger === 'Middle') {
-          baseCurl = 0.38;
+          baseCurl = 0.34;
         } else if (finger === 'Ring') {
-          baseCurl = 0.42;
+          baseCurl = 0.38;
+          splay = 0.03;
         } else if (finger === 'Little') {
-          baseCurl = 0.46;
+          baseCurl = 0.42;
+          splay = 0.06;
         }
         break;
 
       case 'impact':
         // Decisive tensioned chop
         if (finger === 'Thumb') {
-          baseCurl = 0.24;
-          splay = -0.18;
-        } else if (finger === 'Index') {
-          baseCurl = 0.16;
-          splay = -0.04;
-        } else if (finger === 'Middle') {
-          baseCurl = 0.19;
-        } else if (finger === 'Ring') {
           baseCurl = 0.22;
+          splay = -0.16;
+        } else if (finger === 'Index') {
+          baseCurl = 0.14;
+          splay = -0.05;
+        } else if (finger === 'Middle') {
+          baseCurl = 0.17;
+        } else if (finger === 'Ring') {
+          baseCurl = 0.20;
+          splay = 0.04;
         } else if (finger === 'Little') {
-          baseCurl = 0.26;
-          splay = 0.05;
+          baseCurl = 0.24;
+          splay = 0.08;
         }
         break;
 
       case 'contrast':
         // Balanced weighing palm
         if (finger === 'Thumb') {
-          baseCurl = 0.18;
+          baseCurl = 0.16;
+          splay = -0.14;
         } else if (finger === 'Index') {
-          baseCurl = 0.14;
+          baseCurl = 0.12;
+          splay = -0.06;
         } else if (finger === 'Middle') {
-          baseCurl = 0.18;
+          baseCurl = 0.16;
         } else if (finger === 'Ring') {
-          baseCurl = 0.22;
+          baseCurl = 0.20;
+          splay = 0.05;
         } else if (finger === 'Little') {
-          baseCurl = 0.26;
+          baseCurl = 0.24;
+          splay = 0.09;
         }
         break;
 
-      default:
-        // Conversational dynamic curl with natural stagger
-        if (finger === 'Thumb') baseCurl = 0.32;
-        else if (finger === 'Index') baseCurl = 0.28;
-        else if (finger === 'Middle') baseCurl = 0.38;
-        else if (finger === 'Ring') baseCurl = 0.46;
-        else if (finger === 'Little') baseCurl = 0.54;
+      default: {
+        // Conversational dynamic curl with co-speech breathing cadence
+        const speechCadence = Math.sin(t * 2.4);
+        const dynPulse = -speechCadence * 0.06 - ampPulse;
+        if (finger === 'Thumb') {
+          baseCurl = Math.max(0.08, 0.22 + dynPulse);
+          splay = -0.12;
+        } else if (finger === 'Index') {
+          baseCurl = Math.max(0.06, 0.18 + dynPulse);
+          splay = -0.06;
+        } else if (finger === 'Middle') {
+          baseCurl = Math.max(0.10, 0.24 + dynPulse);
+          splay = 0.0;
+        } else if (finger === 'Ring') {
+          baseCurl = Math.max(0.14, 0.30 + dynPulse);
+          splay = 0.04;
+        } else if (finger === 'Little') {
+          baseCurl = Math.max(0.18, 0.36 + dynPulse);
+          splay = 0.08;
+        }
         break;
+      }
     }
   } else {
     // Left hand: bilateral support or resting balance
     if (intent === 'vision' || intent === 'contrast') {
-      if (finger === 'Thumb') baseCurl = 0.14;
-      else if (finger === 'Index') baseCurl = 0.08;
-      else if (finger === 'Middle') baseCurl = 0.12;
-      else if (finger === 'Ring') baseCurl = 0.18;
-      else if (finger === 'Little') baseCurl = 0.24;
+      if (finger === 'Thumb') {
+        baseCurl = Math.max(0.06, 0.12 - ampPulse);
+        splay = -0.16;
+      } else if (finger === 'Index') {
+        baseCurl = Math.max(0.04, 0.08 - ampPulse);
+        splay = -0.06;
+      } else if (finger === 'Middle') {
+        baseCurl = Math.max(0.06, 0.12 - ampPulse);
+        splay = 0.0;
+      } else if (finger === 'Ring') {
+        baseCurl = Math.max(0.08, 0.16 - ampPulse);
+        splay = 0.04;
+      } else if (finger === 'Little') {
+        baseCurl = Math.max(0.12, 0.22 - ampPulse);
+        splay = 0.08;
+      }
     } else {
-      // Relaxed resting hand
-      if (finger === 'Thumb') baseCurl = 0.50;
-      else if (finger === 'Index') baseCurl = 0.60;
-      else if (finger === 'Middle') baseCurl = 0.68;
-      else if (finger === 'Ring') baseCurl = 0.72;
-      else if (finger === 'Little') baseCurl = 0.76;
+      // Relaxed biological resting hand at waist
+      if (finger === 'Thumb') {
+        baseCurl = 0.20;
+        splay = -0.10;
+      } else if (finger === 'Index') {
+        baseCurl = 0.22;
+        splay = -0.04;
+      } else if (finger === 'Middle') {
+        baseCurl = 0.26;
+        splay = 0.0;
+      } else if (finger === 'Ring') {
+        baseCurl = 0.32;
+        splay = 0.035;
+      } else if (finger === 'Little') {
+        baseCurl = 0.38;
+        splay = 0.075;
+      }
     }
   }
 

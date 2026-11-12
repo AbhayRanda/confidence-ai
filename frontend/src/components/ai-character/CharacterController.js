@@ -465,69 +465,255 @@ function Eye({ position, pupilOffX = 0, pupilOffY = 0, dilated = false, squint =
 }
 
 // ─────────────────────────────────────────────────────────────
-// Finger — 3 phalanges with knuckle + nail
+// Fully Articulated Biomechanical Hand Component
+// With real-time 60 FPS finger curl, phalanx cascade, natural splay,
+// opposable thumb articulation, and co-speech micro-flutter.
 // ─────────────────────────────────────────────────────────────
-function Finger({ basePos, dir = 1, curl = 0, G, M, showNail = true }) {
-  // curl: 0 = flat open, 1 = fully curled
-  const c   = curl * (Math.PI / 2.2);
-  const c2  = curl * (Math.PI / 1.8);
-  const c3  = curl * (Math.PI / 1.6);
-  return (
-    <group position={basePos}>
-      {/* Proximal phalanx */}
-      <group rotation={[c, 0, 0]}>
-        <mesh geometry={G.phalanxP} material={M.skin} position={[0, 0.040, 0]} />
-        <mesh geometry={G.knuckle}  material={M.skin} position={[0, 0.072, 0]} scale={[0.7, 0.5, 0.7]} />
-        {/* Medial phalanx */}
-        <group position={[0, 0.090, 0]} rotation={[c2 * 0.7, 0, 0]}>
-          <mesh geometry={G.phalanxM} material={M.skin} position={[0, 0.032, 0]} />
-          <mesh geometry={G.knuckle}  material={M.skin} position={[0, 0.055, 0]} scale={[0.6, 0.45, 0.6]} />
-          {/* Distal phalanx */}
-          <group position={[0, 0.065, 0]} rotation={[c3 * 0.5, 0, 0]}>
-            <mesh geometry={G.phalanxD} material={M.skin} position={[0, 0.025, 0]} />
-            {showNail && (
-              <mesh geometry={G.fingernail} material={M.nail}
-                position={[0, 0.048, 0.010]} rotation={[0.3, 0, 0]} />
-            )}
-          </group>
-        </group>
-      </group>
-    </group>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────
-// Hand component — thumb + 4 fingers (3-phalanx)
-// ─────────────────────────────────────────────────────────────
-function Hand({ position, rotation, curl = 0, thumbsUp = false, isLeft = false, G, M }) {
+function Hand({
+  position = [0, 0, 0],
+  rotation = [0, 0, 0],
+  isLeft = false,
+  state = CHARACTER_STATES.IDLE,
+  animRef,
+  audioAmplitude = 0,
+  G,
+  M,
+}) {
   const dir = isLeft ? -1 : 1;
-  // thumbsUp overrides curl for thumb/other fingers
-  const fingerCurl  = thumbsUp ? 0.85 : curl;
-  const thumbCurl   = thumbsUp ? 0.0 : curl * 0.6;
+
+  // Thumb joint refs: base (metacarpal), proximal, medial, distal
+  const thumbBaseRef = useRef();
+  const thumbPRef    = useRef();
+  const thumbMRef    = useRef();
+  const thumbDRef    = useRef();
+
+  // 4 fingers: Index (0), Middle (1), Ring (2), Little (3)
+  // Each has: root (splay abduction), proximal, medial, distal phalanx
+  const fRoot0 = useRef(); const fRoot1 = useRef(); const fRoot2 = useRef(); const fRoot3 = useRef();
+  const fP0    = useRef(); const fP1    = useRef(); const fP2    = useRef(); const fP3    = useRef();
+  const fM0    = useRef(); const fM1    = useRef(); const fM2    = useRef(); const fM3    = useRef();
+  const fD0    = useRef(); const fD1    = useRef(); const fD2    = useRef(); const fD3    = useRef();
+
+  const fRoots = [fRoot0, fRoot1, fRoot2, fRoot3];
+  const fPs    = [fP0, fP1, fP2, fP3];
+  const fMs    = [fM0, fM1, fM2, fM3];
+  const fDs    = [fD0, fD1, fD2, fD3];
+
+  // Smooth interpolated joint values to prevent popping during state switches
+  const smoothValues = useRef({
+    thumbCurl: 0.22,
+    thumbRotZ: dir * (Math.PI / 2.5),
+    thumbRotX: 0,
+    thumbRotY: dir * -0.5,
+    curls: [0.24, 0.28, 0.34, 0.40],
+    splays: [dir * -0.05, 0, dir * 0.035, dir * 0.08],
+  });
+
+  useFrame((_, dt) => {
+    const a = animRef?.current;
+    const t = a ? a.time : performance.now() * 0.001;
+    const baseCurl = a ? (isLeft ? a.leftCurl : a.rightCurl) : 0.25;
+    const sv = smoothValues.current;
+    const clampDt = Math.min(dt, 0.05);
+
+    let tThumbCurl = 0.22;
+    let tThumbRotZ = dir * (Math.PI / 2.5);
+    let tThumbRotX = 0;
+    let tThumbRotY = dir * -0.5;
+    let tCurls = [0.24, 0.28, 0.34, 0.40];
+    let tSplays = [dir * -0.05, 0, dir * 0.035, dir * 0.08];
+
+    const isTalking     = state === CHARACTER_STATES.TALKING;
+    const isGreeting    = state === CHARACTER_STATES.GREETING;
+    const isEncouraging = state === CHARACTER_STATES.ENCOURAGING;
+    const isThinking    = state === CHARACTER_STATES.THINKING;
+    const isHappy       = state === CHARACTER_STATES.HAPPY;
+    const isGesture     = state === CHARACTER_STATES.GESTURE;
+
+    if (isEncouraging && !isLeft) {
+      // ── RIGHT HAND: CONFIDENT PROUD THUMBS UP ──
+      tThumbCurl = 0.02;
+      tThumbRotZ = -0.42;  // rotated vertically upward
+      tThumbRotX = -0.32;
+      tThumbRotY =  0.18;
+      // All 4 fingers curled firmly into palm
+      tCurls = [0.92, 0.95, 0.96, 0.96];
+      tSplays = [0, 0, 0, 0];
+    } else if (isGreeting && !isLeft) {
+      // ── RIGHT HAND: VIBRANT WELCOMING WAVING HAND ──
+      const waveFlutter = Math.sin(t * 8.0) * 0.05;
+      tThumbCurl = 0.08;
+      tThumbRotZ = dir * (Math.PI / 2.2);
+      tThumbRotY = dir * -0.65;
+      tCurls = [
+        0.08 + waveFlutter,
+        0.10 + waveFlutter,
+        0.14 + waveFlutter,
+        0.18 + waveFlutter,
+      ];
+      tSplays = [dir * -0.12, dir * -0.02, dir * 0.08, dir * 0.18];
+    } else if (isGesture && !isLeft) {
+      // ── RIGHT HAND: PRECISION POINT / EMPHASIS ──
+      tThumbCurl = 0.36;
+      tThumbRotZ = dir * (Math.PI / 2.8);
+      tThumbRotY = dir * -0.30;
+      tCurls = [
+        0.04 + Math.sin(t * 4.0) * 0.02, // Index straight pointer
+        0.75, // Middle tucked
+        0.84, // Ring tucked
+        0.88, // Little tucked
+      ];
+      tSplays = [dir * -0.09, dir * 0.02, dir * 0.04, dir * 0.06];
+    } else if (isThinking && !isLeft) {
+      // ── RIGHT HAND: CONTEMPLATIVE CHIN-TOUCH ──
+      tThumbCurl = 0.22;
+      tThumbRotZ = dir * (Math.PI / 2.4);
+      tCurls = [0.32, 0.65, 0.72, 0.78];
+      tSplays = [dir * -0.05, 0, dir * 0.03, dir * 0.06];
+    } else if (isHappy) {
+      // ── CELEBRATORY JOYFUL OPEN HANDS ──
+      const joyFlutter = Math.sin(t * 5.0 + (isLeft ? 0 : 1)) * 0.04;
+      tThumbCurl = 0.12;
+      tThumbRotZ = dir * (Math.PI / 2.3);
+      tCurls = [
+        0.10 + joyFlutter,
+        0.12 + joyFlutter,
+        0.16 + joyFlutter,
+        0.20 + joyFlutter,
+      ];
+      tSplays = [dir * -0.10, 0, dir * 0.06, dir * 0.14];
+    } else if (isTalking) {
+      // ── CO-SPEECH DYNAMIC ARTICULATION ──
+      const cadence = Math.sin(t * 2.2 + (isLeft ? 1.2 : 0));
+      const ampBoost = audioAmplitude > 0.03 ? Math.min(0.18, audioAmplitude * 0.8) : 0;
+      const dynCurl = 0.20 - cadence * 0.08 - ampBoost;
+      const fFlutter = Math.sin(t * 3.5 + (isLeft ? 0.7 : 0)) * 0.025;
+
+      tThumbCurl = Math.max(0.08, dynCurl * 0.85);
+      tThumbRotZ = dir * (Math.PI / 2.5 - cadence * 0.08);
+      tThumbRotY = dir * (-0.5 - cadence * 0.1);
+
+      tCurls = [
+        Math.max(0.06, dynCurl + fFlutter),
+        Math.max(0.08, dynCurl * 1.15 + fFlutter),
+        Math.max(0.12, dynCurl * 1.35 + fFlutter),
+        Math.max(0.16, dynCurl * 1.55 + fFlutter),
+      ];
+      tSplays = [
+        dir * (-0.08 - cadence * 0.03),
+        0,
+        dir * (0.05 + cadence * 0.02),
+        dir * (0.12 + cadence * 0.04),
+      ];
+    } else {
+      // ── IDLE / LISTENING: NATURAL BIOMECHANICAL RESTING ARC ──
+      const restBreath = Math.sin(t * 1.1 + (isLeft ? 0.5 : 0)) * 0.015;
+      const bCurl = Math.max(0.16, Math.min(0.38, baseCurl));
+      tThumbCurl = bCurl * 0.85 + restBreath;
+      tThumbRotZ = dir * (Math.PI / 2.5);
+      tThumbRotY = dir * -0.5;
+      tCurls = [
+        bCurl * 0.90 + restBreath,
+        bCurl * 1.05 + restBreath,
+        bCurl * 1.20 + restBreath,
+        bCurl * 1.35 + restBreath,
+      ];
+      tSplays = [dir * -0.05, 0, dir * 0.035, dir * 0.08];
+    }
+
+    // Damp values smoothly at 12 rad/s
+    const dampRate = 12 * clampDt;
+    sv.thumbCurl = sv.thumbCurl + (tThumbCurl - sv.thumbCurl) * dampRate;
+    sv.thumbRotZ = sv.thumbRotZ + (tThumbRotZ - sv.thumbRotZ) * dampRate;
+    sv.thumbRotX = sv.thumbRotX + (tThumbRotX - sv.thumbRotX) * dampRate;
+    sv.thumbRotY = sv.thumbRotY + (tThumbRotY - sv.thumbRotY) * dampRate;
+
+    for (let i = 0; i < 4; i++) {
+      sv.curls[i]  = sv.curls[i]  + (tCurls[i]  - sv.curls[i])  * dampRate;
+      sv.splays[i] = sv.splays[i] + (tSplays[i] - sv.splays[i]) * dampRate;
+    }
+
+    // Apply to Thumb
+    if (thumbBaseRef.current) {
+      thumbBaseRef.current.rotation.x = sv.thumbRotX;
+      thumbBaseRef.current.rotation.y = sv.thumbRotY;
+      thumbBaseRef.current.rotation.z = sv.thumbRotZ;
+    }
+    const tC = sv.thumbCurl * (Math.PI / 2.2);
+    if (thumbPRef.current) thumbPRef.current.rotation.x = tC;
+    if (thumbMRef.current) thumbMRef.current.rotation.x = tC * 0.65;
+    if (thumbDRef.current) thumbDRef.current.rotation.x = tC * 0.45;
+
+    // Apply to 4 fingers
+    for (let i = 0; i < 4; i++) {
+      const curlVal = sv.curls[i];
+      const splayVal = sv.splays[i];
+      if (fRoots[i].current) fRoots[i].current.rotation.z = splayVal;
+      if (fPs[i].current)    fPs[i].current.rotation.x    = curlVal * (Math.PI / 2.2);
+      if (fMs[i].current)    fMs[i].current.rotation.x    = curlVal * (Math.PI / 1.8) * 0.72;
+      if (fDs[i].current)    fDs[i].current.rotation.x    = curlVal * (Math.PI / 1.6) * 0.54;
+    }
+  });
+
   return (
     <group position={position} rotation={rotation}>
       {/* Palm */}
-      <mesh geometry={G.palm}  material={M.skin} />
+      <mesh geometry={G.palm} material={M.skin} />
       <mesh geometry={G.wrist} material={M.skin} position={[0, 0.04, 0]} />
-      {/* Thumb */}
-      <group position={[dir * 0.068, 0.020, 0.012]}
-             rotation={[0, dir * -0.5, dir * Math.PI / 2.5]}>
-        <Finger basePos={[0, 0, 0]} curl={thumbCurl} G={G} M={M} />
+
+      {/* Opposable Thumb */}
+      <group
+        ref={thumbBaseRef}
+        position={[dir * 0.068, 0.020, 0.012]}
+        rotation={[0, dir * -0.5, dir * Math.PI / 2.5]}
+      >
+        <group ref={thumbPRef}>
+          <mesh geometry={G.phalanxP} material={M.skin} position={[0, 0.038, 0]} />
+          <mesh geometry={G.knuckle} material={M.skin} position={[0, 0.068, 0]} scale={[0.75, 0.55, 0.75]} />
+          <group ref={thumbMRef} position={[0, 0.082, 0]}>
+            <mesh geometry={G.phalanxM} material={M.skin} position={[0, 0.028, 0]} />
+            <mesh geometry={G.knuckle} material={M.skin} position={[0, 0.050, 0]} scale={[0.65, 0.48, 0.65]} />
+            <group ref={thumbDRef} position={[0, 0.058, 0]}>
+              <mesh geometry={G.phalanxD} material={M.skin} position={[0, 0.022, 0]} />
+              <mesh
+                geometry={G.fingernail}
+                material={M.nail}
+                position={[0, 0.042, 0.010]}
+                rotation={[0.3, 0, 0]}
+              />
+            </group>
+          </group>
+        </group>
       </group>
-      {/* 4 fingers — positions offset laterally */}
+
+      {/* 4 Fingers: Index, Middle, Ring, Little */}
       {[
-        { x: dir * -0.046, z: 0.006 },
-        { x: dir * -0.016, z: 0.008 },
-        { x: dir *  0.014, z: 0.008 },
-        { x: dir *  0.040, z: 0.004 },
-      ].map(({ x, z }, i) => (
-        <Finger
-          key={i}
-          basePos={[x, 0.082, z]}
-          curl={fingerCurl}
-          G={G} M={M}
-          showNail
-        />
+        { x: dir * -0.046, z: 0.006, scale: [0.95, 0.96, 0.95] }, // Index
+        { x: dir * -0.016, z: 0.008, scale: [1.00, 1.02, 1.00] }, // Middle (longest)
+        { x: dir *  0.014, z: 0.008, scale: [0.96, 0.98, 0.96] }, // Ring
+        { x: dir *  0.040, z: 0.004, scale: [0.84, 0.82, 0.84] }, // Little
+      ].map(({ x, z, scale }, i) => (
+        <group key={i} position={[x, 0.082, z]} scale={scale}>
+          <group ref={fRoots[i]}>
+            <group ref={fPs[i]}>
+              <mesh geometry={G.phalanxP} material={M.skin} position={[0, 0.040, 0]} />
+              <mesh geometry={G.knuckle} material={M.skin} position={[0, 0.072, 0]} scale={[0.7, 0.5, 0.7]} />
+              <group ref={fMs[i]} position={[0, 0.090, 0]}>
+                <mesh geometry={G.phalanxM} material={M.skin} position={[0, 0.032, 0]} />
+                <mesh geometry={G.knuckle} material={M.skin} position={[0, 0.055, 0]} scale={[0.6, 0.45, 0.6]} />
+                <group ref={fDs[i]} position={[0, 0.065, 0]}>
+                  <mesh geometry={G.phalanxD} material={M.skin} position={[0, 0.025, 0]} />
+                  <mesh
+                    geometry={G.fingernail}
+                    material={M.nail}
+                    position={[0, 0.048, 0.010]}
+                    rotation={[0.3, 0, 0]}
+                  />
+                </group>
+              </group>
+            </group>
+          </group>
+        </group>
       ))}
     </group>
   );
@@ -636,8 +822,9 @@ export function CharacterMesh({
     leftForeRotX:  0, rightForeRotX: 0,
     // Forearm secondary drag
     leftForeDrag:  0, rightForeDrag: 0,
-    // Wrists
-    leftWristRotY: 0, rightWristRotY: 0,
+    // Wrists (3-axis articulation)
+    leftWristRotX: 0, leftWristRotY: 0, leftWristRotZ: 0,
+    rightWristRotX: 0, rightWristRotY: 0, rightWristRotZ: 0,
     // Hands
     leftCurl: 0, rightCurl: 0,
     // Mouth & jaw
@@ -966,13 +1153,64 @@ export function CharacterMesh({
     a.leftForeDrag  = damp(a.leftForeDrag,  a.leftForeRotX,  3.5, dt);
     a.rightForeDrag = damp(a.rightForeDrag, a.rightForeRotX, 3.5, dt);
 
-    // Wrist
-    const lWristTarget = Math.sin(a.time * 2.2) * 0.12 + a.leftForeRotX * 0.2;
-    const rWristTarget = Math.sin(a.time * 2.0 + 0.8) * 0.12 + a.rightForeRotX * 0.2;
-    a.leftWristRotY  = damp(a.leftWristRotY,  lWristTarget, 6, dt);
-    a.rightWristRotY = damp(a.rightWristRotY, rWristTarget, 6, dt);
-    if (leftWristRef.current)  leftWristRef.current.rotation.y  = a.leftWristRotY;
-    if (rightWristRef.current) rightWristRef.current.rotation.y = a.rightWristRotY;
+    // Wrists (3-axis: flexion/extension X, pronation/supination Y, lateral wave/deviation Z)
+    let lWristX = -0.06, lWristY =  0.10, lWristZ = -0.02;
+    let rWristX = -0.06, rWristY = -0.10, rWristZ =  0.02;
+
+    if (state === CHARACTER_STATES.GREETING) {
+      // Right hand raises and waves energetically side-to-side!
+      rWristZ = Math.sin(a.time * 7.5) * 0.36;
+      rWristX = -0.16 + Math.cos(a.time * 3.5) * 0.06;
+      rWristY = 0.28;
+      lWristX = -0.04; lWristY = 0.08; lWristZ = 0;
+    } else if (state === CHARACTER_STATES.ENCOURAGING) {
+      // Right hand held upright in firm thumbs-up!
+      rWristX =  0.24;
+      rWristY = -0.36;
+      rWristZ =  0.06;
+      lWristX =  0.10; lWristY = 0.12;
+    } else if (isTalking || state === CHARACTER_STATES.GESTURE) {
+      // Natural co-speech wrist articulation following forearm movement with secondary lag
+      const t = a.time;
+      rWristX = Math.sin(t * 3.2) * 0.14 + a.rightForeRotX * 0.25 + (audioAmplitude || 0) * 0.25;
+      rWristY = -0.22 + Math.sin(t * 1.8) * 0.12;
+      rWristZ = Math.cos(t * 2.8) * 0.08;
+
+      lWristX = Math.sin(t * 2.8 + 1.2) * 0.12 + a.leftForeRotX * 0.25 + (audioAmplitude || 0) * 0.18;
+      lWristY =  0.22 - Math.sin(t * 1.6) * 0.12;
+      lWristZ = -Math.cos(t * 2.4) * 0.08;
+    } else if (state === CHARACTER_STATES.HAPPY) {
+      rWristX = 0.18 + Math.sin(a.time * 5.0) * 0.14;
+      rWristZ = Math.cos(a.time * 5.0) * 0.12;
+      lWristX = 0.18 + Math.sin(a.time * 5.0 + 0.8) * 0.14;
+      lWristZ = -Math.cos(a.time * 5.0 + 0.8) * 0.12;
+    } else if (state === CHARACTER_STATES.THINKING) {
+      rWristX =  0.32;
+      rWristY =  0.40;
+      rWristZ = -0.12;
+    } else {
+      // Idle / Listening: gentle subtle breathing micro-sway
+      rWristX = -0.06 + Math.sin(a.time * 1.2) * 0.02;
+      lWristX = -0.06 + Math.sin(a.time * 1.2 + 0.5) * 0.02;
+    }
+
+    a.leftWristRotX  = damp(a.leftWristRotX,  lWristX, 8, dt);
+    a.leftWristRotY  = damp(a.leftWristRotY,  lWristY, 8, dt);
+    a.leftWristRotZ  = damp(a.leftWristRotZ,  lWristZ, 8, dt);
+    a.rightWristRotX = damp(a.rightWristRotX, rWristX, 8, dt);
+    a.rightWristRotY = damp(a.rightWristRotY, rWristY, 8, dt);
+    a.rightWristRotZ = damp(a.rightWristRotZ, rWristZ, 8, dt);
+
+    if (leftWristRef.current) {
+      leftWristRef.current.rotation.x = a.leftWristRotX;
+      leftWristRef.current.rotation.y = a.leftWristRotY;
+      leftWristRef.current.rotation.z = a.leftWristRotZ;
+    }
+    if (rightWristRef.current) {
+      rightWristRef.current.rotation.x = a.rightWristRotX;
+      rightWristRef.current.rotation.y = a.rightWristRotY;
+      rightWristRef.current.rotation.z = a.rightWristRotZ;
+    }
 
     // Hand curl
     a.leftCurl  = damp(a.leftCurl,  lCurl, 6, dt);
@@ -1063,7 +1301,6 @@ export function CharacterMesh({
     }
   });
 
-  const isEncouraging = state === CHARACTER_STATES.ENCOURAGING;
   const isDilated     = isHappy;
   const a             = anim.current;
 
@@ -1372,9 +1609,10 @@ export function CharacterMesh({
               <Hand
                 position={[0, 0, 0]}
                 rotation={[0, 0, 0]}
-                curl={a.leftCurl}
-                thumbsUp={false}
                 isLeft={true}
+                state={state}
+                animRef={anim}
+                audioAmplitude={audioAmplitude}
                 G={G} M={{ ...M, skin: skinMat }}
               />
             </group>
@@ -1400,9 +1638,10 @@ export function CharacterMesh({
               <Hand
                 position={[0, 0, 0]}
                 rotation={[0, 0, 0]}
-                curl={a.rightCurl}
-                thumbsUp={isEncouraging}
                 isLeft={false}
+                state={state}
+                animRef={anim}
+                audioAmplitude={audioAmplitude}
                 G={G} M={{ ...M, skin: skinMat }}
               />
             </group>

@@ -172,8 +172,8 @@ function VRMScene({
     neckX: 0, neckY: 0,
     headX: 0, headY: 0, headZ: 0,  // headZ = head roll (tilt)
     groupY: 0,                       // subtle body position bob
-    lUAz: 1.4, lUAx: 0, lLAz: 0, lWy: 0, lWx: 0, lFinger: 0.75,
-    rUAz: -1.4, rUAx: 0, rLAz: 0, rWy: 0, rWx: 0, rFinger: 0.75,
+    lUAz: 1.4, lUAx: 0, lLAz: 0, lWy: 0, lWx: 0, lWz: 0, lFinger: 0.28,
+    rUAz: -1.4, rUAx: 0, rLAz: 0, rWy: 0, rWx: 0, rWz: 0, rFinger: 0.28,
     nextBlink: 3.0,
     blinkVal: 0,
     blinkPhase: 'wait',   // 'wait' | 'closing' | 'opening'
@@ -456,8 +456,8 @@ function VRMScene({
       // ─────────────────────────────────────────────────────
       // 6. ARMS — semantic co-speech gestures & resting posture
       // ─────────────────────────────────────────────────────
-      let tLUAz, tLUAx, tLLAz, tLWy, tLFinger;
-      let tRUAz, tRUAx, tRLAz, tRWy, tRFinger;
+      let tLUAz, tLUAx, tLLAz, tLWy, tLFinger, tLWz = 0;
+      let tRUAz, tRUAx, tRLAz, tRWy, tRFinger, tRWz = 0;
       let armLerp = 0.05;
 
       if (isTalking) {
@@ -472,13 +472,15 @@ function VRMScene({
           tLUAx = 0;
           tLLAz = 0;
           tLWy = 0;
-          tLFinger = 0.70;
+          tLFinger = 0.28;
+          tLWz = 0;
 
           tRUAz = ARM_DOWN_R + 0.62 + mB * 0.4;
           tRUAx = 0.32 + lsin(t, 2.5, 0.12);
           tRLAz = -0.58 + lsin(t, 2.5, 0.16);
           tRWy = -0.28;
-          tRFinger = 0.10; // open index
+          tRFinger = 0.08; // open index point
+          tRWz = 0.04;
           armLerp = 0.065;
         } else if (intent === 'contrast') {
           // Contrast / Balance: alternate weighing motion with open palms
@@ -488,12 +490,14 @@ function VRMScene({
           tLLAz = 0.22;
           tLWy = 0.18;
           tLFinger = 0.12;
+          tLWz = -0.06;
 
           tRUAz = ARM_DOWN_R + 0.26 + weighOsc;
           tRUAx = 0.18;
           tRLAz = -0.22;
           tRWy = -0.18;
           tRFinger = 0.12;
+          tRWz = 0.06;
           armLerp = 0.05;
         } else if (intent === 'vision') {
           // Expansive vision / growth: both arms sweep outwards wide
@@ -502,12 +506,14 @@ function VRMScene({
           tLLAz = 0.26;
           tLWy = 0.20;
           tLFinger = 0.06;
+          tLWz = -0.08;
 
           tRUAz = ARM_DOWN_R + 0.38 - mA * 0.3;
           tRUAx = 0.18;
           tRLAz = -0.26;
           tRWy = -0.20;
           tRFinger = 0.06;
+          tRWz = 0.08;
           armLerp = 0.048;
         } else if (intent === 'conviction') {
           // Conviction / Heart: right hand hovers near upper chest
@@ -515,13 +521,15 @@ function VRMScene({
           tLUAx = 0.04;
           tLLAz = 0.04;
           tLWy = 0;
-          tLFinger = 0.65;
+          tLFinger = 0.28;
+          tLWz = 0;
 
           tRUAz = ARM_DOWN_R + 0.52 + mB * 0.3;
           tRUAx = 0.35 + mA * 0.3;
           tRLAz = -0.74 + mA * 0.3;
           tRWy = 0.38;
-          tRFinger = 0.22;
+          tRFinger = 0.20;
+          tRWz = 0.06;
           armLerp = 0.055;
         } else if (intent === 'impact') {
           // Impact / Decisive chop beat
@@ -529,13 +537,15 @@ function VRMScene({
           tLUAx = 0;
           tLLAz = 0;
           tLWy = 0;
-          tLFinger = 0.70;
+          tLFinger = 0.28;
+          tLWz = 0;
 
           tRUAz = ARM_DOWN_R + 0.60;
           tRUAx = 0.38 + lsin(t, 2.6, 0.18);
           tRLAz = -0.52 + lsin(t, 2.6, 0.22);
           tRWy = 0.18;
-          tRFinger = 0.22;
+          tRFinger = 0.18;
+          tRWz = 0.04;
           armLerp = 0.085;
         } else {
           // Conversational: realistic 3-phase cycle with natural rest periods
@@ -546,13 +556,15 @@ function VRMScene({
             tLUAx = 0;
             tLLAz = 0;
             tLWy = 0;
-            tLFinger = 0.65;
+            tLFinger = 0.26;
+            tLWz = 0;
 
             tRUAz = ARM_DOWN_R + 0.48 + mB * 0.4;
             tRUAx = 0.26 + mA;
             tRLAz = -0.34 + mA * 0.5;
             tRWy = -0.24;
-            tRFinger = 0.10 + Math.abs(mA) * 1.2;
+            tRFinger = 0.12 + Math.abs(mA) * 0.8;
+            tRWz = lsin(t, 2.5, 0.08);
             armLerp = 0.055;
           } else if (convCycle < 9.5) {
             // Phase 2: Open bilateral gesture
@@ -561,12 +573,14 @@ function VRMScene({
             tLLAz = 0.16;
             tLWy = 0.14;
             tLFinger = 0.08;
+            tLWz = -0.06;
 
             tRUAz = ARM_DOWN_R + 0.25 - mA * 0.3;
             tRUAx = 0.14;
             tRLAz = -0.16;
             tRWy = -0.14;
             tRFinger = 0.08;
+            tRWz = 0.06;
             armLerp = 0.048;
           } else {
             // Phase 3: Natural resting posture (hands relaxed at waist)
@@ -574,34 +588,36 @@ function VRMScene({
             tLUAx = 0.06;
             tLLAz = 0.08;
             tLWy = 0.04;
-            tLFinger = 0.70;
+            tLFinger = 0.28;
+            tLWz = 0;
 
             tRUAz = ARM_DOWN_R - 0.08;
             tRUAx = 0.06;
             tRLAz = -0.08;
             tRWy = -0.04;
-            tRFinger = 0.70;
+            tRFinger = 0.28;
+            tRWz = 0;
             armLerp = 0.040;
           }
         }
       } else {
         armLerp = 0.04;
         const POSE = {
-          [CHARACTER_STATES.IDLE]: { l: [ARM_DOWN_L, 0, 0, 0, 0.75], r: [ARM_DOWN_R, 0, 0, 0, 0.75] },
-          [CHARACTER_STATES.LISTENING]: { l: [ARM_DOWN_L + .05, .05, 0, .03, .65], r: [ARM_DOWN_R - .05, .05, 0, -.03, .65] },
-          [CHARACTER_STATES.THINKING]: { l: [ARM_DOWN_L, 0, 0, 0, .75], r: [ARM_DOWN_R + .45, .32, -.48, .2, 1.0] },
-          [CHARACTER_STATES.ANALYZING]: { l: [ARM_DOWN_L, 0, 0, 0, .60], r: [ARM_DOWN_R, .12, 0, .05, .60] },
-          [CHARACTER_STATES.HAPPY]: { l: [ARM_DOWN_L - .22, .06, 0, .05, .1], r: [ARM_DOWN_R + .22, .06, 0, -.05, .1] },
+          [CHARACTER_STATES.IDLE]: { l: [ARM_DOWN_L, 0, 0, 0, 0.28, 0], r: [ARM_DOWN_R, 0, 0, 0, 0.28, 0] },
+          [CHARACTER_STATES.LISTENING]: { l: [ARM_DOWN_L + .05, .05, 0, .03, 0.22, 0], r: [ARM_DOWN_R - .05, .05, 0, -.03, 0.22, 0] },
+          [CHARACTER_STATES.THINKING]: { l: [ARM_DOWN_L, 0, 0, 0, 0.28, 0], r: [ARM_DOWN_R + .45, .32, -.48, .2, 0.35, -0.15] },
+          [CHARACTER_STATES.ANALYZING]: { l: [ARM_DOWN_L, 0, 0, 0, 0.24, 0], r: [ARM_DOWN_R, .12, 0, .05, 0.24, 0] },
+          [CHARACTER_STATES.HAPPY]: { l: [ARM_DOWN_L - .22, .06, 0, .05, 0.10, -0.08], r: [ARM_DOWN_R + .22, .06, 0, -.05, 0.10, 0.08] },
           [CHARACTER_STATES.GREETING]: {
-            l: [ARM_DOWN_L, 0, 0, 0, .75],
-            r: [ARM_DOWN_R + 0.95 + lsin(t, 3.5, .12), .30, -.52, .2 + lsin(t, 3.5, .15), .05]
+            l: [ARM_DOWN_L, 0, 0, 0, 0.28, 0],
+            r: [ARM_DOWN_R + 0.95 + lsin(t, 3.5, .12), .30, -.52, .25 + lsin(t, 4.8, .12), 0.08, lsin(t, 4.8, .34)]
           },
-          [CHARACTER_STATES.GESTURE]: { l: [ARM_DOWN_L, 0, 0, 0, .75], r: [ARM_DOWN_R + .52, .38, -.32, -.12, 1.0] },
-          [CHARACTER_STATES.ENCOURAGING]: { l: [ARM_DOWN_L - .18, .1, 0, .08, .20], r: [ARM_DOWN_R + .18, .1, 0, -.08, .20] },
+          [CHARACTER_STATES.GESTURE]: { l: [ARM_DOWN_L, 0, 0, 0, 0.28, 0], r: [ARM_DOWN_R + .52, .38, -.32, -.18, 0.12, 0.06] },
+          [CHARACTER_STATES.ENCOURAGING]: { l: [ARM_DOWN_L - .18, .1, 0, .08, 0.20, 0], r: [ARM_DOWN_R + .18, .1, 0, -.08, 0.16, 0] },
         };
         const p = POSE[state] || POSE[CHARACTER_STATES.IDLE];
-        [tLUAz, tLUAx, tLLAz, tLWy, tLFinger] = p.l;
-        [tRUAz, tRUAx, tRLAz, tRWy, tRFinger] = p.r;
+        [tLUAz, tLUAx, tLLAz, tLWy, tLFinger, tLWz] = p.l;
+        [tRUAz, tRUAx, tRLAz, tRWy, tRFinger, tRWz] = p.r;
       }
 
       // Smooth upper arms
@@ -622,17 +638,19 @@ function VRMScene({
       if (lLA) lLA.rotation.z = bs.lLAz;
       if (rLA) rLA.rotation.z = bs.rLAz;
 
-      // Wrists
+      // Wrists (3-axis articulation)
       bs.lWy = lerp(bs.lWy, tLWy, armLerp * 60, dt);
       bs.rWy = lerp(bs.rWy, tRWy, armLerp * 60, dt);
       const lWxTarg = isTalking ? lsin(t, 0.6, 0.08, 0.3, 0.04) - 0.1 : -0.05;
       const rWxTarg = isTalking ? lsin(t, 0.6, 0.08, 0.3, 0.04) + 0.1 : 0.05;
       bs.lWx = lerp(bs.lWx, lWxTarg, armLerp * 60, dt);
       bs.rWx = lerp(bs.rWx, rWxTarg, armLerp * 60, dt);
+      bs.lWz = lerp(bs.lWz, tLWz || 0, armLerp * 60, dt);
+      bs.rWz = lerp(bs.rWz, tRWz || 0, armLerp * 60, dt);
       const lW = vrm.humanoid.getNormalizedBoneNode('leftHand');
       const rW = vrm.humanoid.getNormalizedBoneNode('rightHand');
-      if (lW) { lW.rotation.y = bs.lWy; lW.rotation.x = bs.lWx; }
-      if (rW) { rW.rotation.y = bs.rWy; rW.rotation.x = bs.rWx; }
+      if (lW) { lW.rotation.y = bs.lWy; lW.rotation.x = bs.lWx; lW.rotation.z = bs.lWz; }
+      if (rW) { rW.rotation.y = bs.rWy; rW.rotation.x = bs.rWx; rW.rotation.z = bs.rWz; }
 
       // ─────────────────────────────────────────────────────
       // 7. FINGERS — per-phalanx curl with Phase 4 Chironomia
@@ -642,6 +660,8 @@ function VRMScene({
 
       const FINGERS = ['Index', 'Middle', 'Ring', 'Little'];
       const PHALANGES = ['Proximal', 'Intermediate', 'Distal'];
+      const restSplayMap = { Index: -0.045, Middle: 0.0, Ring: 0.035, Little: 0.075 };
+
       [['left', bs.lFinger], ['right', bs.rFinger]].forEach(([side, curlTarget]) => {
         const curlSign = side === 'left' ? 1 : -1;
         const flutter = lsin(t, 1.9, 0.013, 0.95, 0.007) * (side === 'left' ? 1 : -1);
@@ -650,16 +670,16 @@ function VRMScene({
             const bone = vrm.humanoid.getNormalizedBoneNode(`${side}${finger}${phalanx}`);
             if (!bone) return;
             if (isTalking) {
-              const fPose = computeFingerPose(bs.activeIntent, finger, phalanx, side, t);
+              const fPose = computeFingerPose(bs.activeIntent, finger, phalanx, side, t, ttsAmplitude);
               bone.rotation.z = lerp(bone.rotation.z, fPose.curl, armLerp * 60, dt);
-              if (fPose.splay !== 0) {
-                bone.rotation.y = lerp(bone.rotation.y, fPose.splay, armLerp * 60, dt);
-              }
+              bone.rotation.y = lerp(bone.rotation.y, fPose.splay, armLerp * 60, dt);
             } else {
-              const curlMult = [0.52, 0.78, 1.0][pi];
+              const curlMult = [0.55, 0.85, 1.0][pi];
               const stagger = fi * 0.032;
               const goal = curlSign * (curlTarget + stagger + flutter) * curlMult;
               bone.rotation.z = lerp(bone.rotation.z, goal, armLerp * 60, dt);
+              const restSplay = (restSplayMap[finger] || 0) * (side === 'left' ? -1 : 1);
+              bone.rotation.y = lerp(bone.rotation.y, restSplay, armLerp * 60, dt);
             }
           });
         });
@@ -667,7 +687,7 @@ function VRMScene({
           const bone = vrm.humanoid.getNormalizedBoneNode(`${side}Thumb${phalanx}`);
           if (!bone) return;
           if (isTalking) {
-            const tPose = computeFingerPose(bs.activeIntent, 'Thumb', phalanx, side, t);
+            const tPose = computeFingerPose(bs.activeIntent, 'Thumb', phalanx, side, t, ttsAmplitude);
             bone.rotation.z = lerp(bone.rotation.z, tPose.curl, armLerp * 60, dt);
             bone.rotation.y = lerp(bone.rotation.y, (side === 'left' ? 0.28 : -0.28) + tPose.splay, armLerp * 60, dt);
           } else {

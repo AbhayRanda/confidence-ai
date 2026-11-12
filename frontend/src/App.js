@@ -28,7 +28,7 @@ const Settings      = lazy(() => import("./pages/Settings"));
 const Progress      = lazy(() => import("./pages/Progress"));
 const Practice      = lazy(() => import("./pages/Practice"));
 
-const PUBLIC_ROUTES = ["/login", "/signup", "/verify", "/auth/callback"];
+const PUBLIC_ROUTES = ["/login", "/signup", "/verify", "/auth/callback", "/landing"];
 
 // ── Inner shell (needs router context for useNavigate) ────────
 function AppShell() {
@@ -57,29 +57,23 @@ function AppShell() {
     return () => window.removeEventListener("auth:expired", handleAuthExpired);
   }, [handleAuthExpired]);
 
-  // Unauthenticated visitors to root see the Landing Page
-  if (!isLoggedIn && location.pathname === "/") {
-    return <Landing />;
-  }
-
   if (isPublic) {
     return (
       <Routes>
+        <Route path="/landing"       element={<Landing />} />
         <Route path="/login"         element={<Login />} />
         <Route path="/signup"        element={<Signup />} />
         <Route path="/verify"        element={<VerifyOTP />} />
         <Route path="/auth/callback" element={<GoogleCallback />} />
-        <Route path="*"              element={<Navigate to="/login" replace />} />
+        <Route path="*"              element={<Navigate to="/dashboard" replace />} />
       </Routes>
     );
   }
 
-  if (!isLoggedIn) return <Navigate to="/login" replace />;
-
   return (
     <div className="app-shell">
-      {/* Onboarding modal — shown once to new users */}
-      {!hasProfile && !onboardingDone && (
+      {/* Onboarding modal — shown once to signed-in users */}
+      {isLoggedIn && !hasProfile && !onboardingDone && (
         <UserOnboardingModal onComplete={() => setOnboardingDone(true)} />
       )}
       <Navbar />

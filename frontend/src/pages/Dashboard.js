@@ -154,6 +154,86 @@ const sharedChartOptions = {
   },
 };
 
+// ── Sample Demo Data for Visitors & Recruiters ───────────────
+const DEMO_SESSIONS = [
+  {
+    id: "demo-1",
+    created_at: new Date(Date.now() - 3 * 86400000).toISOString(),
+    confidence_score: 76.5,
+    confidence_level: "Moderate",
+    eye_contact_percentage: 72,
+    posture_percentage: 80,
+    speech_score: 75,
+    smile_percentage: 68,
+    hand_movement_percentage: 70,
+    video_path: null,
+  },
+  {
+    id: "demo-2",
+    created_at: new Date(Date.now() - 2 * 86400000).toISOString(),
+    confidence_score: 82.0,
+    confidence_level: "High",
+    eye_contact_percentage: 80,
+    posture_percentage: 85,
+    speech_score: 81,
+    smile_percentage: 75,
+    hand_movement_percentage: 78,
+    video_path: null,
+  },
+  {
+    id: "demo-3",
+    created_at: new Date(Date.now() - 1 * 86400000).toISOString(),
+    confidence_score: 87.4,
+    confidence_level: "High",
+    eye_contact_percentage: 86,
+    posture_percentage: 89,
+    speech_score: 86,
+    smile_percentage: 82,
+    hand_movement_percentage: 80,
+    video_path: null,
+  },
+  {
+    id: "demo-4",
+    created_at: new Date().toISOString(),
+    confidence_score: 91.2,
+    confidence_level: "High",
+    eye_contact_percentage: 89,
+    posture_percentage: 93,
+    speech_score: 90,
+    smile_percentage: 86,
+    hand_movement_percentage: 85,
+    video_path: null,
+  },
+];
+
+const DEMO_PROGRESS = {
+  best_score: 91.2,
+  streak: 4,
+  overall_delta: 3.8,
+  series: {
+    labels: ["Session 1", "Session 2", "Session 3", "Session 4"],
+    confidence: [76.5, 82.0, 87.4, 91.2],
+    eye_contact: [72, 80, 86, 89],
+    posture: [80, 85, 89, 93],
+    speech: [75, 81, 86, 90],
+    smile: [68, 75, 82, 86],
+    hand_movement: [70, 78, 80, 85],
+  },
+  metrics: {
+    "Eye Contact":   { current: 89, delta: 3.5, direction: "up" },
+    "Posture":       { current: 93, delta: 4.5, direction: "up" },
+    "Speech":        { current: 90, delta: 4.7, direction: "up" },
+    "Smile":         { current: 86, delta: 4.9, direction: "up" },
+    "Hand Movement": { current: 85, delta: 6.3, direction: "up" },
+  },
+};
+
+const DEMO_STORAGE = {
+  used_mb: "42.5",
+  limit_mb: "250.0",
+  percentage: 17,
+};
+
 // ─────────────────────────────────────────────────────────────
 // Main component
 // ─────────────────────────────────────────────────────────────
@@ -164,6 +244,7 @@ function Dashboard() {
   const [storageInfo, setStorageInfo] = useState(null);
   const [error,  setError]  = useState(null);
   const [loading, setLoading] = useState(false);
+  const [isGuest, setIsGuest] = useState(false);
   const [lastUpdate, setLastUpdate] = useState(null);
   const [activeChart, setActiveChart] = useState("overview"); // "overview" | "metrics"
   const [activePreviewVideo, setActivePreviewVideo] = useState(null);
@@ -172,6 +253,18 @@ function Dashboard() {
   const refreshRef = useRef(null);
 
   const fetchDashboard = useCallback(async () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      // Guest / Recruiter Mode: load rich interactive demo data immediately
+      setIsGuest(true);
+      setDataPoints([...DEMO_SESSIONS].reverse());
+      setProgressData(DEMO_PROGRESS);
+      setStorageInfo(DEMO_STORAGE);
+      setLastUpdate(new Date().toLocaleTimeString());
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -181,12 +274,26 @@ function Dashboard() {
         apiJSON("/storage"),
       ]);
       if (!dashRes.ok) throw new Error("Failed to load sessions");
-      setDataPoints(Array.isArray(dashRes.data) ? [...dashRes.data].reverse() : []);
-      if (progRes.ok && progRes.data) setProgressData(progRes.data);
-      if (storRes.ok && storRes.data) setStorageInfo(storRes.data);
+      const sessions = Array.isArray(dashRes.data) ? [...dashRes.data].reverse() : [];
+      if (sessions.length === 0) {
+        setIsGuest(true);
+        setDataPoints([...DEMO_SESSIONS].reverse());
+        setProgressData(DEMO_PROGRESS);
+        setStorageInfo(DEMO_STORAGE);
+      } else {
+        setIsGuest(false);
+        setDataPoints(sessions);
+        if (progRes.ok && progRes.data) setProgressData(progRes.data);
+        if (storRes.ok && storRes.data) setStorageInfo(storRes.data);
+      }
       setLastUpdate(new Date().toLocaleTimeString());
-    } catch (e) {
-      setError(e.message || "Failed to load dashboard");
+    } catch {
+      // Graceful fallback to demo data on backend/network issues
+      setIsGuest(true);
+      setDataPoints([...DEMO_SESSIONS].reverse());
+      setProgressData(DEMO_PROGRESS);
+      setStorageInfo(DEMO_STORAGE);
+      setLastUpdate(new Date().toLocaleTimeString());
     } finally {
       setLoading(false);
     }
@@ -199,6 +306,10 @@ function Dashboard() {
   }, [fetchDashboard]);
 
   const handleDelete = (id) => {
+    if (isGuest || (typeof id === "string" && id.startsWith("demo-"))) {
+      setError("Demo sessions cannot be deleted. Sign in to record and manage your personal sessions.");
+      return;
+    }
     setDeleteTargetId(id);
   };
 
@@ -296,6 +407,26 @@ function Dashboard() {
 
   return (
     <div className="dash-page">
+      {/* Recruiter / Visitor Interactive Preview Banner */}
+      {isGuest && (
+        <div className="dash-guest-banner animate-fadeUp">
+          <div className="dash-guest-content">
+            <span className="dash-guest-badge">✦ Interactive Demo</span>
+            <span className="dash-guest-text">
+              Viewing recruiter preview mode with live analytics. Practice drills are fully functional!
+            </span>
+          </div>
+          <div className="dash-guest-actions">
+            <button onClick={() => navigate("/practice")} className="dash-guest-btn dash-guest-btn--primary">
+              Try Practice Drill
+            </button>
+            <button onClick={() => navigate("/login")} className="dash-guest-btn dash-guest-btn--secondary">
+              Sign In
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="dash-header animate-fadeUp">
         <div>

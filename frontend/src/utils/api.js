@@ -54,12 +54,14 @@ export async function apiFetch(endpoint, options = {}) {
   const response = await fetch(url, { ...options, headers });
 
   if (response.status === 401) {
-    // Session expired or token invalid — clear credentials and notify
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('avatar');
-    localStorage.removeItem('userProfile');
-    notifySessionExpired();
+    // Only fire auth:expired if a token was actually present and expired
+    if (token) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('avatar');
+      localStorage.removeItem('userProfile');
+      notifySessionExpired();
+    }
     // Return the response so callers can still read error bodies if needed
     return response;
   }

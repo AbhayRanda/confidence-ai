@@ -275,7 +275,7 @@ export function IdealPerformanceDemo({ analysisData, videoBlob, onClose }) {
   const watchdogRef    = useRef(null);
   const userVideoRef   = useRef(null); // ref to the user's original video element
 
-  const [avatarMode, setAvatarMode]   = useState('avatar1'); // 'avatar1' | 'avatar2' | 'abstract'
+  const [avatarMode, setAvatarMode]   = useState('abstract'); // Default: 3D Robot as first preference
   const [vrmModelUrl, setVrmModelUrl] = useState(DEFAULT_VRM_URL);
   const [avatarState, setAvatarState] = useState(CHARACTER_STATES.IDLE);
   const [isSpeaking,  setIsSpeaking]  = useState(false);
@@ -996,6 +996,15 @@ export function IdealPerformanceDemo({ analysisData, videoBlob, onClose }) {
                 <div className="ipd-avatar-pill" role="group" aria-label="Avatar Model Style">
                   <button
                     type="button"
+                    className={`ipd-avatar-pill-btn ${avatarMode === 'abstract' ? 'active' : ''}`}
+                    onClick={() => setAvatarMode('abstract')}
+                    title="3D Robot Coach"
+                  >
+                    <span>🤖</span>
+                    <span>3D Robot</span>
+                  </button>
+                  <button
+                    type="button"
                     className={`ipd-avatar-pill-btn ${avatarMode === 'avatar1' ? 'active' : ''}`}
                     onClick={() => {
                       setAvatarMode('avatar1');
@@ -1017,15 +1026,6 @@ export function IdealPerformanceDemo({ analysisData, videoBlob, onClose }) {
                   >
                     <span>👩</span>
                     <span>Avatar 2</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={`ipd-avatar-pill-btn ${avatarMode === 'abstract' ? 'active' : ''}`}
-                    onClick={() => setAvatarMode('abstract')}
-                    title="Abstract 3D Robot"
-                  >
-                    <span>🤖</span>
-                    <span>3D Robot</span>
                   </button>
                 </div>
               </div>

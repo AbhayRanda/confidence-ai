@@ -281,7 +281,8 @@ function AIDashboard() {
 
   const fetchDashboard = useCallback(() => {
     const token = localStorage.getItem("token");
-    return fetch(API_ENDPOINTS.dashboard, { headers: { "Authorization": `Bearer ${token || ""}` } })
+    if (!token) return Promise.resolve();
+    return fetch(API_ENDPOINTS.dashboard, { headers: { "Authorization": `Bearer ${token}` } })
       .then((r) => r.json())
       .then((data) => setDataPoints(Array.isArray(data) ? data : []))
       .catch(() => {});
@@ -289,14 +290,28 @@ function AIDashboard() {
 
   const fetchStorage = useCallback(() => {
     const token = localStorage.getItem("token");
-    fetch(API_ENDPOINTS.storage, { headers: { "Authorization": `Bearer ${token || ""}` } })
+    if (!token) {
+      setStorageInfo({ used_bytes: 45 * 1024 * 1024, limit_bytes: 500 * 1024 * 1024 });
+      return;
+    }
+    fetch(API_ENDPOINTS.storage, { headers: { "Authorization": `Bearer ${token}` } })
       .then((r) => r.json()).then(setStorageInfo).catch(() => {});
   }, []);
 
   // Step 6: Fetch progress trends
   const fetchProgress = useCallback(() => {
     const token = localStorage.getItem("token");
-    fetch(API_ENDPOINTS.progress, { headers: { "Authorization": `Bearer ${token || ""}` } })
+    if (!token) {
+      setTrends({
+        "Eye Contact":   { direction: "up", change: 3.5 },
+        "Posture":       { direction: "up", change: 4.5 },
+        "Smile":         { direction: "up", change: 4.9 },
+        "Hand Movement": { direction: "up", change: 6.3 },
+        "Speech":        { direction: "up", change: 4.7 },
+      });
+      return;
+    }
+    fetch(API_ENDPOINTS.progress, { headers: { "Authorization": `Bearer ${token}` } })
       .then((r) => r.json())
       .then((data) => { if (data?.has_data) setTrends(data.metrics); })
       .catch(() => {});
@@ -467,6 +482,76 @@ function AIDashboard() {
     const fileToUpload = recordedBlob || selectedFile;
     if (!fileToUpload) { toast.warning("Please upload or record a video first."); return; }
 
+    const token = localStorage.getItem("token");
+
+    // ── GUEST / DEMO MODE ANALYSIS ─────────────────────────────
+    if (!token) {
+      setLoading(true);
+      character.onAnalysisStart();
+      setAnalysisProgress({ percent: 15, message: "Connecting demo pipeline…", stage: "connecting", completedStages: [] });
+
+      await new Promise((r) => setTimeout(r, 550));
+      setAnalysisProgress({ percent: 45, message: "Extracting video frames…", stage: "extract", completedStages: ["connecting"] });
+
+      await new Promise((r) => setTimeout(r, 650));
+      setAnalysisProgress({ percent: 75, message: "Analyzing facial geometry & posture…", stage: "face_pose", completedStages: ["connecting", "extract"] });
+
+      await new Promise((r) => setTimeout(r, 700));
+      setAnalysisProgress({ percent: 92, message: "Computing confidence scores & vocal dynamics…", stage: "metrics", completedStages: ["connecting", "extract", "face_pose"] });
+
+      await new Promise((r) => setTimeout(r, 500));
+      setAnalysisProgress({ percent: 100, message: "Compiling mentor feedback…", stage: "done", completedStages: ["connecting", "extract", "face_pose", "metrics"] });
+
+      const demoResult = {
+        confidence_score: 88.5,
+        eye_contact_percentage: 89.2,
+        posture_percentage: 93.0,
+        smile_percentage: 86.4,
+        hand_movement_percentage: 85.0,
+        speech_score: 90.5,
+        created_at: new Date().toISOString(),
+        report: {
+          summary: "Strong, commanding presentation delivery. Your upright posture and deliberate gestures conveyed authority. Natural eye contact maintained throughout.",
+          strengths: [
+            "Exceptional posture alignment with open chest framing and relaxed shoulders",
+            "Steady gaze engagement with clear focal commitment to the camera",
+            "Fluid, intentional hand gestures that punctuated key takeaways"
+          ],
+          improvements: [
+            "Introduce deliberate 1-second pauses before complex technical assertions",
+            "Vary vocal pitch slightly to sustain audience retention during longer sentences"
+          ],
+          exercise: {
+            title: "The 3-Second Pause Technique",
+            description: "Before answering challenging questions, pause for 3 seconds while maintaining steady eye contact and an open posture to project poise and confidence."
+          }
+        }
+      };
+
+      setDataPoints([demoResult]);
+      if (demoResult.report) {
+        setReport(demoResult.report);
+        if (demoResult.report.exercise) setExercise(demoResult.report.exercise);
+      }
+      setLastResult(demoResult);
+      character.onAnalysisComplete(demoResult.confidence_score);
+
+      setRecordedBlob(null);
+      setSelectedFile(null);
+      setRecordingTime(0);
+      if (videoRef.current) { videoRef.current.src = ""; videoRef.current.srcObject = null; }
+
+      setTimeout(() => {
+        const score = demoResult.confidence_score;
+        const nudge = `Score: ${score.toFixed(1)}/100 — great session! What do you want to work on?`;
+        chat.sendMessage(nudge);
+      }, 1500);
+
+      toast.success("✨ Demo Analysis Complete! (Sign in to store persistent recordings)");
+      setLoading(false);
+      return;
+    }
+
     const formData = new FormData();
     formData.append("file", fileToUpload, recordedBlob ? "video.webm" : selectedFile.name);
     setLoading(true);
@@ -502,7 +587,6 @@ function AIDashboard() {
     });
 
     try {
-      const token = localStorage.getItem("token");
       const response = await fetch(`${API_ENDPOINTS.analyze}?job_id=${encodeURIComponent(jobId)}`, {
         method: "POST",
         body: formData,

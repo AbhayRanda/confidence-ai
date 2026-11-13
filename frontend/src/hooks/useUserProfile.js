@@ -80,13 +80,19 @@ export function buildProfilePrompt(profile) {
 }
 
 export function useUserProfile() {
-  const [profile, setProfile] = useState(() => readLocal());
+  const [profile, setProfile] = useState(() => {
+    const token = localStorage.getItem('token');
+    return token ? readLocal() : null;
+  });
   const [syncing, setSyncing] = useState(false);
 
   // Fetch profile from backend on mount (source of truth)
   useEffect(() => {
     const token = localStorage.getItem('token');
-    if (!token) return;
+    if (!token) {
+      setProfile(null);
+      return;
+    }
     setSyncing(true);
     fetch(`${API_BASE}/profile`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : null)
@@ -107,7 +113,10 @@ export function useUserProfile() {
   }, []);
 
   useEffect(() => {
-    const handler = () => setProfile(readLocal());
+    const handler = () => {
+      const token = localStorage.getItem('token');
+      setProfile(token ? readLocal() : null);
+    };
     window.addEventListener(PROFILE_EVENT, handler);
     return () => window.removeEventListener(PROFILE_EVENT, handler);
   }, []);

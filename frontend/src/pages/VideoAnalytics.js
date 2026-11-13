@@ -88,10 +88,25 @@ function VideoAnalytics() {
     setError(null);
 
     // Support demo sessions for visitors & recruiters instantly
-    if (String(id).startsWith("demo-")) {
+    const demoKey = String(id).startsWith("demo-")
+      ? id
+      : (DEMO_ANALYTICS[`demo-${id}`] ? `demo-${id}` : null);
+
+    const token = localStorage.getItem("token");
+
+    if (demoKey && DEMO_ANALYTICS[demoKey]) {
       const demoList = Object.values(DEMO_ANALYTICS);
       setAllVideos(demoList);
-      const found = DEMO_ANALYTICS[id] || demoList[demoList.length - 1];
+      setVideoData(DEMO_ANALYTICS[demoKey]);
+      setLoading(false);
+      return;
+    }
+
+    if (!token) {
+      // Guest/demo mode: fall back to sample analytics so recruiters & visitors always see rich data
+      const demoList = Object.values(DEMO_ANALYTICS);
+      setAllVideos(demoList);
+      const found = DEMO_ANALYTICS[id] || DEMO_ANALYTICS[`demo-${id}`] || demoList[demoList.length - 1];
       setVideoData(found);
       setLoading(false);
       return;
@@ -407,11 +422,11 @@ function VideoAnalytics() {
                 Real-time WebRTC audio, MediaPipe gaze-tracking, and vocal clarity pipeline verified. Full metric breakdown preserved below.
               </p>
               <button
-                onClick={() => navigate("/practice")}
+                onClick={() => navigate("/ai")}
                 className="va-nav-btn va-nav-btn--primary"
                 style={{ marginTop: "6px", fontSize: "12px", padding: "7px 16px" }}
               >
-                Start Live Practice Drill
+                Start AI Practice Session
               </button>
             </div>
           </div>

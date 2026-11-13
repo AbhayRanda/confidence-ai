@@ -80,6 +80,7 @@ function Navbar() {
       localStorage.removeItem("user");
       localStorage.removeItem("avatar");
       localStorage.removeItem("userProfile");
+      localStorage.removeItem("confidence_ai_profile");
       navigate("/login");
     }
   };

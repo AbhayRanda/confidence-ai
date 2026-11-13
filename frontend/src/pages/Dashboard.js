@@ -733,6 +733,27 @@ function Dashboard() {
                             />
                             <div className="dash-thumb-play">▶</div>
                           </div>
+                        ) : d.id?.toString().startsWith("demo-") ? (
+                          <span
+                            className="dash-demo-tag"
+                            title="Interactive demo session with benchmark evaluation metrics"
+                            onClick={() => navigate(`/video/${d.id}`)}
+                            style={{
+                              cursor: "pointer",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "4px",
+                              fontSize: "11px",
+                              padding: "2px 8px",
+                              borderRadius: "12px",
+                              background: "rgba(99, 102, 241, 0.12)",
+                              color: "var(--accent-light, #818cf8)",
+                              border: "1px solid rgba(99, 102, 241, 0.25)",
+                              fontWeight: 500,
+                            }}
+                          >
+                            <span>📊</span> Demo Metrics
+                          </span>
                         ) : (
                           <span className="dash-no-video">—</span>
                         )}
@@ -796,6 +817,14 @@ function Dashboard() {
                       <div className="dash-m-video-overlay">
                         <div className="dash-m-play-btn">▶ Play Video</div>
                       </div>
+                    </div>
+                  ) : d.id?.toString().startsWith("demo-") ? (
+                    <div
+                      className="dash-m-no-video"
+                      style={{ cursor: "pointer", color: "var(--accent-light, #818cf8)", fontWeight: 500 }}
+                      onClick={() => navigate(`/video/${d.id}`)}
+                    >
+                      📊 Interactive Sample Benchmark
                     </div>
                   ) : (
                     <div className="dash-m-no-video">No video recorded</div>

@@ -60,6 +60,7 @@ export async function apiFetch(endpoint, options = {}) {
       localStorage.removeItem('user');
       localStorage.removeItem('avatar');
       localStorage.removeItem('userProfile');
+      localStorage.removeItem('confidence_ai_profile');
       notifySessionExpired();
     }
     // Return the response so callers can still read error bodies if needed

@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import "./AIDashboard.css";
 import { AICharacter } from "../components/ai-character/AICharacter";
@@ -185,6 +186,8 @@ function LastSessionBadge({ dataPoints }) {
 // Main component
 // ─────────────────────────────────────────────────────────────
 function AIDashboard() {
+  const navigate = useNavigate();
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [dataPoints, setDataPoints]       = useState([]);
   const [selectedFile, setSelectedFile]   = useState(null);
@@ -484,71 +487,65 @@ function AIDashboard() {
 
     const token = localStorage.getItem("token");
 
-    // ── GUEST / DEMO MODE ANALYSIS ─────────────────────────────
+    // ── Instant message with login option when not signed in ──────────
     if (!token) {
-      setLoading(true);
-      character.onAnalysisStart();
-      setAnalysisProgress({ percent: 15, message: "Connecting demo pipeline…", stage: "connecting", completedStages: [] });
-
-      await new Promise((r) => setTimeout(r, 550));
-      setAnalysisProgress({ percent: 45, message: "Extracting video frames…", stage: "extract", completedStages: ["connecting"] });
-
-      await new Promise((r) => setTimeout(r, 650));
-      setAnalysisProgress({ percent: 75, message: "Analyzing facial geometry & posture…", stage: "face_pose", completedStages: ["connecting", "extract"] });
-
-      await new Promise((r) => setTimeout(r, 700));
-      setAnalysisProgress({ percent: 92, message: "Computing confidence scores & vocal dynamics…", stage: "metrics", completedStages: ["connecting", "extract", "face_pose"] });
-
-      await new Promise((r) => setTimeout(r, 500));
-      setAnalysisProgress({ percent: 100, message: "Compiling mentor feedback…", stage: "done", completedStages: ["connecting", "extract", "face_pose", "metrics"] });
-
-      const demoResult = {
-        confidence_score: 88.5,
-        eye_contact_percentage: 89.2,
-        posture_percentage: 93.0,
-        smile_percentage: 86.4,
-        hand_movement_percentage: 85.0,
-        speech_score: 90.5,
-        created_at: new Date().toISOString(),
-        report: {
-          summary: "Strong, commanding presentation delivery. Your upright posture and deliberate gestures conveyed authority. Natural eye contact maintained throughout.",
-          strengths: [
-            "Exceptional posture alignment with open chest framing and relaxed shoulders",
-            "Steady gaze engagement with clear focal commitment to the camera",
-            "Fluid, intentional hand gestures that punctuated key takeaways"
-          ],
-          improvements: [
-            "Introduce deliberate 1-second pauses before complex technical assertions",
-            "Vary vocal pitch slightly to sustain audience retention during longer sentences"
-          ],
-          exercise: {
-            title: "The 3-Second Pause Technique",
-            description: "Before answering challenging questions, pause for 3 seconds while maintaining steady eye contact and an open posture to project poise and confidence."
-          }
+      setShowLoginModal(true);
+      toast.info(
+        ({ closeToast }) => (
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+            <div style={{ fontWeight: 700, fontSize: "14px", color: "#0f172a" }}>
+              🔐 Sign In Required
+            </div>
+            <div style={{ fontSize: "12.5px", color: "#475569", lineHeight: "1.4" }}>
+              Please sign in to analyze your video recording with AI and view detailed metrics.
+            </div>
+            <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
+              <button
+                onClick={() => {
+                  closeToast();
+                  navigate("/login");
+                }}
+                style={{
+                  background: "#0d9488",
+                  color: "#ffffff",
+                  border: "none",
+                  borderRadius: "6px",
+                  padding: "6px 14px",
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                Sign In →
+              </button>
+              <button
+                onClick={() => {
+                  closeToast();
+                  navigate("/register");
+                }}
+                style={{
+                  background: "#f1f5f9",
+                  color: "#334155",
+                  border: "1px solid #cbd5e1",
+                  borderRadius: "6px",
+                  padding: "6px 12px",
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                Create Account
+              </button>
+            </div>
+          </div>
+        ),
+        {
+          toastId: "login-required-toast",
+          autoClose: 8000,
+          closeOnClick: false,
+          draggable: false,
         }
-      };
-
-      setDataPoints([demoResult]);
-      if (demoResult.report) {
-        setReport(demoResult.report);
-        if (demoResult.report.exercise) setExercise(demoResult.report.exercise);
-      }
-      setLastResult(demoResult);
-      character.onAnalysisComplete(demoResult.confidence_score);
-
-      setRecordedBlob(null);
-      setSelectedFile(null);
-      setRecordingTime(0);
-      if (videoRef.current) { videoRef.current.src = ""; videoRef.current.srcObject = null; }
-
-      setTimeout(() => {
-        const score = demoResult.confidence_score;
-        const nudge = `Score: ${score.toFixed(1)}/100 — great session! What do you want to work on?`;
-        chat.sendMessage(nudge);
-      }, 1500);
-
-      toast.success("✨ Demo Analysis Complete! (Sign in to store persistent recordings)");
-      setLoading(false);
+      );
       return;
     }
 
@@ -775,6 +772,51 @@ function AIDashboard() {
           videoBlob={recordedBlob || selectedFile}
           onClose={() => setShowIdealDemo(false)}
         />
+      )}
+
+      {/* Sign-in prompt modal when unauthenticated user clicks Analyze */}
+      {showLoginModal && (
+        <div className="ai-report-overlay" onClick={() => setShowLoginModal(false)}>
+          <div className="ai-report-panel" style={{ maxWidth: 440, textAlign: "center" }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ fontSize: "40px", marginBottom: "12px" }}>🔐</div>
+            <h3 style={{ fontSize: "20px", fontWeight: 700, marginBottom: "8px", color: "var(--text-primary)" }}>
+              Sign In to Analyze
+            </h3>
+            <p style={{ fontSize: "14px", color: "var(--text-secondary)", lineHeight: 1.5, marginBottom: "24px" }}>
+              Please sign in or create an account to analyze your video recording with AI and receive your personalized confidence breakdown.
+            </p>
+            <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
+              <button
+                className="ai-btn-primary"
+                style={{ padding: "10px 22px", borderRadius: "10px", fontSize: "14px" }}
+                onClick={() => navigate("/login")}
+              >
+                Sign In →
+              </button>
+              <button
+                className="ai-btn-upload"
+                style={{ padding: "10px 20px", borderRadius: "10px", fontSize: "14px", cursor: "pointer" }}
+                onClick={() => navigate("/register")}
+              >
+                Create Account
+              </button>
+            </div>
+            <button
+              onClick={() => setShowLoginModal(false)}
+              style={{
+                marginTop: "16px",
+                background: "none",
+                border: "none",
+                color: "var(--text-muted)",
+                fontSize: "13px",
+                cursor: "pointer",
+                textDecoration: "underline",
+              }}
+            >
+              Continue browsing
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Header */}

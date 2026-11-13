@@ -236,6 +236,114 @@
   pointer-events: auto;
 }
 
+.ipd-avatar-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--border-light, rgba(0, 0, 0, 0.08));
+  border-radius: 999px;
+  backdrop-filter: blur(14px);
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+}
+
+.ipd-avatar-pill-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-secondary, #64748b);
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all var(--transition, 0.2s);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.ipd-avatar-pill-btn:hover {
+  color: var(--text-primary, #0f172a);
+  background: var(--bg-hover, #f1f5f9);
+}
+
+.ipd-avatar-pill-btn.active {
+  background: var(--accent, #0d9488);
+  border-color: var(--accent, #0d9488);
+  color: #ffffff;
+  box-shadow: 0 2px 10px var(--accent-glow, rgba(13, 148, 136, 0.35));
+}
+
+/* ── Target Score Card in Coaching Panel ── */
+.ipd-target-score-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--border-light, rgba(0, 0, 0, 0.08));
+  border-radius: 14px;
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.04));
+  margin-bottom: 14px;
+}
+
+.ipd-target-score-ring {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+}
+
+.ipd-target-score-ring svg {
+  transform: rotate(-90deg);
+}
+
+.ipd-target-score-num {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--accent, #0d9488);
+}
+
+.ipd-target-score-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ipd-target-score-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary, #0f172a);
+}
+
+.ipd-target-score-sub {
+  font-size: 11px;
+  color: var(--text-muted, #64748b);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ipd-target-score-val {
+  font-weight: 700;
+  color: var(--accent, #0d9488);
+}
+
+.ipd-target-score-sep {
+  color: var(--text-muted, #94a3b8);
+}
+
+.ipd-target-score-vs {
+  color: var(--text-muted, #64748b);
+}
+
 .ipd-camera-presets {
   display: flex;
   align-items: center;

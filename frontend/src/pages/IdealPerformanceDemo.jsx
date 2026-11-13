@@ -281,12 +281,9 @@ export function IdealPerformanceDemo({ analysisData, videoBlob, onClose }) {
   const [isSpeaking,  setIsSpeaking]  = useState(false);
   const [ttsAmplitude, setTtsAmplitude] = useState(0);
   const [activeWord,  setActiveWord]  = useState('');
-  const [cameraMode,  setCameraMode]  = useState('bust'); // 'bust' | 'keynote' | 'profile'
-  const [studioLighting, setStudioLighting] = useState('keynote'); // 'keynote' | 'ted' | 'daylight'
-  const [audienceTracking, setAudienceTracking] = useState(false);
-  const [showTelemetry, setShowTelemetry] = useState(false);
-  const [showPrompter,  setShowPrompter]  = useState(true);
-  const [telemetry,   setTelemetry]   = useState(null);
+  const [cameraMode]  = useState('bust'); // Optimal camera angle for speech demo
+  const [studioLighting] = useState('keynote');
+  const [audienceTracking] = useState(false);
 
   // ── Duel / Split-screen mode ─────────────────────────────────
   const [duelMode, setDuelMode] = useState(false);
@@ -978,7 +975,7 @@ export function IdealPerformanceDemo({ analysisData, videoBlob, onClose }) {
                   cameraMode={cameraMode}
                   studioLighting={studioLighting}
                   audienceTracking={audienceTracking}
-                  onTelemetryUpdate={setTelemetry}
+                  onTelemetryUpdate={() => {}}
                   onError={(err) => {
                     console.warn('[IdealDemo] VRM load error, falling back:', err);
                     if (vrmModelUrl === DEFAULT_VRM_URL) {
@@ -991,240 +988,47 @@ export function IdealPerformanceDemo({ analysisData, videoBlob, onClose }) {
               )}
             </div>
 
-            {/* HUD overlay */}
+            {/* Clean Stage HUD overlay */}
             <div className="ipd-hud">
 
-              {/* Top stage toolbar: Director Camera, Studio Lighting, Audience Tracking, Prompter & Telemetry */}
+              {/* Minimal Top Stage Avatar Selector */}
               <div className="ipd-stage-toolbar">
-                {/* Director Camera Presets — desktop only */}
-                {!isMobile && (
-                  <div className="ipd-camera-presets ipd-camera-presets--angles" role="group" aria-label="Camera Shot Angle">
-                    {Object.values(CAMERA_PRESETS).map(preset => (
-                      <button
-                        key={preset.id}
-                        type="button"
-                        className={`ipd-camera-btn ${cameraMode === preset.id ? 'ipd-camera-btn--active' : ''}`}
-                        onClick={() => setCameraMode(preset.id)}
-                        title={`Switch to ${preset.label}`}
-                      >
-                        <span className="ipd-camera-icon">{preset.icon}</span>
-                        <span className="ipd-camera-label">{preset.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                {/* Avatar Model Switcher */}
-                <div className="ipd-camera-presets ipd-camera-presets--avatars" role="group" aria-label="Avatar Model Style">
+                <div className="ipd-avatar-pill" role="group" aria-label="Avatar Model Style">
                   <button
                     type="button"
-                    className={`ipd-camera-btn ${avatarMode === 'avatar1' ? 'ipd-camera-btn--active' : ''}`}
+                    className={`ipd-avatar-pill-btn ${avatarMode === 'avatar1' ? 'active' : ''}`}
                     onClick={() => {
                       setAvatarMode('avatar1');
                       setVrmModelUrl('/avatar.vrm');
                     }}
                     title="Avatar 1 (VRM Humanoid)"
                   >
-                    <span className="ipd-camera-icon">🧑</span>
-                    <span className="ipd-camera-label">{isMobile ? '1' : 'Avatar 1'}</span>
+                    <span>🧑</span>
+                    <span>Avatar 1</span>
                   </button>
                   <button
                     type="button"
-                    className={`ipd-camera-btn ${avatarMode === 'avatar2' ? 'ipd-camera-btn--active' : ''}`}
+                    className={`ipd-avatar-pill-btn ${avatarMode === 'avatar2' ? 'active' : ''}`}
                     onClick={() => {
                       setAvatarMode('avatar2');
                       setVrmModelUrl('/avatar1.vrm');
                     }}
                     title="Avatar 2 (VRM Humanoid)"
                   >
-                    <span className="ipd-camera-icon">👩</span>
-                    <span className="ipd-camera-label">{isMobile ? '2' : 'Avatar 2'}</span>
+                    <span>👩</span>
+                    <span>Avatar 2</span>
                   </button>
                   <button
                     type="button"
-                    className={`ipd-camera-btn ${avatarMode === 'abstract' ? 'ipd-camera-btn--active' : ''}`}
+                    className={`ipd-avatar-pill-btn ${avatarMode === 'abstract' ? 'active' : ''}`}
                     onClick={() => setAvatarMode('abstract')}
                     title="Abstract 3D Robot"
                   >
-                    <span className="ipd-camera-icon">🤖</span>
-                    <span className="ipd-camera-label">{isMobile ? 'Bot' : 'Abstract'}</span>
+                    <span>🤖</span>
+                    <span>3D Robot</span>
                   </button>
                 </div>
-
-                {/* Stage controls — desktop only */}
-                {!isMobile && (
-                  <>
-                    <div className="ipd-lighting-presets" role="group" aria-label="Broadcast Studio Lighting">
-                      {Object.values(STUDIO_LIGHTING_PRESETS).map(light => (
-                        <button
-                          key={light.id}
-                          type="button"
-                          className={`ipd-lighting-btn ${studioLighting === light.id ? 'ipd-lighting-btn--active' : ''}`}
-                          onClick={() => setStudioLighting(light.id)}
-                          title={`Lighting: ${light.label} — ${light.description}`}
-                        >
-                          <span className="ipd-lighting-icon">{light.icon}</span>
-                          <span className="ipd-lighting-label">{light.label.split(' ')[0]}</span>
-                        </button>
-                      ))}
-                    </div>
-
-                    <button
-                      type="button"
-                      className={`ipd-audience-toggle-btn ${audienceTracking ? 'ipd-audience-toggle-btn--active' : ''}`}
-                      onClick={() => setAudienceTracking(v => !v)}
-                      title={audienceTracking ? "Audience Eye-Contact Tracking Active (Follows cursor)" : "Enable Audience Eye-Contact Tracking"}
-                    >
-                      <span className="ipd-audience-icon">{audienceTracking ? '👀' : '👁️'}</span>
-                      <span className="ipd-audience-label">Audience {audienceTracking ? 'ON' : 'OFF'}</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      className={`ipd-prompter-toggle-btn ${showPrompter ? 'ipd-prompter-toggle-btn--active' : ''}`}
-                      onClick={() => setShowPrompter(v => !v)}
-                      title="Toggle Broadcast Karaoke Teleprompter HUD"
-                    >
-                      <span className="ipd-prompter-icon">📺</span>
-                      <span className="ipd-prompter-label">Prompter</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      className={`ipd-telemetry-toggle-btn ${showTelemetry ? 'ipd-telemetry-toggle-btn--active' : ''}`}
-                      onClick={() => setShowTelemetry(v => !v)}
-                      title="Toggle Real-Time AI Biometric Presenter Telemetry"
-                    >
-                      <span className="ipd-telemetry-dot" />
-                      Telemetry
-                    </button>
-                  </>
-                )}
               </div>
-
-              {/* Live Presenter Biometric Telemetry Card — desktop only */}
-              {!isMobile && showTelemetry && (
-                <div className="ipd-telemetry-card">
-                  <div className="ipd-telemetry-header">
-                    <span className="ipd-telemetry-title">⚡ Live Biometric Presenter Telemetry</span>
-                    <button
-                      type="button"
-                      className="ipd-telemetry-close"
-                      onClick={() => setShowTelemetry(false)}
-                      title="Close Telemetry"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                  <div className="ipd-telemetry-grid">
-                    <div className="ipd-telemetry-item">
-                      <span className="ipd-telemetry-item-label">Eye Contact & VOR</span>
-                      <span
-                        className="ipd-telemetry-item-val"
-                        style={{ color: audienceTracking ? '#38bdf8' : telemetry?.gazeState === 'camera' ? '#4ade80' : '#facc15' }}
-                      >
-                        {audienceTracking
-                          ? 'Audience Pointer VOR Lock (Interactive)'
-                          : telemetry?.gazeState === 'camera'
-                            ? '70% Audience Lock (Direct Eye Contact)'
-                            : '30% Cognitive Aversion (Recalling Thoughts)'}
-                      </span>
-                    </div>
-                    <div className="ipd-telemetry-item">
-                      <span className="ipd-telemetry-item-label">Chironomia Kinesics</span>
-                      <span className="ipd-telemetry-item-val" style={{ color: '#ec4899' }}>
-                        {telemetry?.kinesics === 'enumerate'
-                          ? 'Index Precision Point (1-2 Count)'
-                          : telemetry?.kinesics === 'vision'
-                            ? 'Supine Open Welcoming Palm'
-                            : telemetry?.kinesics === 'conviction'
-                              ? 'Sternum Heart Cup'
-                              : telemetry?.kinesics === 'impact'
-                                ? 'Decisive Precision Chop'
-                                : telemetry?.kinesics === 'contrast'
-                                  ? 'Weighing Supine Balance'
-                                  : 'Natural Conversational Splay'}
-                      </span>
-                    </div>
-                    <div className="ipd-telemetry-item">
-                      <span className="ipd-telemetry-item-label">Studio Environment</span>
-                      <span className="ipd-telemetry-item-val" style={{ color: '#f59e0b' }}>
-                        {STUDIO_LIGHTING_PRESETS[studioLighting]?.label || 'Keynote Cyber'}
-                      </span>
-                    </div>
-                    <div className="ipd-telemetry-item">
-                      <span className="ipd-telemetry-item-label">Posture & Weight</span>
-                      <span className="ipd-telemetry-item-val" style={{ color: '#c084fc' }}>
-                        Contrapposto Shift ({(Math.abs(telemetry?.postureWeight ?? 0) * 100).toFixed(0)}% {(telemetry?.postureWeight ?? 0) >= 0 ? 'Right' : 'Left'} Leg Loaded)
-                      </span>
-                    </div>
-                    <div className="ipd-telemetry-item">
-                      <span className="ipd-telemetry-item-label">Prosodic Cadence</span>
-                      <span
-                        className="ipd-telemetry-item-val"
-                        style={{ color: telemetry?.isQuestion ? '#38bdf8' : telemetry?.isEmphasis ? '#f472b6' : '#a78bfa' }}
-                      >
-                        {telemetry?.isQuestion ? 'Inquisitive Pitch Lift (?)' : telemetry?.isEmphasis ? 'Decisive Downbeat (!)' : 'Conversational Cadence'}
-                      </span>
-                    </div>
-                    <div className="ipd-telemetry-item">
-                      <span className="ipd-telemetry-item-label">Phoneme Viseme</span>
-                      <span className="ipd-telemetry-item-val" style={{ color: '#38bdf8' }}>
-                        {telemetry?.activeWord ? `Word: "${telemetry.activeWord.toUpperCase()}"` : 'Resting Baseline'}
-                      </span>
-                    </div>
-                    <div className="ipd-telemetry-item">
-                      <span className="ipd-telemetry-item-label">Autonomic Physiology</span>
-                      <span className="ipd-telemetry-item-val" style={{ color: '#34d399' }}>
-                        {telemetry?.isSwallowing
-                          ? 'Laryngeal Swallow Reset'
-                          : telemetry?.breathLift > 0
-                            ? 'Thoracic Ribcage Tidal Expansion'
-                            : 'Tidal Exhalation'} • 14Hz Saccades
-                      </span>
-                    </div>
-                    <div className="ipd-telemetry-item">
-                      <span className="ipd-telemetry-item-label">Duchenne Warmth</span>
-                      <span className="ipd-telemetry-item-val" style={{ color: '#fb923c' }}>
-                        Zygomatic Micro-Smile ({((telemetry?.warmthVal ?? 0.1) * 100).toFixed(0)}%)
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Score ring — top left */}
-              <div className="ipd-score-ring-wrap">
-                <div className="ipd-score-ring">
-                  <ScoreRing score={idealScore} size={isMobile ? 36 : 48} />
-                  <div className="ipd-score-ring-num">{idealScore}</div>
-                </div>
-                {!isMobile && (
-                  <div>
-                    <div className="ipd-score-ring-title">Ideal Score</div>
-                    <div className="ipd-score-ring-label">vs your {actualScore.toFixed(0)}</div>
-                  </div>
-                )}
-              </div>
-
-              {/* Metric chips — desktop only */}
-              {!isMobile && (
-                <div className="ipd-metric-chips">
-                  {[
-                    { icon: '👁️', label: 'Eye',     val: IDEAL_METRICS.eye_contact_percentage },
-                    { icon: '😊', label: 'Smile',   val: IDEAL_METRICS.smile_percentage },
-                    { icon: '🧍', label: 'Posture', val: IDEAL_METRICS.posture_percentage },
-                  ].map(c => (
-                    <div key={c.label} className="ipd-chip">
-                      <span className="ipd-chip-icon">{c.icon}</span>
-                      <span className="ipd-chip-label">{c.label}</span>
-                      <span className="ipd-chip-val" style={{ color: metricColor(c.val) }}>
-                        {c.val}%
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
 
               {/* Playing bars — bottom left */}
               {playing && (
@@ -1238,42 +1042,7 @@ export function IdealPerformanceDemo({ analysisData, videoBlob, onClose }) {
                 </div>
               )}
 
-              {/* Broadcast Stage Teleprompter Karaoke HUD — desktop only */}
-              {!isMobile && showPrompter && (playing || sentenceIdx > 0 || currentSentence) && (
-                <div className="ipd-prompter-hud">
-                  <div className="ipd-prompter-header">
-                    <div className="ipd-prompter-header-left">
-                      <span className="ipd-prompter-dot" />
-                      <span className="ipd-prompter-title">BROADCAST TELEPROMPTER</span>
-                    </div>
-                    <div className="ipd-prompter-header-right">
-                      <span className="ipd-prompter-tag ipd-prompter-tag--cadence">
-                        {telemetry?.isQuestion ? '❓ Inquisitive' : telemetry?.isEmphasis ? '⚡ Emphasis' : '🎙️ Cadence'}
-                      </span>
-                      <span className="ipd-prompter-tag ipd-prompter-tag--pace">
-                        {analysisData?.words_per_minute ? `${analysisData.words_per_minute} WPM` : '135 WPM'}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="ipd-prompter-content">
-                    {currentSentence.split(/\s+/).filter(Boolean).map((word, wIdx) => {
-                      const cleanW = word.toLowerCase().replace(/[^a-z]/g, '');
-                      const cleanActive = (activeWord || '').toLowerCase().replace(/[^a-z]/g, '');
-                      const isWordActive = Boolean(cleanActive && cleanW === cleanActive);
-                      return (
-                        <span
-                          key={`${word}-${wIdx}`}
-                          className={`ipd-prompter-word ${isWordActive ? 'ipd-prompter-word--active' : ''}`}
-                        >
-                          {word}
-                        </span>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Speech bubble — bottom center (clean subtitles on mobile) */}
+              {/* Speech subtitle bubble — bottom center (clean subtitles) */}
               {(playing || sentenceIdx > 0) && (
                 <div className={`ipd-speech-bubble${isMobile ? ' ipd-speech-bubble--mobile' : ''}`}>
                   {!isMobile && (
@@ -1308,6 +1077,22 @@ export function IdealPerformanceDemo({ analysisData, videoBlob, onClose }) {
 
           {/* ── Right: Coaching Panel ────────────────────── */}
           <div className="ipd-panel">
+
+            {/* Target Score Summary Banner */}
+            <div className="ipd-target-score-card">
+              <div className="ipd-target-score-ring">
+                <ScoreRing score={idealScore} size={42} />
+                <div className="ipd-target-score-num">{idealScore}</div>
+              </div>
+              <div className="ipd-target-score-info">
+                <div className="ipd-target-score-title">Target Confidence Score</div>
+                <div className="ipd-target-score-sub">
+                  <span className="ipd-target-score-val">{idealScore}/100</span>
+                  <span className="ipd-target-score-sep">•</span>
+                  <span className="ipd-target-score-vs">Your Baseline: {actualScore.toFixed(0)}/100</span>
+                </div>
+              </div>
+            </div>
 
             {/* Improvements section */}
             <div className="ipd-section">
